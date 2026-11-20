@@ -159,6 +159,51 @@ export type Database = {
           },
         ]
       }
+      onboarding_events: {
+        Row: {
+          event: string
+          id: number
+          metadata: Json
+          occurred_at: string
+          page_id: string | null
+          slug: string | null
+          user_id: string | null
+        }
+        Insert: {
+          event: string
+          id?: never
+          metadata?: Json
+          occurred_at?: string
+          page_id?: string | null
+          slug?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          event?: string
+          id?: never
+          metadata?: Json
+          occurred_at?: string
+          page_id?: string | null
+          slug?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_events_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "onboarding_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pages: {
         Row: {
           address: string | null
