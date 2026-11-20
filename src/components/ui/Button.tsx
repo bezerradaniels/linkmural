@@ -7,7 +7,7 @@ export type ButtonVariant =
 export type ButtonSize = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-pill border border-transparent font-sans font-semibold leading-none no-underline " +
+  "inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-pill border font-sans font-semibold leading-none no-underline " +
   "transition-[background-color,border-color,transform,box-shadow] duration-(--duration-fast) ease-out " +
   "enabled:hover:-translate-y-px enabled:active:translate-y-0 enabled:active:scale-[0.98] " +
   "disabled:cursor-not-allowed disabled:opacity-45 aria-disabled:pointer-events-none aria-disabled:opacity-45 " +
@@ -15,12 +15,12 @@ const base =
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-lime text-on-lime enabled:hover:bg-lime-strong enabled:hover:shadow-md",
-  secondary: "bg-ink text-paper enabled:hover:bg-ink-soft",
+    "border-transparent bg-lime text-on-lime enabled:hover:bg-lime-strong enabled:hover:shadow-md",
+  secondary: "border-transparent bg-ink text-paper enabled:hover:bg-ink-soft",
   outline:
     "border-line-strong bg-transparent text-ink enabled:hover:border-ink enabled:hover:bg-surface",
-  ghost: "bg-transparent text-ink enabled:hover:bg-hover",
-  danger: "bg-negative text-on-negative",
+  ghost: "border-transparent bg-transparent text-ink enabled:hover:bg-hover",
+  danger: "border-transparent bg-negative text-on-negative",
 };
 
 const sizes: Record<ButtonSize, string> = {

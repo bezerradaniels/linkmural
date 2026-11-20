@@ -34,7 +34,7 @@ export function Segmented<T extends string>({
       role="group"
       aria-label={label}
       className={cx(
-        "inline-flex gap-0.5 rounded-pill bg-hover p-[3px]",
+        "inline-flex w-fit gap-0.5 rounded-pill bg-hover p-[3px]",
         className,
       )}
     >
