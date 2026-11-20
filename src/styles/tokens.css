@@ -1,0 +1,81 @@
+/*
+ * Linkmural design tokens (panel). Source: design/tokens.json.
+ * Light is the default; dark applies with <html data-theme="dark">.
+ * Tailwind utilities map to these variables in src/app/globals.css.
+ */
+
+:root {
+  color-scheme: light;
+  --paper: #f4f4ef;
+  --surface: #ffffff;
+  --ink: #0e0e0e;
+  --ink-muted: #6b6b66;
+  --line: #e2e2dc;
+  --lime: #cdf54a;
+  --on-lime: #0e0e0e;
+  --lime-soft: #eef9c6;
+  --focus: #0e0e0e;
+  --positive: #1e7a43;
+  --warning: #9a5200;
+  --negative: #c42b30;
+  --lime-strong: #bce635;
+  --ink-soft: #2a2a28;
+  --line-strong: #c9c9c2;
+  --hover: rgba(14, 14, 14, 0.06);
+  --shimmer: rgba(255, 255, 255, 0.7);
+  --overlay: rgba(14, 14, 14, 0.48);
+  --on-negative: #ffffff;
+  --positive-soft: #e3f4e9;
+  --warning-soft: #fbebd6;
+  --negative-soft: #fbe3e3;
+
+  /* Shadows (light). Tailwind reads --shadow-* from @theme; dark overrides below. */
+  --shadow-sm: 0 1px 2px rgba(14, 14, 14, 0.08);
+  --shadow-md: 0 8px 24px rgba(14, 14, 14, 0.1);
+  --shadow-lg: 0 20px 48px rgba(14, 14, 14, 0.18);
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-pin: 480ms;
+
+  /* Spacing (also matches Tailwind default spacing: 1 = 4px) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0e0e0e;
+  --surface: #1a1a18;
+  --ink: #f4f4ef;
+  --ink-muted: #a3a39c;
+  --line: #2c2c29;
+  --lime: #cdf54a;
+  --on-lime: #0e0e0e;
+  --lime-soft: #2b3310;
+  --focus: #cdf54a;
+  --positive: #4ade80;
+  --warning: #f5b04a;
+  --negative: #ff6b6b;
+  --lime-strong: #d9f86a;
+  --ink-soft: #e2e2dc;
+  --line-strong: #45453f;
+  --hover: rgba(244, 244, 239, 0.08);
+  --shimmer: rgba(255, 255, 255, 0.08);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --on-negative: #0e0e0e;
+  --positive-soft: #13281b;
+  --warning-soft: #2e2210;
+  --negative-soft: #33171a;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.6);
+}

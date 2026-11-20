@@ -1,17 +1,22 @@
+import Image from "next/image";
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-      <div className="max-w-md space-y-4">
-        <span className="inline-block rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-xs font-medium text-neutral-400">
-          linkmural.com
-        </span>
-        <h1 className="text-4xl font-bold tracking-tight text-white">
-          LinkMural
-        </h1>
-        <p className="text-neutral-400">
-          Aplicação Next.js conectada e pronta para publicação.
-        </p>
-      </div>
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
+      <Image
+        src="/brand/linkmural-logo.svg"
+        alt="Linkmural"
+        width={220}
+        height={32}
+        priority
+      />
+      <h1 className="font-display text-display-md tracking-[-0.03em] sm:text-display-lg">
+        Olá! Estamos montando o mural.
+      </h1>
+      <p className="max-w-sm text-ink-muted">
+        A página de links do seu negócio, pronta em 3 minutos. Em breve em
+        linkmural.com.
+      </p>
     </main>
   );
 }
