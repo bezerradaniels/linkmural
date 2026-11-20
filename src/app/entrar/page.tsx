@@ -69,8 +69,15 @@ export default async function EntrarPage({
         </div>
 
         <p className="text-center text-caption text-ink-muted">
-          Ao continuar, você concorda com os Termos de uso e a Política de
-          Privacidade.
+          Ao continuar, você concorda com os{" "}
+          <Link href="/termos" className="underline underline-offset-2">
+            Termos de uso
+          </Link>{" "}
+          e a{" "}
+          <Link href="/privacidade" className="underline underline-offset-2">
+            Política de Privacidade
+          </Link>
+          .
         </p>
       </div>
     </main>
