@@ -42,3 +42,9 @@ supabase gen types typescript --linked > src/lib/supabase/types.ts
 - Clientes do Supabase ficam em `src/utils/supabase/{client,server,proxy}.ts` (não em `src/lib/supabase/`). O `admin.ts` (service role, `server-only`) e o `types.ts` entram na mesma pasta.
 - A chave pública do Supabase é `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (não `ANON_KEY`).
 - Build usa `next build --webpack` e `next.config.mjs` por compatibilidade com a glibc da Hostinger.
+
+## Ambientes e publicação
+- `develop` → https://beta.linkmural.com (homologação). `main` → https://linkmural.com (produção). A Hostinger faz o build sozinha a cada push.
+- Fluxo: trabalhar na `develop`, conferir no beta e só então juntar na `main` (fast-forward).
+- As variáveis de cada site ficam na Hostinger (app Node.js). `NEXT_PUBLIC_*` só valem depois de um build novo.
+- O beta ainda usa o mesmo projeto do Supabase da produção: dados criados no beta aparecem na produção.

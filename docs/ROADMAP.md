@@ -14,7 +14,7 @@ Datas do plano: início em 23/11, beta fechado (só Grátis) em 20/12, lançamen
 - [x] Login: `/entrar` com link mágico e Google; `/auth/callback`; sair. (Google testado em produção em 20/11; link por e-mail depende do SMTP do Resend para chegar a quem não é da equipe.)
 - [x] Componentes base do MVP em `src/components/ui`: Button, Input (com prefixo `linkmural.com/`), Switch, Checkbox, Badge, Chip, Segmented, Avatar, Alert, Toast, Skeleton, Progress, EmptyState, Dialog.
 - [x] Página `/dev/ui` (só em desenvolvimento) mostrando todos os componentes.
-- [ ] Deploy na Hostinger com uma página "olá" em linkmural.com e homologação em `beta.linkmural.com`. (linkmural.com no ar com build automático da `main` em 20/11; falta o beta.)
+- [x] Deploy na Hostinger com uma página "olá" em linkmural.com e homologação em `beta.linkmural.com`. (20/11: `main` → linkmural.com e `develop` → beta.linkmural.com, ambos com build automático.)
 
 **Pronto quando:** dá para entrar com Google e com e-mail em produção, e o build da Hostinger sai sozinho a cada push.
 
