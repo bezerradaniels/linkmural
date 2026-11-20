@@ -41,13 +41,13 @@ Datas do plano: início em 23/11, beta fechado (só Grátis) em 20/12, lançamen
 **Pronto quando:** uma pessoa nova publica a página no celular em menos de 3 minutos.
 
 ## Fase 3 · Painel do cliente (§10)
-- [ ] Layout: sidebar no desktop e tab bar no celular.
-- [ ] Início (checklist e números de 7 dias).
-- [ ] Página: editor de links com IconPicker, reconhecimento automático, ordenar arrastando, ativar e destacar. Aviso de limite traduzido de `plan_limit_links`.
-- [ ] Aparência com prévia ao vivo e controles Pro+ com cadeado.
-- [ ] Informações (dados, horários, upload de avatar e capa com redimensionamento, troca de endereço).
-- [ ] Métricas (total no Grátis; gráfico diário já preparado para o Pro).
-- [ ] E-mail "Sua página está no ar".
+- [x] Layout: sidebar no desktop e tab bar no celular.
+- [x] Início (checklist e números de 7 dias).
+- [x] Página: editor de links com IconPicker, reconhecimento automático, ordenar arrastando, ativar e destacar. Aviso de limite traduzido de `plan_limit_links`.
+- [x] Aparência com prévia ao vivo e controles Pro+ com cadeado.
+- [x] Informações (dados, horários, upload de avatar e capa com redimensionamento, troca de endereço).
+- [x] Métricas (total no Grátis; gráfico diário já preparado para o Pro).
+- [x] E-mail "Sua página está no ar".
 
 **Pronto quando:** dá para manter a página só pelo celular. → **Abrir o beta fechado (10 a 20 negócios).**
 
