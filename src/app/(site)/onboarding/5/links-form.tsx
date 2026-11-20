@@ -1,106 +1,129 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useCallback, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
+import { IconPicker } from "@/components/app/IconPicker";
+import { LinkIconGlyph } from "@/components/app/LinkIconGlyph";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
-import { Alert, Badge, Button, Chip, Icon, Input } from "@/components/ui";
-import type { IconName } from "@/components/ui/icons";
+import { Alert, Badge, Button, Icon } from "@/components/ui";
 import { detectLink, linkUrlSchema } from "@/lib/link-detect";
+import { useLocalDraft } from "@/lib/use-local-draft";
 import { saveLinksAction, type StepActionState } from "../actions";
 
-type ChipPreset = {
-  key: string;
-  label: string;
+type DefaultSlot = {
+  slotKey: "whatsapp" | "instagram" | "site";
+  title: string;
   icon: string;
-  uiIcon: IconName;
   placeholder: string;
 };
 
-const PRESETS: ChipPreset[] = [
+const DEFAULT_SLOTS: DefaultSlot[] = [
   {
-    key: "agenda",
-    label: "Agenda",
-    icon: "lm:calendar",
-    uiIcon: "calendar",
-    placeholder: "https://calendly.com/seu-negocio",
-  },
-  {
-    key: "whatsapp",
-    label: "WhatsApp",
+    slotKey: "whatsapp",
+    title: "WhatsApp",
     icon: "si:whatsapp",
-    uiIcon: "chat",
     placeholder: "https://wa.me/5511999999999",
   },
   {
-    key: "instagram",
-    label: "Instagram",
+    slotKey: "instagram",
+    title: "Instagram",
     icon: "si:instagram",
-    uiIcon: "link",
     placeholder: "https://instagram.com/seunegocio",
   },
   {
-    key: "loja",
-    label: "Loja",
-    icon: "lm:shop",
-    uiIcon: "shop",
-    placeholder: "https://sualoja.com.br",
-  },
-  {
-    key: "cardapio",
-    label: "Cardápio",
-    icon: "lm:menu",
-    uiIcon: "menu",
-    placeholder: "https://seucardapio.com.br",
-  },
-  {
-    key: "portfolio",
-    label: "Portfólio",
-    icon: "lm:portfolio",
-    uiIcon: "portfolio",
-    placeholder: "https://behance.net/voce",
-  },
-  {
-    key: "site",
-    label: "Site",
+    slotKey: "site",
+    title: "Site",
     icon: "lm:site",
-    uiIcon: "site",
     placeholder: "https://seusite.com.br",
   },
 ];
 
 type LinkDraft = {
   clientKey: string;
-  presetKey?: string;
   id?: string;
   title: string;
   titleEdited: boolean;
   url: string;
   icon: string;
   placeholder: string;
+  isDefault?: boolean;
   error?: string;
 };
 
-function guessPresetKey(title: string, icon: string): string | undefined {
-  const lower = title.toLowerCase();
-  if (icon === "si:whatsapp" || lower.includes("whatsapp")) return "whatsapp";
-  if (icon === "si:instagram" || lower.includes("instagram"))
-    return "instagram";
-  if (icon === "lm:calendar" || lower.includes("agenda")) return "agenda";
-  if (icon === "lm:shop" || lower.includes("loja")) return "loja";
-  if (
-    icon === "lm:menu" ||
-    lower.includes("cardápio") ||
-    lower.includes("cardapio")
-  )
-    return "cardapio";
-  if (
-    icon === "lm:portfolio" ||
-    lower.includes("portfólio") ||
-    lower.includes("portfolio")
-  )
-    return "portfolio";
-  if (icon === "lm:site" || lower.includes("site")) return "site";
-  return undefined;
+function matchesSlot(
+  link: { title: string; icon: string; url: string },
+  slot: DefaultSlot,
+): boolean {
+  const lowerTitle = link.title.toLowerCase();
+  const lowerUrl = link.url.toLowerCase();
+  if (slot.slotKey === "whatsapp") {
+    return (
+      link.icon === "si:whatsapp" ||
+      lowerTitle.includes("whatsapp") ||
+      lowerUrl.includes("wa.me") ||
+      lowerUrl.includes("whatsapp.com")
+    );
+  }
+  if (slot.slotKey === "instagram") {
+    return (
+      link.icon === "si:instagram" ||
+      lowerTitle.includes("instagram") ||
+      lowerUrl.includes("instagram.com")
+    );
+  }
+  return link.icon === "lm:site" || lowerTitle === "site";
+}
+
+function buildInitialDrafts(
+  initialLinks: { id: string; title: string; url: string; icon: string }[],
+): LinkDraft[] {
+  const usedIds = new Set<string>();
+  const drafts: LinkDraft[] = [];
+
+  for (const slot of DEFAULT_SLOTS) {
+    const existing = initialLinks.find(
+      (l) => !usedIds.has(l.id) && matchesSlot(l, slot),
+    );
+    if (existing) {
+      usedIds.add(existing.id);
+      drafts.push({
+        clientKey: existing.id,
+        id: existing.id,
+        title: existing.title,
+        titleEdited: true,
+        url: existing.url,
+        icon: existing.icon || slot.icon,
+        placeholder: slot.placeholder,
+        isDefault: true,
+      });
+    } else {
+      drafts.push({
+        clientKey: `default-${slot.slotKey}`,
+        title: slot.title,
+        titleEdited: false,
+        url: "",
+        icon: slot.icon,
+        placeholder: slot.placeholder,
+        isDefault: true,
+      });
+    }
+  }
+
+  // Keep any other previously saved links below the defaults.
+  for (const link of initialLinks) {
+    if (usedIds.has(link.id)) continue;
+    drafts.push({
+      clientKey: link.id,
+      id: link.id,
+      title: link.title,
+      titleEdited: true,
+      url: link.url,
+      icon: link.icon || "lm:link",
+      placeholder: "https://...",
+    });
+  }
+
+  return drafts;
 }
 
 function SubmitButton({
@@ -150,42 +173,20 @@ export function LinksForm({
   const [state, formAction] = useActionState(saveLinksAction, initialState);
   const [skipping, startSkip] = useTransition();
   const [drafts, setDrafts] = useState<LinkDraft[]>(() =>
-    initialLinks.map((l) => {
-      const presetKey = guessPresetKey(l.title, l.icon);
-      const preset = PRESETS.find((p) => p.key === presetKey);
-      return {
-        clientKey: l.id,
-        presetKey,
-        id: l.id,
-        title: l.title,
-        titleEdited: true,
-        url: l.url,
-        icon: l.icon,
-        placeholder: preset?.placeholder ?? "https://...",
-      };
-    }),
+    buildInitialDrafts(initialLinks),
   );
+  const [pickerTargetKey, setPickerTargetKey] = useState<string | null>(null);
 
-  function togglePreset(preset: ChipPreset) {
-    setDrafts((prev) => {
-      const exists = prev.find((d) => d.presetKey === preset.key);
-      if (exists) {
-        return prev.filter((d) => d.presetKey !== preset.key);
-      }
-      return [
-        ...prev,
-        {
-          clientKey: `${preset.key}-${Date.now()}`,
-          presetKey: preset.key,
-          title: preset.label,
-          titleEdited: false,
-          url: "",
-          icon: preset.icon,
-          placeholder: preset.placeholder,
-        },
-      ];
-    });
-  }
+  const restoreDraft = useCallback((saved: LinkDraft[]) => {
+    if (Array.isArray(saved) && saved.length > 0) {
+      setDrafts(saved);
+    }
+  }, []);
+  const { clear: clearDraft } = useLocalDraft(
+    `onboarding-5:${slug}`,
+    drafts,
+    restoreDraft,
+  );
 
   function updateUrl(clientKey: string, nextUrl: string) {
     setDrafts((prev) =>
@@ -203,16 +204,6 @@ export function LinksForm({
     );
   }
 
-  function updateTitle(clientKey: string, nextTitle: string) {
-    setDrafts((prev) =>
-      prev.map((item) =>
-        item.clientKey === clientKey
-          ? { ...item, title: nextTitle, titleEdited: true, error: undefined }
-          : item,
-      ),
-    );
-  }
-
   function validateUrl(clientKey: string) {
     setDrafts((prev) =>
       prev.map((item) => {
@@ -224,6 +215,20 @@ export function LinksForm({
         };
       }),
     );
+  }
+
+  function addExtraLink() {
+    setDrafts((prev) => [
+      ...prev,
+      {
+        clientKey: `extra-${Date.now()}`,
+        title: "Link",
+        titleEdited: false,
+        url: "",
+        icon: "lm:link",
+        placeholder: "Cole qualquer link ou chave Pix",
+      },
+    ]);
   }
 
   function removeDraft(clientKey: string) {
@@ -263,9 +268,11 @@ export function LinksForm({
         })),
       );
     }
+    clearDraft();
   }
 
   function handleSkip() {
+    clearDraft();
     const fd = new FormData();
     fd.set("skip", "1");
     startSkip(() => {
@@ -274,40 +281,26 @@ export function LinksForm({
   }
 
   const activeCount = drafts.filter((d) => d.url.trim().length > 0).length;
+  const pickerItem = pickerTargetKey
+    ? drafts.find((d) => d.clientKey === pickerTargetKey)
+    : null;
 
   return (
     <OnboardingShell
       step={5}
       title="Adicione seus primeiros links"
-      subtitle="Toque nos tipos que você usa e cole os endereços. Reconhecemos o ícone automaticamente."
+      subtitle="Cole os endereços abaixo. Reconhecemos o ícone automaticamente."
       backHref="/onboarding/4"
       slug={slug}
       footer={<SubmitButton onSkip={handleSkip} skipping={skipping} />}
     >
       <div className="flex items-center justify-between gap-3">
         <span className="text-small font-medium text-ink-muted">
-          O que você quer mostrar?
+          Seus links principais
         </span>
         <Badge variant="neutral" dot={activeCount > 5 ? "warning" : undefined}>
           {activeCount} de 5 no Grátis
         </Badge>
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {PRESETS.map((preset) => {
-          const isSelected = drafts.some((d) => d.presetKey === preset.key);
-          return (
-            <Chip
-              key={preset.key}
-              selected={isSelected}
-              className="min-h-11"
-              onClick={() => togglePreset(preset)}
-            >
-              <Icon name={preset.uiIcon} size={16} />
-              {preset.label}
-            </Chip>
-          );
-        })}
       </div>
 
       {state.error && (
@@ -320,31 +313,40 @@ export function LinksForm({
         id="onboarding-links-form"
         action={formAction}
         onSubmit={handleFormSubmit}
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-3"
         noValidate
       >
         <input type="hidden" name="links" defaultValue="[]" />
 
-        {drafts.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-line-strong bg-surface/60 px-5 py-7 text-center text-small text-ink-muted">
-            Escolha um ou mais chips acima para colar seus links, ou toque em{" "}
-            <strong className="text-ink">Pular por agora</strong>.
-          </div>
-        ) : (
-          drafts.map((item) => (
-            <div
-              key={item.clientKey}
-              className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <input
-                  type="text"
-                  aria-label={`Título do link ${item.title}`}
-                  value={item.title}
-                  maxLength={80}
-                  onChange={(e) => updateTitle(item.clientKey, e.target.value)}
-                  className="min-w-0 flex-1 bg-transparent text-small font-semibold text-ink focus:outline-none"
-                />
+        {drafts.map((item) => (
+          <div key={item.clientKey} className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-label={`Trocar ícone de ${item.title}`}
+                title={item.title}
+                onClick={() => setPickerTargetKey(item.clientKey)}
+                className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-line-strong bg-surface text-ink transition-colors hover:border-ink"
+              >
+                <LinkIconGlyph iconRef={item.icon} size={20} />
+              </button>
+
+              <input
+                type="url"
+                inputMode="url"
+                aria-label={item.title}
+                aria-invalid={item.error ? true : undefined}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder={item.placeholder}
+                value={item.url}
+                onChange={(e) => updateUrl(item.clientKey, e.target.value)}
+                onBlur={() => validateUrl(item.clientKey)}
+                className="h-11 min-w-0 flex-1 rounded-md border border-line-strong bg-surface px-3.5 text-[15px] text-ink transition-[border-color,box-shadow] duration-(--duration-fast) ease-out placeholder:text-ink-muted hover:border-ink-muted focus:border-ink focus:shadow-[0_0_0_3px_var(--lime)] focus:outline-none aria-invalid:border-negative"
+              />
+
+              {!item.isDefault && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -355,25 +357,43 @@ export function LinksForm({
                 >
                   <Icon name="close" size={16} />
                 </Button>
-              </div>
-
-              <Input
-                label="Endereço"
-                type="url"
-                inputMode="url"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder={item.placeholder}
-                value={item.url}
-                onChange={(e) => updateUrl(item.clientKey, e.target.value)}
-                onBlur={() => validateUrl(item.clientKey)}
-                error={item.error}
-              />
+              )}
             </div>
-          ))
-        )}
+
+            {item.error && (
+              <p className="flex items-center gap-1.5 pl-13 text-[12.5px] leading-[18px] text-negative">
+                <Icon name="warning" size={14} />
+                {item.error}
+              </p>
+            )}
+          </div>
+        ))}
+
+        <Button
+          type="button"
+          variant="outline"
+          size="md"
+          className="mt-1 self-start"
+          onClick={addExtraLink}
+        >
+          <Icon name="plus" size={16} />
+          Adicionar outro link
+        </Button>
       </form>
+
+      <IconPicker
+        open={Boolean(pickerItem)}
+        value={pickerItem?.icon ?? "lm:link"}
+        onSelect={(iconRef) => {
+          if (!pickerTargetKey) return;
+          setDrafts((prev) =>
+            prev.map((d) =>
+              d.clientKey === pickerTargetKey ? { ...d, icon: iconRef } : d,
+            ),
+          );
+        }}
+        onClose={() => setPickerTargetKey(null)}
+      />
     </OnboardingShell>
   );
 }

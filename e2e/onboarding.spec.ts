@@ -101,11 +101,11 @@ test.describe("Onboarding end-to-end", () => {
       await page.getByLabel("Cidade (opcional)").fill("São Paulo, SP");
       await page.getByRole("button", { name: "Continuar" }).click();
 
-      // 5. Step 5 · Primeiros links (WhatsApp already present from Step 4)
+      // 5. Step 5 · Primeiros links (WhatsApp, Instagram e Site vêm por padrão)
       await expect(page).toHaveURL(/\/onboarding\/5$/);
-      await page.getByRole("button", { name: "Instagram" }).click();
-      const urlInputs = page.getByLabel("Endereço");
-      await urlInputs.last().fill("https://instagram.com/cafetestee2e");
+      await page
+        .getByRole("textbox", { name: "Instagram", exact: true })
+        .fill("https://instagram.com/cafetestee2e");
       await expect(page.getByText("2 de 5 no Grátis")).toBeVisible();
       await page.getByRole("button", { name: "Continuar" }).click();
 
