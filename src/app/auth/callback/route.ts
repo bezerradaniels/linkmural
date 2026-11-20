@@ -1,6 +1,6 @@
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
-import { NEXT_COOKIE, safeNext } from "@/lib/redirect";
+import { NEXT_COOKIE, safeNext, siteUrl } from "@/lib/redirect";
 import { createClient } from "@/utils/supabase/server";
 
 const EMAIL_TYPES: EmailOtpType[] = [
@@ -40,16 +40,9 @@ export async function GET(request: NextRequest) {
     ok = !error;
   }
 
-  const target = request.nextUrl.clone();
-  target.search = "";
-  if (ok) {
-    const [pathname, query = ""] = next.split("?");
-    target.pathname = pathname;
-    target.search = query ? `?${query}` : "";
-  } else {
-    target.pathname = "/entrar";
-    target.searchParams.set("erro", "link");
-  }
+  // Build the redirect from the public site URL: behind Hostinger's proxy,
+  // request.nextUrl carries the internal host (0.0.0.0:3000).
+  const target = new URL(ok ? next : "/entrar?erro=link", siteUrl());
 
   const response = NextResponse.redirect(target);
   response.cookies.delete(NEXT_COOKIE);
