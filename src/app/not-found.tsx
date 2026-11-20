@@ -1,10 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 import { buttonClasses } from "@/components/ui/Button";
+import { inter, unbounded } from "@/lib/fonts";
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
+    <main
+      className={`${inter.variable} ${unbounded.variable} flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center font-sans`}
+    >
       <Link href="/" aria-label="linkmural, página inicial">
         <Image src="/brand/linkmural-logo.svg" alt="" width={176} height={26} />
       </Link>

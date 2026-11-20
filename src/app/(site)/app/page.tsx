@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Badge, Button } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
-import { signOut } from "../auth/actions";
+import { signOut } from "@/app/auth/actions";
 
 export const metadata: Metadata = {
   title: "Painel",
