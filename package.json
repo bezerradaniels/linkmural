@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "seed:demo": "node --env-file=.env.local --experimental-strip-types scripts/seed-demo.mts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
