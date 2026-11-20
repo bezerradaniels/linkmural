@@ -6,6 +6,8 @@ import type { Database } from "./types";
 const PROTECTED_PREFIXES = ["/app", "/onboarding", "/admin"];
 
 function isProtected(pathname: string) {
+  // Step 2 of onboarding is the login screen itself.
+  if (pathname === "/onboarding/2") return false;
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );

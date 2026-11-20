@@ -20,19 +20,21 @@ export type TemplateProps = {
 export function PageShell({
   page,
   theme,
+  preview = false,
   children,
 }: {
   page: PublicPage;
   theme: ResolvedTheme;
+  preview?: boolean;
   children: ReactNode;
 }) {
   const font = publicFont(theme.font);
   return (
     <div
-      className={`${font.className} min-h-dvh bg-(--bg) text-(--ink) antialiased`}
+      className={`${font.className} ${preview ? "min-h-full" : "min-h-dvh"} bg-(--bg) text-(--ink) antialiased`}
       style={{ ...(theme.vars as CSSProperties), fontFamily: font.family }}
     >
-      <VisitBeacon pageId={page.id} />
+      {!preview && <VisitBeacon pageId={page.id} />}
       <div className="mx-auto w-full max-w-[460px]">{children}</div>
     </div>
   );
