@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { signOut } from "@/app/auth/actions";
+import { SignOutForm } from "@/components/app/SignOutForm";
 import { Badge, Button, Icon } from "@/components/ui";
 import { getPanelContext } from "@/lib/panel-data";
 import { PLANS } from "@/lib/plans";
@@ -61,11 +61,11 @@ export default async function MaisPage() {
         </Link>
       </div>
 
-      <form action={signOut}>
+      <SignOutForm>
         <Button type="submit" variant="outline" size="lg" className="w-full">
           Sair da conta
         </Button>
-      </form>
+      </SignOutForm>
     </div>
   );
 }

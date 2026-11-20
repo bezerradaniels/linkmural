@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button, Chip, Icon, Input, Spinner } from "@/components/ui";
 import {
@@ -9,6 +9,7 @@ import {
   normalizeSlugInput,
   type SlugStatus,
 } from "@/lib/slug";
+import { useLocalDraft } from "@/lib/use-local-draft";
 
 type CheckState =
   | { phase: "idle" }
@@ -41,6 +42,20 @@ export function SlugClaimForm({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const restoreDraft = useCallback(
+    (saved: string) => {
+      if (!initialSlug && typeof saved === "string" && saved) {
+        setValue(normalizeSlugInput(saved));
+      }
+    },
+    [initialSlug],
+  );
+  const { clear: clearDraft } = useLocalDraft(
+    "landing-slug",
+    value,
+    restoreDraft,
+  );
 
   const finalized = finalizeSlug(value);
   const validFormat = finalized.length > 0 && isValidSlug(finalized);
@@ -129,6 +144,7 @@ export function SlugClaimForm({
         return;
       }
 
+      clearDraft();
       router.push("/onboarding/2");
     } catch {
       setSubmitError("Sem conexão no momento. Tente de novo em instantes.");

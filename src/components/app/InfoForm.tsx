@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   changeSlugAction,
   saveInfoAction,
@@ -10,12 +17,16 @@ import {
   Alert,
   Avatar,
   Button,
+  DraftNotice,
   Icon,
   Input,
   Spinner,
   Switch,
   useToast,
 } from "@/components/ui";
+import { CityInput } from "@/components/ui/CityInput";
+import { formatBrPhoneMask } from "@/lib/br-inputs";
+import { useLocalDraft } from "@/lib/use-local-draft";
 import type { DayKey } from "@/lib/hours";
 import {
   DAY_NAMES_PT,
@@ -116,8 +127,10 @@ export function InfoForm({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
     initialAvatarUrl,
   );
-  const [whatsapp, setWhatsapp] = useState(initialWhatsapp);
-  const [phone, setPhone] = useState(initialPhone);
+  const [whatsapp, setWhatsapp] = useState(() =>
+    formatBrPhoneMask(initialWhatsapp),
+  );
+  const [phone, setPhone] = useState(() => formatBrPhoneMask(initialPhone));
   const [email, setEmail] = useState(initialEmail);
   const [address, setAddress] = useState(initialAddress);
   const [city, setCity] = useState(initialCity);
@@ -130,6 +143,55 @@ export function InfoForm({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const infoDraft = useMemo(
+    () => ({
+      businessName,
+      kind,
+      bio,
+      avatarPath,
+      avatarPreview,
+      whatsapp,
+      phone,
+      email,
+      address,
+      city,
+      hoursState,
+    }),
+    [
+      businessName,
+      kind,
+      bio,
+      avatarPath,
+      avatarPreview,
+      whatsapp,
+      phone,
+      email,
+      address,
+      city,
+      hoursState,
+    ],
+  );
+  const restoreInfoDraft = useCallback((d: typeof infoDraft) => {
+    if (typeof d.businessName === "string") setBusinessName(d.businessName);
+    if (typeof d.kind === "string") setKind(d.kind);
+    if (typeof d.bio === "string") setBio(d.bio);
+    if (typeof d.avatarPath === "string") setAvatarPath(d.avatarPath);
+    if (d.avatarPreview !== undefined) setAvatarPreview(d.avatarPreview);
+    if (typeof d.whatsapp === "string")
+      setWhatsapp(formatBrPhoneMask(d.whatsapp));
+    if (typeof d.phone === "string") setPhone(formatBrPhoneMask(d.phone));
+    if (typeof d.email === "string") setEmail(d.email);
+    if (typeof d.address === "string") setAddress(d.address);
+    if (typeof d.city === "string") setCity(d.city);
+    if (d.hoursState && typeof d.hoursState === "object")
+      setHoursState(d.hoursState);
+  }, []);
+  const {
+    clear: clearInfoDraft,
+    discard: discardInfoDraft,
+    restored: infoDraftRestored,
+  } = useLocalDraft(`panel-info:${pageId}`, infoDraft, restoreInfoDraft);
 
   // Slug change section
   const [currentSlug, setCurrentSlug] = useState(initialSlug);
@@ -232,6 +294,7 @@ export function InfoForm({
         hours: serializedHours,
       });
       if (res.ok) {
+        clearInfoDraft();
         toast("Salvo");
       } else {
         setSaveError(res.error);
@@ -308,6 +371,7 @@ export function InfoForm({
           className="flex flex-col gap-6"
           noValidate
         >
+          {infoDraftRestored && <DraftNotice onDiscard={discardInfoDraft} />}
           {saveError && (
             <Alert tone="error" title="Confira os dados">
               {saveError}
@@ -416,16 +480,18 @@ export function InfoForm({
                 label="WhatsApp"
                 type="tel"
                 inputMode="tel"
+                maxLength={15}
                 value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
+                onChange={(e) => setWhatsapp(formatBrPhoneMask(e.target.value))}
                 placeholder="(11) 99999-9999"
               />
               <Input
                 label="Telefone (Ligar e vCard)"
                 type="tel"
                 inputMode="tel"
+                maxLength={15}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(formatBrPhoneMask(e.target.value))}
                 placeholder="(11) 3333-4444"
                 help="Se vazio, usa o WhatsApp."
               />
@@ -448,13 +514,7 @@ export function InfoForm({
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Rua Exemplo, 123"
               />
-              <Input
-                label="Cidade"
-                value={city}
-                maxLength={60}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="São Paulo, SP"
-              />
+              <CityInput label="Cidade" value={city} onChange={setCity} />
             </div>
           </section>
 

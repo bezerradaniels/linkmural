@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { saveAppearanceAction } from "@/app/(site)/app/actions/appearance";
 import { PhonePreview } from "@/components/app/PhonePreview";
@@ -8,6 +8,7 @@ import {
   Alert,
   Badge,
   Button,
+  DraftNotice,
   Icon,
   Segmented,
   Switch,
@@ -16,6 +17,7 @@ import {
 import { planInfo, type Plan } from "@/lib/plans";
 import { publicFont } from "@/lib/public-fonts";
 import type { PublicPage } from "@/lib/public-page";
+import { useLocalDraft } from "@/lib/use-local-draft";
 import {
   CARD_FILLS,
   CARD_SIZES,
@@ -59,6 +61,26 @@ export function AppearanceForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
 
+  const appearanceDraft = useMemo(
+    () => ({ template, style, theme, showBranding }),
+    [template, style, theme, showBranding],
+  );
+  const restoreDraft = useCallback((d: typeof appearanceDraft) => {
+    if (d.template) setTemplate(d.template);
+    if (d.style) setStyle(d.style);
+    if (d.theme && typeof d.theme === "object") setTheme(d.theme);
+    if (typeof d.showBranding === "boolean") setShowBranding(d.showBranding);
+  }, []);
+  const {
+    clear: clearDraft,
+    discard: discardDraft,
+    restored: draftRestored,
+  } = useLocalDraft(
+    `panel-appearance:${previewBase.id}`,
+    appearanceDraft,
+    restoreDraft,
+  );
+
   function handleSave() {
     setError(null);
     startSaving(async () => {
@@ -69,6 +91,7 @@ export function AppearanceForm({
         show_branding: showBranding,
       });
       if (res.ok) {
+        clearDraft();
         toast("Salvo");
       } else {
         setError(res.error);
@@ -100,6 +123,8 @@ export function AppearanceForm({
             {saving ? "Salvando…" : "Salvar aparência"}
           </Button>
         </div>
+
+        {draftRestored && <DraftNotice onDiscard={discardDraft} />}
 
         {error && (
           <Alert tone="error" title="Não foi possível salvar">

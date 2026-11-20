@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { signOut } from "@/app/auth/actions";
+import { SignOutForm } from "@/components/app/SignOutForm";
 import { Avatar, Badge, Button, Icon, ToastProvider } from "@/components/ui";
 import type { IconName } from "@/components/ui/icons";
 import type { Plan } from "@/lib/plans";
@@ -150,11 +150,11 @@ export function AppShell({
               <span className="truncate text-caption text-ink-muted">
                 {email ?? "Minha conta"}
               </span>
-              <form action={signOut}>
+              <SignOutForm>
                 <Button type="submit" variant="ghost" size="sm">
                   Sair
                 </Button>
-              </form>
+              </SignOutForm>
             </div>
           </div>
         </aside>

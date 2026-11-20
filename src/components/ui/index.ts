@@ -6,6 +6,7 @@ export { Chip, type ChipProps } from "./Chip";
 export { Checkbox, Radio, Switch } from "./Controls";
 export { cx } from "./cx";
 export { Dialog, type DialogProps } from "./Dialog";
+export { DraftNotice } from "./DraftNotice";
 export { EmptyState, type EmptyStateProps } from "./EmptyState";
 export { Icon } from "./Icon";
 export { ICON_PATHS, type IconName } from "./icons";

@@ -1,9 +1,12 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useCallback, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { Alert, Avatar, Button, Icon, Input } from "@/components/ui";
+import { CityInput } from "@/components/ui/CityInput";
+import { formatBrPhoneMask } from "@/lib/br-inputs";
+import { useLocalDraft } from "@/lib/use-local-draft";
 import { createClient } from "@/utils/supabase/client";
 import { saveBusinessDataAction, type StepActionState } from "../actions";
 
@@ -92,6 +95,10 @@ export function BusinessForm({
     initialState,
   );
   const [name, setName] = useState(initialName);
+  const [whatsapp, setWhatsapp] = useState(() =>
+    formatBrPhoneMask(initialWhatsapp),
+  );
+  const [city, setCity] = useState(initialCity);
   const [avatarPath, setAvatarPath] = useState(initialAvatarPath);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
     initialAvatarUrl,
@@ -99,6 +106,24 @@ export function BusinessForm({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const draftValue = useMemo(
+    () => ({ name, whatsapp, city, avatarPath, avatarPreview }),
+    [name, whatsapp, city, avatarPath, avatarPreview],
+  );
+  const restoreDraft = useCallback((d: typeof draftValue) => {
+    if (typeof d.name === "string" && d.name) setName(d.name);
+    if (typeof d.whatsapp === "string" && d.whatsapp)
+      setWhatsapp(formatBrPhoneMask(d.whatsapp));
+    if (typeof d.city === "string" && d.city) setCity(d.city);
+    if (typeof d.avatarPath === "string" && d.avatarPath)
+      setAvatarPath(d.avatarPath);
+    if (typeof d.avatarPreview === "string" && d.avatarPreview)
+      setAvatarPreview(d.avatarPreview);
+  }, []);
+  // Kept until the server accepts the step; once saved, the server values
+  // match the draft and the hook drops it on its own.
+  useLocalDraft(`onboarding-4:${pageId}`, draftValue, restoreDraft);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -244,18 +269,18 @@ export function BusinessForm({
           type="tel"
           inputMode="tel"
           autoComplete="tel"
-          defaultValue={initialWhatsapp}
+          maxLength={15}
+          value={whatsapp}
+          onChange={(e) => setWhatsapp(formatBrPhoneMask(e.target.value))}
           placeholder="(11) 99999-9999"
           help="Com DDD. Cria um botão direto de WhatsApp na sua página."
         />
 
-        <Input
+        <CityInput
           label="Cidade (opcional)"
           name="city"
-          maxLength={60}
-          autoComplete="address-level2"
-          defaultValue={initialCity}
-          placeholder="Ex.: São Paulo, SP"
+          value={city}
+          onChange={setCity}
         />
       </form>
     </OnboardingShell>
