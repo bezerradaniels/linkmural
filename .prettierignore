@@ -1,0 +1,13 @@
+.next
+node_modules
+design
+supabase
+package-lock.json
+skills-lock.json
+.agents
+.claude
+src/utils/supabase/types.ts
+playwright-report
+test-results
+docs
+CLAUDE.md

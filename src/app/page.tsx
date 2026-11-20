@@ -1,6 +1,6 @@
 export default function Home() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 text-center">
+    <main className="flex min-h-screen flex-col items-center justify-center px-6 text-center">
       <div className="max-w-md space-y-4">
         <span className="inline-block rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1 text-xs font-medium text-neutral-400">
           linkmural.com
