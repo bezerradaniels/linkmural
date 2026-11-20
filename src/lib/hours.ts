@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 /*
  * Opening hours → "Aberto agora · até 22h" (docs/HANDOFF.md §7.2).
  * pages.hours: {"mon": [["08:00","18:00"]], "sat": [["09:00","13:00"]], ...}
@@ -20,16 +18,25 @@ const DAY_LABEL: Record<DayKey, string> = {
   sat: "sáb",
 };
 
-const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-const hoursSchema = z.partialRecord(
-  z.enum(DAYS),
-  z.array(z.tuple([time, time])).max(4),
-);
-export type Hours = z.infer<typeof hoursSchema>;
+// Plain checks instead of zod: this module also runs in the browser
+// (live status pill) and the public page must stay light.
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+export type Hours = Partial<Record<DayKey, [string, string][]>>;
 
 export function parseHours(raw: unknown): Hours | null {
-  const parsed = hoursSchema.safeParse(raw);
-  return parsed.success ? parsed.data : null;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const out: Hours = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (!(DAYS as readonly string[]).includes(key)) return null;
+    if (!Array.isArray(value) || value.length > 4) return null;
+    for (const pair of value) {
+      if (!Array.isArray(pair) || pair.length !== 2) return null;
+      if (!pair.every((t) => typeof t === "string" && TIME_RE.test(t)))
+        return null;
+    }
+    out[key as DayKey] = value as [string, string][];
+  }
+  return out;
 }
 
 export type OpenStatus = { open: boolean; label: string };

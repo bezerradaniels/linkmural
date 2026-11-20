@@ -115,6 +115,44 @@ function Sheet({
   );
 }
 
+/**
+ * Copies text without the prompt dialog (blocked in some in-app browsers):
+ * Clipboard API first, then the older execCommand path.
+ */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    area.remove();
+    return ok;
+  }
+}
+
+/** Text the person can select and copy by hand when copying is blocked. */
+function ManualCopy({ value, hint }: { value: string; hint: string }) {
+  return (
+    <span className="flex flex-col gap-1 text-left">
+      <span className="text-[13px] opacity-80">{hint}</span>
+      <code className="rounded-lg bg-(--soft) px-3 py-2 text-[14px] break-all text-(--ink) select-all">
+        {value}
+      </code>
+    </span>
+  );
+}
+
 /** Web Share API, falling back to copying the link. */
 export function ShareButton({
   url,
@@ -128,35 +166,44 @@ export function ShareButton({
   children?: ReactNode;
 }) {
   const [copied, setCopied] = useState(false);
+  const dialog = useDialog();
   return (
-    <button
-      type="button"
-      aria-label={copied ? "Link copiado" : "Compartilhar página"}
-      className={className}
-      onClick={async () => {
-        if (navigator.share) {
-          try {
-            await navigator.share({ title, url });
-            return;
-          } catch (error) {
-            if ((error as Error).name === "AbortError") return;
+    <>
+      <button
+        type="button"
+        aria-label={copied ? "Link copiado" : "Compartilhar página"}
+        className={className}
+        onClick={async () => {
+          if (navigator.share) {
+            try {
+              await navigator.share({ title, url });
+              return;
+            } catch (error) {
+              if ((error as Error).name === "AbortError") return;
+            }
           }
-        }
-        try {
-          await navigator.clipboard.writeText(url);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        } catch {
-          window.prompt("Copie o link da página:", url);
-        }
-      }}
-    >
-      {copied ? (
-        <Icon name="check" size={20} />
-      ) : (
-        (children ?? <Icon name="share" size={20} />)
-      )}
-    </button>
+          if (await copyText(url)) {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          } else {
+            dialog.open();
+          }
+        }}
+      >
+        {copied ? (
+          <Icon name="check" size={20} />
+        ) : (
+          (children ?? <Icon name="share" size={20} />)
+        )}
+      </button>
+      <Sheet
+        dialogRef={dialog.ref}
+        title="Compartilhar página"
+        onClose={dialog.close}
+      >
+        <ManualCopy value={url} hint="Toque e segure o link para copiar:" />
+      </Sheet>
+    </>
   );
 }
 
@@ -236,28 +283,35 @@ export function PixCopyButton({
   className?: string;
   children: ReactNode;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<"idle" | "copied" | "manual">("idle");
   return (
-    <button
-      type="button"
-      className={className}
-      aria-live="polite"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(pixKey);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2500);
-        } catch {
-          window.prompt("Copie a chave Pix:", pixKey);
-        }
-        beacon({ pageId, event: "click", linkId });
-      }}
-    >
-      {children}
-      <span className="shrink-0 rounded-full bg-(--card-icon-bg) px-3 py-1.5 text-[13px] font-semibold">
-        {copied ? "Copiado!" : "Copiar"}
-      </span>
-    </button>
+    <span className="flex flex-col gap-2">
+      <button
+        type="button"
+        className={className}
+        aria-live="polite"
+        onClick={async () => {
+          beacon({ pageId, event: "click", linkId });
+          if (await copyText(pixKey)) {
+            setState("copied");
+            setTimeout(() => setState("idle"), 2500);
+          } else {
+            setState("manual");
+          }
+        }}
+      >
+        {children}
+        <span className="shrink-0 rounded-full bg-(--card-icon-bg) px-3 py-1.5 text-[13px] font-semibold">
+          {state === "copied" ? "Copiado!" : "Copiar"}
+        </span>
+      </button>
+      {state === "manual" && (
+        <ManualCopy
+          value={pixKey}
+          hint="Toque e segure a chave Pix para copiar:"
+        />
+      )}
+    </span>
   );
 }
 

@@ -42,14 +42,6 @@ export const DEMO_LINKS = [
   },
   {
     kind: "link",
-    title: "Grade de aulas",
-    subtitle: "Horários da semana",
-    url: "https://studioforca.com.br/grade.pdf",
-    icon: "lm:calendar",
-    featured: false,
-  },
-  {
-    kind: "link",
     title: "Instagram",
     subtitle: "@studioforca",
     url: "https://instagram.com/studioforca",

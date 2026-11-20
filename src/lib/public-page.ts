@@ -99,13 +99,42 @@ async function loadPublicPage(slug: string): Promise<PublicPage | null> {
   };
 }
 
+/** Thrown inside cached loaders so "not found" is never stored in the data cache. */
+class NotFoundSignal extends Error {}
+
+/**
+ * Runs a cached loader, but keeps "not found" out of the cache: a page or
+ * link published after its address was visited must show up right away.
+ */
+async function cachedOrNull<T>(
+  load: () => Promise<T | null>,
+  key: string[],
+  tags: string[],
+): Promise<T | null> {
+  try {
+    return await unstable_cache(
+      async () => {
+        const value = await load();
+        if (value === null) throw new NotFoundSignal();
+        return value;
+      },
+      key,
+      { tags, revalidate: 3600 },
+    )();
+  } catch (error) {
+    if (error instanceof NotFoundSignal) return null;
+    throw error;
+  }
+}
+
 /** Published page by slug, or null (unknown, unpublished or blocked). */
 export async function getPublicPage(slug: string): Promise<PublicPage | null> {
   if (!SLUG_RE.test(slug)) return null;
-  return unstable_cache(() => loadPublicPage(slug), ["public-page", slug], {
-    tags: [pageTag(slug)],
-    revalidate: 3600,
-  })();
+  return cachedOrNull(
+    () => loadPublicPage(slug),
+    ["public-page", "v2", slug],
+    [pageTag(slug)],
+  );
 }
 
 export function linkTag(id: string) {
@@ -125,7 +154,7 @@ export async function getPublicLink(
   id: string,
 ): Promise<PublicLinkTarget | null> {
   if (!UUID_RE.test(id)) return null;
-  return unstable_cache(
+  return cachedOrNull(
     async () => {
       const { data, error } = await anonClient()
         .from("links")
@@ -135,7 +164,7 @@ export async function getPublicLink(
       if (error) throw error;
       return data;
     },
-    ["public-link", id],
-    { tags: [linkTag(id)], revalidate: 3600 },
-  )();
+    ["public-link", "v2", id],
+    [linkTag(id)],
+  );
 }
