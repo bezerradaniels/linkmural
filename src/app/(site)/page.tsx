@@ -197,7 +197,7 @@ export default async function Home({
           </div>
 
           <aside
-            aria-label="Exemplo ao vivo"
+            aria-label="Exemplo de página"
             className="flex flex-col items-center gap-4"
           >
             <div className="w-full max-w-[340px] overflow-hidden rounded-xl border border-line bg-[#0F1012] p-5 text-[#F4F4F5] shadow-md">
@@ -244,15 +244,8 @@ export default async function Home({
                 </div>
               </div>
 
-              <div className="mt-5 flex items-center justify-between border-t border-[#2E2F35] pt-4 text-caption text-[#A1A1AA]">
+              <div className="mt-5 border-t border-[#2E2F35] pt-4 text-caption text-[#A1A1AA]">
                 <span>linkmural.com/studioforca</span>
-                <Link
-                  href="/studioforca"
-                  className="inline-flex min-h-11 items-center gap-1 font-semibold text-[#C8F25A] underline-offset-2 hover:underline"
-                >
-                  Ver exemplo ao vivo
-                  <Icon name="arrow" size={14} />
-                </Link>
               </div>
             </div>
           </aside>
@@ -348,9 +341,6 @@ export default async function Home({
       <footer className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-4 border-t border-line px-5 py-6 text-caption text-ink-muted sm:px-8">
         <span>© {new Date().getFullYear()} linkmural</span>
         <div className="flex flex-wrap items-center gap-5">
-          <Link href="/studioforca" className="hover:text-ink">
-            Exemplo
-          </Link>
           <Link href="/planos" className="hover:text-ink">
             Planos
           </Link>
