@@ -107,7 +107,7 @@ Endereços reservados ficam na tabela `reserved_slugs`. Toda rota de primeiro n�
 
 ## 5. Banco de dados
 
-A migração está em `supabase/migrations/20261123000000_init.sql`. Ela já foi testada num Postgres local com a simulação do `auth`/`storage`.
+A migração está em `supabase/migrations/20261120140044_init.sql`. Ela já foi testada num Postgres local com a simulação do `auth`/`storage`.
 
 | Tabela | Para quê |
 |---|---|

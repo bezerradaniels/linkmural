@@ -1,14 +1,24 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import type { Database } from "./types";
+
+/** Routes that need a signed-in user. /admin also checks the role in its layout. */
+const PROTECTED_PREFIXES = ["/app", "/onboarding", "/admin"];
+
+function isProtected(pathname: string) {
+  return PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 /**
- * Renova a sessão do Supabase a cada requisição e devolve a resposta
- * com os cookies atualizados. Chamado por src/proxy.ts.
+ * Refreshes the Supabase session on every request and returns the response
+ * with updated cookies. Called by src/proxy.ts.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(
+  const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
@@ -29,9 +39,23 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Não coloque código entre createServerClient e esta chamada:
-  // é ela que valida o token e dispara a renovação dos cookies.
-  await supabase.auth.getClaims();
+  // Do not add code between createServerClient and this call:
+  // it validates the token and triggers the cookie refresh.
+  const { data } = await supabase.auth.getClaims();
+  const signedIn = Boolean(data?.claims?.sub);
+
+  const { pathname, search } = request.nextUrl;
+  if (!signedIn && isProtected(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/entrar";
+    url.search = `?next=${encodeURIComponent(pathname + search)}`;
+    const redirect = NextResponse.redirect(url);
+    // Keep any refreshed/cleared auth cookies on the redirect.
+    supabaseResponse.cookies
+      .getAll()
+      .forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
+  }
 
   return supabaseResponse;
 }
