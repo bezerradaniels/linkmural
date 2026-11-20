@@ -425,6 +425,10 @@ export type Database = {
         Args: { uid: string }
         Returns: Database["public"]["Enums"]["plan_tier"]
       }
+      public_page_plan: {
+        Args: { p_page: string }
+        Returns: Database["public"]["Enums"]["plan_tier"]
+      }
     }
     Enums: {
       link_kind:
