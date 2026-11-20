@@ -107,3 +107,35 @@ export async function getPublicPage(slug: string): Promise<PublicPage | null> {
     revalidate: 3600,
   })();
 }
+
+export function linkTag(id: string) {
+  return `link:${id}`;
+}
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type PublicLinkTarget = Pick<
+  Tables<"links">,
+  "id" | "page_id" | "kind" | "url"
+>;
+
+/** A public (active, not flagged, on a published page) link, for /l/[linkId]. */
+export async function getPublicLink(
+  id: string,
+): Promise<PublicLinkTarget | null> {
+  if (!UUID_RE.test(id)) return null;
+  return unstable_cache(
+    async () => {
+      const { data, error } = await anonClient()
+        .from("links")
+        .select("id, page_id, kind, url")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    ["public-link", id],
+    { tags: [linkTag(id)], revalidate: 3600 },
+  )();
+}
