@@ -15,6 +15,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { planInfo, type Plan } from "@/lib/plans";
+import { trackGaEvent } from "@/lib/gtm";
 import { publicFont } from "@/lib/public-fonts";
 import type { PublicPage } from "@/lib/public-page";
 import { useLocalDraft } from "@/lib/use-local-draft";
@@ -91,6 +92,11 @@ export function AppearanceForm({
         show_branding: showBranding,
       });
       if (res.ok) {
+        trackGaEvent("aparencia_salva", {
+          modelo: template,
+          estilo: style,
+          plano: plan,
+        });
         clearDraft();
         toast("Salvo");
       } else {

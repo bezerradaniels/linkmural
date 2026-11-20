@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button, Icon, Input } from "@/components/ui";
+import { trackGaEvent } from "@/lib/gtm";
 import { signInWithEmail, signInWithGoogle, type EmailState } from "./actions";
 
 function GoogleMark() {
@@ -90,7 +91,10 @@ export function LoginForm({ next }: { next: string }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <form action={signInWithGoogle}>
+      <form
+        action={signInWithGoogle}
+        onSubmit={() => trackGaEvent("login_iniciado", { metodo: "google" })}
+      >
         <input type="hidden" name="next" value={next} />
         <GoogleButton />
       </form>
@@ -106,6 +110,7 @@ export function LoginForm({ next }: { next: string }) {
 
       <form
         action={(fd) => {
+          trackGaEvent("login_iniciado", { metodo: "email" });
           setEditing(false);
           formAction(fd);
         }}

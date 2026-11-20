@@ -44,6 +44,7 @@ import {
   useToast,
 } from "@/components/ui";
 import { detectLink, linkUrlSchema } from "@/lib/link-detect";
+import { trackGaEvent } from "@/lib/gtm";
 import { reorderById } from "@/lib/panel-helpers";
 import { planInfo, type Plan } from "@/lib/plans";
 import { parsePageActions, type PageActions } from "@/lib/public-actions";
@@ -331,6 +332,10 @@ export function LinksEditor({
             created,
           ]);
         }
+        trackGaEvent("link_adicionado", {
+          icone: draft.icon,
+          destaque: draft.featured ? "sim" : "nao",
+        });
         setModalOpen(false);
         toast("Link adicionado");
       }
@@ -387,6 +392,7 @@ export function LinksEditor({
     startSaving(async () => {
       const res = await deleteLinkAction(target.id);
       if (res.ok) {
+        trackGaEvent("link_removido", { tipo_link: target.kind });
         toast({
           message: "Link excluído",
           action: {

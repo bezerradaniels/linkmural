@@ -34,7 +34,14 @@ export function PageShell({
       className={`${font.className} ${preview ? "min-h-full" : "min-h-dvh"} bg-(--bg) text-(--ink) antialiased`}
       style={{ ...(theme.vars as CSSProperties), fontFamily: font.family }}
     >
-      {!preview && <VisitBeacon pageId={page.id} />}
+      {!preview && (
+        <VisitBeacon
+          pageId={page.id}
+          slug={page.slug}
+          template={page.template}
+          style={page.style}
+        />
+      )}
       <div className="mx-auto w-full max-w-[460px]">{children}</div>
     </div>
   );
@@ -193,6 +200,7 @@ export function LinkCard({
         pixKey={link.url}
         linkId={link.id}
         pageId={page.id}
+        slug={page.slug}
         className={`${card} w-full cursor-pointer`}
       >
         {inner}
@@ -203,6 +211,8 @@ export function LinkCard({
     <a
       href={linkHref(link)}
       rel="nofollow noopener"
+      data-lm-link-title={link.title}
+      data-lm-link-kind={link.kind}
       className={`${card} group`}
     >
       {inner}
@@ -243,6 +253,7 @@ export function LinkTile({
         pixKey={link.url}
         linkId={link.id}
         pageId={page.id}
+        slug={page.slug}
         className={`${tile} w-full cursor-pointer items-start`}
       >
         {inner}
@@ -250,7 +261,13 @@ export function LinkTile({
     );
   }
   return (
-    <a href={linkHref(link)} rel="nofollow noopener" className={tile}>
+    <a
+      href={linkHref(link)}
+      rel="nofollow noopener"
+      data-lm-link-title={link.title}
+      data-lm-link-kind={link.kind}
+      className={tile}
+    >
       {inner}
     </a>
   );

@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { Alert, Button } from "@/components/ui";
+import { trackGaEvent } from "@/lib/gtm";
 import { publishPageAction, type StepActionState } from "../actions";
 
 function PublishButton() {
@@ -56,7 +57,13 @@ export function PublishStep({
         </Alert>
       )}
 
-      <form id="onboarding-publish-form" action={formAction} />
+      <form
+        id="onboarding-publish-form"
+        action={formAction}
+        onSubmit={() =>
+          trackGaEvent("pagina_publicada", { origem: "onboarding", slug })
+        }
+      />
 
       <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-md">
         <div className="flex items-center justify-between border-b border-line px-4 py-2.5 text-caption text-ink-muted">

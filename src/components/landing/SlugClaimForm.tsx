@@ -9,6 +9,7 @@ import {
   normalizeSlugInput,
   type SlugStatus,
 } from "@/lib/slug";
+import { trackGaEvent } from "@/lib/gtm";
 import { useLocalDraft } from "@/lib/use-local-draft";
 
 type CheckState =
@@ -149,6 +150,10 @@ export function SlugClaimForm({
         return;
       }
 
+      trackGaEvent("endereco_reservado", {
+        origem: "landing",
+        com_indicacao: referralSlug ? "sim" : "nao",
+      });
       clearDraft();
       router.push("/onboarding/2");
     } catch {

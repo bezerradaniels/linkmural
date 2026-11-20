@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { trackGaEvent } from "@/lib/gtm";
 import { openStatus, type OpenStatus } from "@/lib/hours";
 
 function beacon(body: Record<string, unknown>) {
@@ -20,8 +21,24 @@ function beacon(body: Record<string, unknown>) {
 }
 
 /** Counts one visit per browser session; no cookies, no personal data. */
-export function VisitBeacon({ pageId }: { pageId: string }) {
+export function VisitBeacon({
+  pageId,
+  slug,
+  template,
+  style,
+}: {
+  pageId: string;
+  slug: string;
+  template: string;
+  style: string;
+}) {
   useEffect(() => {
+    trackGaEvent("pagina_publica_visualizada", {
+      slug,
+      modelo: template,
+      estilo: style,
+    });
+
     const key = `lm:v:${pageId}`;
     try {
       if (sessionStorage.getItem(key)) return;
@@ -31,7 +48,29 @@ export function VisitBeacon({ pageId }: { pageId: string }) {
     }
     const utm = new URLSearchParams(window.location.search).get("utm_source");
     beacon({ pageId, event: "view", ref: document.referrer || null, utm });
-  }, [pageId]);
+  }, [pageId, slug, template, style]);
+
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const anchor = target.closest<HTMLAnchorElement>(
+        'a[data-lm-link-kind], a[href^="/l/"]',
+      );
+      if (!anchor) return;
+      trackGaEvent("link_publico_clicado", {
+        slug,
+        titulo_link:
+          anchor.dataset.lmLinkTitle?.trim() ||
+          anchor.textContent?.trim().slice(0, 60) ||
+          "link",
+        tipo_link: anchor.dataset.lmLinkKind || "link",
+      });
+    }
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [slug]);
+
   return null;
 }
 
@@ -177,12 +216,14 @@ export function ShareButton({
           if (navigator.share) {
             try {
               await navigator.share({ title, url });
+              trackGaEvent("pagina_compartilhada", { metodo: "nativo" });
               return;
             } catch (error) {
               if ((error as Error).name === "AbortError") return;
             }
           }
           if (await copyText(url)) {
+            trackGaEvent("pagina_compartilhada", { metodo: "copiar_link" });
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
           } else {
@@ -229,6 +270,7 @@ export function QrButton({
         onClick={() => {
           dialog.open();
           beacon({ pageId, event: "qr" });
+          trackGaEvent("qrcode_visualizado", { slug });
         }}
       >
         <Icon name="qr" size={20} />
@@ -253,12 +295,26 @@ export function QrButton({
         <div className="grid grid-cols-2 gap-2">
           <a
             href={`/${slug}/qr?format=png&download=1`}
+            onClick={() =>
+              trackGaEvent("qrcode_baixado", {
+                origem: "pagina_publica",
+                formato: "png",
+                slug,
+              })
+            }
             className="flex h-12 items-center justify-center rounded-full bg-(--accent) font-semibold text-(--on-accent) no-underline"
           >
             Baixar PNG
           </a>
           <a
             href={`/${slug}/qr?format=svg&download=1`}
+            onClick={() =>
+              trackGaEvent("qrcode_baixado", {
+                origem: "pagina_publica",
+                formato: "svg",
+                slug,
+              })
+            }
             className="flex h-12 items-center justify-center rounded-full border border-(--line) font-semibold text-(--ink) no-underline"
           >
             Baixar SVG
@@ -274,12 +330,14 @@ export function PixCopyButton({
   pixKey,
   linkId,
   pageId,
+  slug,
   className,
   children,
 }: {
   pixKey: string;
   linkId: string;
   pageId: string;
+  slug: string;
   className?: string;
   children: ReactNode;
 }) {
@@ -292,6 +350,7 @@ export function PixCopyButton({
         aria-live="polite"
         onClick={async () => {
           beacon({ pageId, event: "click", linkId });
+          trackGaEvent("chave_pix_copiada", { slug });
           if (await copyText(pixKey)) {
             setState("copied");
             setTimeout(() => setState("idle"), 2500);
@@ -357,15 +416,19 @@ export function ReportButton({
               e.preventDefault();
               const form = new FormData(e.currentTarget);
               setState("sending");
+              const reason = String(form.get("reason") ?? "outro");
               const res = await fetch("/api/report", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   pageId,
-                  reason: form.get("reason"),
+                  reason,
                   details: form.get("details") || undefined,
                 }),
               }).catch(() => null);
+              if (res?.ok) {
+                trackGaEvent("denuncia_enviada", { motivo: reason });
+              }
               setState(res?.ok ? "sent" : "error");
             }}
           >

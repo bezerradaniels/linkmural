@@ -1,10 +1,11 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element -- QR code served by /[slug]/qr */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { Button, buttonClasses, Icon } from "@/components/ui";
+import { trackGaEvent } from "@/lib/gtm";
 
 function trackAction(
   pageId: string,
@@ -32,6 +33,10 @@ export function SuccessView({
 }) {
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    trackGaEvent("onboarding_concluido", { slug });
+  }, [slug]);
+
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(pageUrl);
@@ -47,6 +52,7 @@ export function SuccessView({
     }
     setCopied(true);
     trackAction(pageId, "link_copiado");
+    trackGaEvent("link_pagina_copiado", { origem: "onboarding", slug });
     setTimeout(() => setCopied(false), 2500);
   }
 
@@ -140,7 +146,14 @@ export function SuccessView({
           <a
             href={`/${slug}/qr?format=png&download=1`}
             download={`linkmural-${slug}.png`}
-            onClick={() => trackAction(pageId, "qr_baixado", "png")}
+            onClick={() => {
+              trackAction(pageId, "qr_baixado", "png");
+              trackGaEvent("qrcode_baixado", {
+                origem: "onboarding",
+                formato: "png",
+                slug,
+              });
+            }}
             className={buttonClasses({ variant: "outline", size: "md" })}
           >
             <Icon name="qr" size={16} />
@@ -149,7 +162,14 @@ export function SuccessView({
           <a
             href={`/${slug}/qr?format=svg&download=1`}
             download={`linkmural-${slug}.svg`}
-            onClick={() => trackAction(pageId, "qr_baixado", "svg")}
+            onClick={() => {
+              trackAction(pageId, "qr_baixado", "svg");
+              trackGaEvent("qrcode_baixado", {
+                origem: "onboarding",
+                formato: "svg",
+                slug,
+              });
+            }}
             className={buttonClasses({ variant: "outline", size: "md" })}
           >
             <Icon name="qr" size={16} />

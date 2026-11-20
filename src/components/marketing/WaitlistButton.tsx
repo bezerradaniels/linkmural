@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Alert, Button, Dialog, Icon, Input } from "@/components/ui";
 import type { ButtonVariant } from "@/components/ui/Button";
+import { trackGaEvent } from "@/lib/gtm";
 
 export function WaitlistButton({
   plan,
@@ -42,6 +43,7 @@ export function WaitlistButton({
       if (!res.ok || !data?.ok) {
         setError(data?.error ?? "Não conseguimos salvar agora. Tente de novo.");
       } else {
+        trackGaEvent("lista_espera_inscrita", { plano: plan, origem: source });
         setDone(true);
       }
     } catch {
@@ -58,6 +60,7 @@ export function WaitlistButton({
         size="md"
         className="w-full"
         onClick={() => {
+          trackGaEvent("lista_espera_aberta", { plano: plan, origem: source });
           setDone(false);
           setError(null);
           setOpen(true);

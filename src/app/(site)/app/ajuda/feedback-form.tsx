@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { submitFeedbackAction } from "@/app/(site)/app/actions/feedback";
 import { Alert, Button, buttonClasses, Icon, useToast } from "@/components/ui";
+import { trackGaEvent } from "@/lib/gtm";
 
 export function FeedbackForm({
   supportWhatsapp,
@@ -20,6 +21,7 @@ export function FeedbackForm({
     startSending(async () => {
       const res = await submitFeedbackAction(message);
       if (res.ok) {
+        trackGaEvent("sugestao_enviada", { origem: "painel_ajuda" });
         setMessage("");
         toast("Sugestão enviada! Obrigado.");
       } else {

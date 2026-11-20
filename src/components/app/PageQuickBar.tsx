@@ -13,6 +13,7 @@ import {
   Icon,
   useToast,
 } from "@/components/ui";
+import { trackGaEvent } from "@/lib/gtm";
 
 function trackEvent(
   pageId: string,
@@ -57,6 +58,7 @@ export function PageQuickBar({
       document.body.removeChild(ta);
     }
     trackEvent(pageId, "link_copiado");
+    trackGaEvent("link_pagina_copiado", { origem: "painel", slug });
     toast("Link copiado");
     router.refresh();
   }
@@ -65,6 +67,7 @@ export function PageQuickBar({
     startPublish(async () => {
       const res = await publishDraftPageAction();
       if (res.ok) {
+        trackGaEvent("pagina_publicada", { origem: "painel", slug });
         toast("Página publicada!");
         router.refresh();
       } else {
@@ -143,6 +146,11 @@ export function PageQuickBar({
               download={`linkmural-${slug}.png`}
               onClick={() => {
                 trackEvent(pageId, "qr_baixado", "png");
+                trackGaEvent("qrcode_baixado", {
+                  origem: "painel",
+                  formato: "png",
+                  slug,
+                });
                 toast("QR code baixado");
               }}
               className={buttonClasses({ variant: "primary", size: "md" })}
@@ -154,6 +162,11 @@ export function PageQuickBar({
               download={`linkmural-${slug}.svg`}
               onClick={() => {
                 trackEvent(pageId, "qr_baixado", "svg");
+                trackGaEvent("qrcode_baixado", {
+                  origem: "painel",
+                  formato: "svg",
+                  slug,
+                });
                 toast("QR code baixado");
               }}
               className={buttonClasses({ variant: "outline", size: "md" })}
