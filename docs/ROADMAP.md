@@ -32,11 +32,11 @@ Datas do plano: início em 23/11, beta fechado (só Grátis) em 20/12, lançamen
 **Pronto quando:** `/studioforca` abre em menos de 1s no 4G simulado, com Lighthouse mobile ≥ 90, e os cliques aparecem em `click_events` sem IP.
 
 ## Fase 2 · Onboarding (§9)
-- [ ] Landing com o campo de endereço, `/api/slug/check` (disponível, sugestões, reserva de 30 min).
-- [ ] 7 passos com progresso, rascunho salvo a cada passo e retomada.
-- [ ] Tela de sucesso: link, copiar, QR para baixar e guia "colocar na bio".
-- [ ] Eventos de analytics dos passos.
-- [ ] Teste Playwright: da landing à página publicada.
+- [x] Landing com o campo de endereço, `/api/slug/check` (disponível, sugestões, reserva de 30 min).
+- [x] 7 passos com progresso, rascunho salvo a cada passo e retomada.
+- [x] Tela de sucesso: link, copiar, QR para baixar e guia "colocar na bio".
+- [x] Eventos de analytics dos passos.
+- [x] Teste Playwright: da landing à página publicada.
 
 **Pronto quando:** uma pessoa nova publica a página no celular em menos de 3 minutos.
 
