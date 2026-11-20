@@ -1,0 +1,341 @@
+{
+  "$comment": "Reconhecimento automático do ícone e do título pelo endereço colado, grupos do seletor e sinônimos da busca. 'si:' = Simple Icons (logo oficial), 'lm:' = ícone de traço da marca (paths em design/components/IconPicker e design/lm-icons.json). Domínio: comparar com o host sem 'www.' e aceitar subdomínios.",
+  "domains": [
+    {
+      "host": "instagram.com",
+      "icon": "si:instagram",
+      "title": "Instagram"
+    },
+    {
+      "host": "instagr.am",
+      "icon": "si:instagram",
+      "title": "Instagram"
+    },
+    {
+      "host": "wa.me",
+      "icon": "si:whatsapp",
+      "title": "WhatsApp"
+    },
+    {
+      "host": "api.whatsapp.com",
+      "icon": "si:whatsapp",
+      "title": "WhatsApp"
+    },
+    {
+      "host": "whatsapp.com",
+      "icon": "si:whatsapp",
+      "title": "WhatsApp"
+    },
+    {
+      "host": "facebook.com",
+      "icon": "si:facebook",
+      "title": "Facebook"
+    },
+    {
+      "host": "fb.com",
+      "icon": "si:facebook",
+      "title": "Facebook"
+    },
+    {
+      "host": "m.me",
+      "icon": "si:messenger",
+      "title": "Messenger"
+    },
+    {
+      "host": "tiktok.com",
+      "icon": "si:tiktok",
+      "title": "TikTok"
+    },
+    {
+      "host": "youtube.com",
+      "icon": "si:youtube",
+      "title": "YouTube"
+    },
+    {
+      "host": "youtu.be",
+      "icon": "si:youtube",
+      "title": "YouTube"
+    },
+    {
+      "host": "t.me",
+      "icon": "si:telegram",
+      "title": "Telegram"
+    },
+    {
+      "host": "telegram.me",
+      "icon": "si:telegram",
+      "title": "Telegram"
+    },
+    {
+      "host": "x.com",
+      "icon": "si:x",
+      "title": "X"
+    },
+    {
+      "host": "twitter.com",
+      "icon": "si:x",
+      "title": "X"
+    },
+    {
+      "host": "threads.net",
+      "icon": "si:threads",
+      "title": "Threads"
+    },
+    {
+      "host": "threads.com",
+      "icon": "si:threads",
+      "title": "Threads"
+    },
+    {
+      "host": "pinterest.com",
+      "icon": "si:pinterest",
+      "title": "Pinterest"
+    },
+    {
+      "host": "pin.it",
+      "icon": "si:pinterest",
+      "title": "Pinterest"
+    },
+    {
+      "host": "open.spotify.com",
+      "icon": "si:spotify",
+      "title": "Spotify"
+    },
+    {
+      "host": "discord.gg",
+      "icon": "si:discord",
+      "title": "Discord"
+    },
+    {
+      "host": "discord.com",
+      "icon": "si:discord",
+      "title": "Discord"
+    },
+    {
+      "host": "twitch.tv",
+      "icon": "si:twitch",
+      "title": "Twitch"
+    },
+    {
+      "host": "music.apple.com",
+      "icon": "si:applemusic",
+      "title": "Apple Music"
+    },
+    {
+      "host": "deezer.com",
+      "icon": "si:deezer",
+      "title": "Deezer"
+    },
+    {
+      "host": "soundcloud.com",
+      "icon": "si:soundcloud",
+      "title": "SoundCloud"
+    },
+    {
+      "host": "behance.net",
+      "icon": "si:behance",
+      "title": "Behance"
+    },
+    {
+      "host": "dribbble.com",
+      "icon": "si:dribbble",
+      "title": "Dribbble"
+    },
+    {
+      "host": "github.com",
+      "icon": "si:github",
+      "title": "GitHub"
+    },
+    {
+      "host": "link.mercadopago.com.br",
+      "icon": "si:mercadopago",
+      "title": "Mercado Pago"
+    },
+    {
+      "host": "mpago.la",
+      "icon": "si:mercadopago",
+      "title": "Mercado Pago"
+    },
+    {
+      "host": "picpay.me",
+      "icon": "si:picpay",
+      "title": "PicPay"
+    },
+    {
+      "host": "nubank.com.br",
+      "icon": "si:nubank",
+      "title": "Nubank"
+    },
+    {
+      "host": "ifood.com.br",
+      "icon": "si:ifood",
+      "title": "iFood"
+    },
+    {
+      "host": "shopee.com.br",
+      "icon": "si:shopee",
+      "title": "Shopee"
+    },
+    {
+      "host": "maps.google.com",
+      "icon": "si:googlemaps",
+      "title": "Como chegar"
+    },
+    {
+      "host": "maps.app.goo.gl",
+      "icon": "si:googlemaps",
+      "title": "Como chegar"
+    },
+    {
+      "host": "goo.gl/maps",
+      "icon": "si:googlemaps",
+      "title": "Como chegar"
+    },
+    {
+      "host": "waze.com",
+      "icon": "si:waze",
+      "title": "Waze"
+    },
+    {
+      "host": "calendly.com",
+      "icon": "si:calendly",
+      "title": "Agendar"
+    },
+    {
+      "host": "tripadvisor.com",
+      "icon": "si:tripadvisor",
+      "title": "Tripadvisor"
+    },
+    {
+      "host": "tripadvisor.com.br",
+      "icon": "si:tripadvisor",
+      "title": "Tripadvisor"
+    },
+    {
+      "host": "airbnb.com",
+      "icon": "si:airbnb",
+      "title": "Airbnb"
+    },
+    {
+      "host": "airbnb.com.br",
+      "icon": "si:airbnb",
+      "title": "Airbnb"
+    },
+    {
+      "host": "linkedin.com",
+      "icon": "lm:linkedin",
+      "title": "LinkedIn"
+    },
+    {
+      "host": "kwai.com",
+      "icon": "lm:kwai",
+      "title": "Kwai"
+    }
+  ],
+  "schemes": [
+    {
+      "match": "tel:",
+      "icon": "lm:phone",
+      "title": "Ligar",
+      "kind": "phone"
+    },
+    {
+      "match": "mailto:",
+      "icon": "lm:mail",
+      "title": "E-mail",
+      "kind": "email"
+    },
+    {
+      "match": "*.pdf",
+      "icon": "lm:pdf",
+      "title": "PDF",
+      "kind": "link"
+    }
+  ],
+  "pixKey": {
+    "icon": "si:pix",
+    "title": "Pagar com Pix",
+    "kind": "pix",
+    "comment": "CPF, CNPJ, e-mail, telefone (+55) ou chave aleatória (UUID) colados sem URL viram link Pix com botão de copiar."
+  },
+  "fallback": {
+    "icon": "lm:link"
+  },
+  "groups": {
+    "Redes sociais": [
+      "si:instagram",
+      "si:whatsapp",
+      "si:facebook",
+      "si:tiktok",
+      "si:youtube",
+      "si:telegram",
+      "si:x",
+      "si:threads",
+      "si:pinterest",
+      "si:spotify",
+      "si:discord",
+      "si:twitch"
+    ],
+    "Pagamentos e compras": [
+      "si:pix",
+      "si:mercadopago",
+      "si:picpay",
+      "si:nubank",
+      "si:ifood",
+      "si:shopee"
+    ],
+    "Serviços": [
+      "si:googlemaps",
+      "si:waze",
+      "si:calendly",
+      "si:gmail",
+      "si:tripadvisor",
+      "si:airbnb"
+    ],
+    "Contato e negócio": [
+      "lm:phone",
+      "lm:mail",
+      "lm:map",
+      "lm:contact",
+      "lm:calendar",
+      "lm:shop",
+      "lm:menu",
+      "lm:catalog",
+      "lm:portfolio",
+      "lm:site",
+      "lm:coupon",
+      "lm:pdf",
+      "lm:ticket",
+      "lm:linkedin",
+      "lm:kwai",
+      "lm:reviews",
+      "lm:payment",
+      "lm:link"
+    ]
+  },
+  "synonyms": {
+    "zap": "si:whatsapp",
+    "whats": "si:whatsapp",
+    "insta": "si:instagram",
+    "face": "si:facebook",
+    "yt": "si:youtube",
+    "tik": "si:tiktok",
+    "mapa": "si:googlemaps",
+    "endereco": "lm:map",
+    "menu": "lm:menu",
+    "cardapio": "lm:menu",
+    "pagar": "si:pix",
+    "pix": "si:pix",
+    "agenda": "lm:calendar",
+    "agendar": "lm:calendar",
+    "loja": "lm:shop",
+    "site": "lm:site",
+    "cupom": "lm:coupon",
+    "ingresso": "lm:ticket",
+    "avaliacao": "lm:reviews",
+    "catalogo": "lm:catalog",
+    "portfolio": "lm:portfolio",
+    "telefone": "lm:phone",
+    "email": "lm:mail"
+  }
+}

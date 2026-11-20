@@ -1,0 +1,25 @@
+<!-- @dsCard group="Fundamentos" height=260 -->
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Motion</title></head>
+<body>
+<div class="lm-row" style="gap:28px; align-items:flex-end">
+  <style>
+    .demo{width:120px;height:88px;border-radius:var(--radius-lg);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);position:relative;display:grid;place-items:center}
+    .d-lift{animation:d-lift 2.4s var(--ease-out) infinite}
+    @keyframes d-lift{0%,30%{transform:none;box-shadow:inset 0 0 0 1px var(--line)}45%,80%{transform:translateY(-4px);box-shadow:var(--shadow-md)}100%{transform:none}}
+    .d-press{animation:d-press 2.4s var(--ease-out) infinite}
+    @keyframes d-press{0%,40%{transform:none}50%{transform:scale(0.96)}60%,100%{transform:none}}
+    .d-pin{position:absolute;top:-8px;right:-8px;width:22px;height:22px;box-sizing:border-box;border-radius:50%;background:var(--lime);border:4px solid var(--paper);animation:d-pin 2.4s var(--ease-pin) infinite}
+    @keyframes d-pin{0%,20%{opacity:0;transform:translateY(-18px) scale(1.4)}40%,90%{opacity:1;transform:none}100%{opacity:0}}
+    .d-rise{animation:d-rise 2.4s var(--ease-out) infinite}
+    @keyframes d-rise{0%,15%{opacity:0;transform:translateY(12px)}35%,85%{opacity:1;transform:none}100%{opacity:0}}
+  </style>
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:center"><div class="demo d-lift"></div><span class="lm-label">Hover · sobe 2–4px</span></div>
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:center"><div class="demo d-press"></div><span class="lm-label">Toque · encolhe</span></div>
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:center"><div class="demo"><span class="d-pin"></span></div><span class="lm-label">Alfinete · fixa</span></div>
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:center"><div class="demo d-rise"></div><span class="lm-label">Entrada · sobe e aparece</span></div>
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:center"><div class="demo"><span class="lm-badge"><span class="lm-dot lm-dot--live"></span>Aberto</span></div><span class="lm-label">Ao vivo · pulsa</span></div>
+</div>
+</body>
+</html>

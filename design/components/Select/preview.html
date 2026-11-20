@@ -1,0 +1,30 @@
+<!-- @dsCard group="Formulários" height=340 -->
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Select</title></head>
+<body>
+<div class="lm-row" style="align-items:flex-start; gap:32px">
+  <div style="display:flex; flex-direction:column; gap:8px">
+    <button class="lm-select" type="button" aria-haspopup="listbox" aria-expanded="true"><span><span class="lm-select__label">Período: </span>Últimos 30 dias</span><svg class="lm-ico" style="width: 16px; height: 16px" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+    <div class="lm-menu" role="listbox" aria-label="Período">
+      <button class="lm-menu__item" role="option" type="button" aria-selected="false">Hoje</button>
+      <button class="lm-menu__item" role="option" type="button" aria-selected="false">Últimos 7 dias</button>
+      <button class="lm-menu__item" role="option" type="button" aria-selected="true">Últimos 30 dias<span class="lm-menu__check"><svg class="lm-ico" style="width: 16px; height: 16px" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg></span></button>
+      <button class="lm-menu__item" role="option" type="button" aria-selected="false">Este mês</button>
+      <div class="lm-menu__sep" role="separator"></div>
+      <button class="lm-menu__item" role="option" type="button" aria-selected="false"><svg class="lm-ico" style="width: 16px; height: 16px" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.5h12a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-10a3 3 0 0 1 3-3zM8 2.5v4M16 2.5v4M3 10h18"/></svg>Escolher datas…</button>
+    </div>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-start">
+    <button class="lm-btn lm-btn--outline lm-btn--icon lm-btn--sm" type="button" aria-label="Mais ações" aria-haspopup="menu" aria-expanded="true"><svg class="lm-ico" style="width: 16px; height: 16px" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/></svg></button>
+    <div class="lm-menu" role="menu" aria-label="Ações do link">
+      <button class="lm-menu__item" role="menuitem" type="button"><svg class="lm-ico" style="width: 16px; height: 16px" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>Editar</button>
+      <button class="lm-menu__item" role="menuitem" type="button"><svg class="lm-ico" style="width: 16px; height: 16px" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h12v12H8zM4 16V4h12"/></svg>Duplicar</button>
+      <button class="lm-menu__item" role="menuitem" type="button"><svg class="lm-ico" style="width: 16px; height: 16px" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 8h12v12H8zM4 16V4h12"/></svg>Copiar link</button>
+      <div class="lm-menu__sep" role="separator"></div>
+      <button class="lm-menu__item lm-menu__item--danger" role="menuitem" type="button"><svg class="lm-ico" style="width: 16px; height: 16px" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Excluir</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
