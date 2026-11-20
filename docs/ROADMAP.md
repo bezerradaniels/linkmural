@@ -19,13 +19,15 @@ Datas do plano: início em 23/11, beta fechado (só Grátis) em 20/12, lançamen
 **Pronto quando:** dá para entrar com Google e com e-mail em produção, e o build da Hostinger sai sozinho a cada push.
 
 ## Fase 1 · Página pública (§7, §8)
-- [ ] `src/lib/styles.ts` (de `design/styles.json`) e `src/lib/theme.ts` com `resolveTheme(style, theme, plan)` e testes de contraste.
-- [ ] `src/lib/icons.ts` (Simple Icons sob demanda + `lm-icons`) e `src/lib/link-detect.ts` com testes para cada domínio de `design/link-icons.json` e para chaves Pix.
-- [ ] Modelos Balcão, Mosaico e Cartão, com o LinkCard em 3 tamanhos e 4 preenchimentos e o link em destaque com alfinete.
-- [ ] Cabeçalho com status calculado de `hours`, barra de ações (WhatsApp, Salvar contato `.vcf`, Compartilhar, QR) e rodapé com "Feito com linkmural" e Denunciar.
-- [ ] `/l/[linkId]` (clique + redirecionamento), `/api/v` (visita), `/api/report`; filtro de bots e prefetch.
-- [ ] Metadados, imagem OG e 404 próprio. Cache por tag e `revalidateTag`.
-- [ ] Página de exemplo via seed (`studioforca`) para conferir os 3 modelos × 8 estilos.
+- [x] `src/lib/styles.ts` (de `design/styles.json`) e `src/lib/theme.ts` com `resolveTheme(style, theme, plan)` e testes de contraste.
+- [x] `src/lib/icons.ts` (Simple Icons sob demanda + `lm-icons`) e `src/lib/link-detect.ts` com testes para cada domínio de `design/link-icons.json` e para chaves Pix.
+- [x] Modelos Balcão, Mosaico e Cartão, com o LinkCard em 3 tamanhos e 4 preenchimentos e o link em destaque com alfinete.
+- [x] Cabeçalho com status calculado de `hours`, barra de ações (WhatsApp, Salvar contato `.vcf`, Compartilhar, QR) e rodapé com "Feito com linkmural" e Denunciar.
+- [x] `/l/[linkId]` (clique + redirecionamento), `/api/v` (visita), `/api/report`; filtro de bots e prefetch.
+- [x] Metadados, imagem OG e 404 próprio. Cache por tag e `revalidateTag`.
+- [x] Página de exemplo via seed (`studioforca`) para conferir os 3 modelos × 8 estilos.
+
+**Feito em 20/11:** Lighthouse mobile no beta entre 94 e 100 em desempenho e 100 em acessibilidade, boas práticas e SEO; FCP 1,0 s. Visitas, cliques, WhatsApp, contato e QR gravados em `click_events` sem IP nem user agent; robôs e pré-carregamentos ignorados. Fora do escopo por ora: chips de horário do Balcão (Fase 6) e abas do Mosaico.
 
 **Pronto quando:** `/studioforca` abre em menos de 1s no 4G simulado, com Lighthouse mobile ≥ 90, e os cliques aparecem em `click_events` sem IP.
 
