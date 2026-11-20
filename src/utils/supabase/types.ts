@@ -206,6 +206,7 @@ export type Database = {
       }
       pages: {
         Row: {
+          actions: Json
           address: string | null
           avatar_path: string | null
           bio: string | null
@@ -220,6 +221,7 @@ export type Database = {
           kind: string | null
           onboarding_step: number
           owner_id: string
+          phone: string | null
           published: boolean
           published_at: string | null
           show_branding: boolean
@@ -232,6 +234,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          actions?: Json
           address?: string | null
           avatar_path?: string | null
           bio?: string | null
@@ -246,6 +249,7 @@ export type Database = {
           kind?: string | null
           onboarding_step?: number
           owner_id: string
+          phone?: string | null
           published?: boolean
           published_at?: string | null
           show_branding?: boolean
@@ -258,6 +262,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          actions?: Json
           address?: string | null
           avatar_path?: string | null
           bio?: string | null
@@ -272,6 +277,7 @@ export type Database = {
           kind?: string | null
           onboarding_step?: number
           owner_id?: string
+          phone?: string | null
           published?: boolean
           published_at?: string | null
           show_branding?: boolean
