@@ -10,6 +10,7 @@ import { detectLink, linkUrlSchema } from "@/lib/link-detect";
 import { friendlyDbError } from "@/lib/onboarding";
 import { recordOnboardingEvent } from "@/lib/onboarding-events";
 import { pageTag } from "@/lib/public-page";
+import { checkSafeUrl } from "@/lib/safe-browsing";
 import {
   DEFAULT_STYLE,
   STYLE_KEYS,
@@ -298,6 +299,11 @@ export async function saveLinksAction(
       return {
         error: `O endereço de "${item.title}" não parece válido.`,
       };
+    }
+
+    const safety = await checkSafeUrl(detected.url);
+    if (!safety.safe) {
+      return { error: safety.reason };
     }
 
     const row = {

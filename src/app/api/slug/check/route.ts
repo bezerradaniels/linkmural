@@ -120,6 +120,7 @@ export async function GET(request: NextRequest) {
 
 const reserveBodySchema = z.object({
   slug: z.string().min(1).max(64),
+  ref: z.string().max(64).optional(),
 });
 
 /** POST /api/slug/check — holds the slug for 30 minutes and sets the httpOnly hold cookie. */
@@ -147,31 +148,67 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = createAdminClient();
+    const nowIso = new Date().toISOString();
     const token =
       cookieHold?.slug === check.slug ? cookieHold.token : crypto.randomUUID();
     const expiresAt = new Date(
       Date.now() + SLUG_HOLD_MINUTES * 60 * 1000,
     ).toISOString();
 
-    // Clean up expired holds for this slug and upsert the new hold.
-    const { error } = await admin
+    // Prevent race conditions: remove only expired holds, then either refresh
+    // the caller's own hold or insert atomically (concurrent racer gets 23505).
+    await admin
       .from("slug_holds")
-      .upsert(
-        { slug: check.slug, token, expires_at: expiresAt },
-        { onConflict: "slug" },
-      );
+      .delete()
+      .eq("slug", check.slug)
+      .lte("expires_at", nowIso);
 
-    if (error) {
-      console.error("[api/slug/check] upsert hold failed:", error.message);
+    let holdError: { code?: string; message: string } | null = null;
+    if (cookieHold?.slug === check.slug) {
+      const { data: updated, error } = await admin
+        .from("slug_holds")
+        .update({ expires_at: expiresAt })
+        .eq("slug", check.slug)
+        .eq("token", token)
+        .select("slug")
+        .maybeSingle();
+      if (error) {
+        holdError = error;
+      } else if (!updated) {
+        const ins = await admin
+          .from("slug_holds")
+          .insert({ slug: check.slug, token, expires_at: expiresAt });
+        holdError = ins.error;
+      }
+    } else {
+      const ins = await admin
+        .from("slug_holds")
+        .insert({ slug: check.slug, token, expires_at: expiresAt });
+      holdError = ins.error;
+    }
+
+    if (holdError) {
+      if (holdError.code === "23505") {
+        const suggestions = await findFreeSuggestions(admin, check.slug);
+        return NextResponse.json(
+          { status: "ocupado" as const, slug: check.slug, suggestions },
+          { status: 409 },
+        );
+      }
+      console.error("[api/slug/check] hold insert failed:", holdError.message);
       return NextResponse.json(
         { error: "Não foi possível reservar esse endereço agora." },
         { status: 500 },
       );
     }
 
+    const refSlug = parsed.data.ref ? finalizeSlug(parsed.data.ref) : "";
+    const validRef = refSlug && isValidSlug(refSlug) ? refSlug : undefined;
+
     recordOnboardingEvent({
       event: "slug_escolhido",
       slug: check.slug,
+      metadata: validRef ? { ref: validRef } : {},
     });
 
     const response = NextResponse.json({
@@ -191,6 +228,16 @@ export async function POST(request: NextRequest) {
         path: "/",
       },
     );
+
+    if (validRef) {
+      response.cookies.set("lm_ref", validRef, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 7,
+        path: "/",
+      });
+    }
 
     return response;
   } catch (error) {

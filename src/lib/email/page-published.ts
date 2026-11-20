@@ -63,11 +63,13 @@ export async function sendPagePublishedEmail(params: {
     </div>
   `.trim();
 
+  const from = process.env.EMAIL_FROM?.trim() || "Linkmural <oi@linkmural.com>";
+
   try {
     const { Resend } = await import("resend");
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
-      from: "Linkmural <oi@linkmural.com>",
+      from,
       to: params.to,
       subject: `Sua página está no ar: linkmural.com/${params.slug}`,
       html,

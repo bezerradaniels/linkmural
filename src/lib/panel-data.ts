@@ -8,7 +8,7 @@ import type { Tables } from "@/utils/supabase/types";
 
 export type PanelProfile = Pick<
   Tables<"profiles">,
-  "id" | "full_name" | "email" | "plan" | "role"
+  "id" | "full_name" | "email" | "plan" | "role" | "suspended_at"
 >;
 
 export type PanelContext = {
@@ -30,7 +30,7 @@ export const getPanelContext = cache(async (): Promise<PanelContext> => {
   const [profileRes, pageRes] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, email, plan, role")
+      .select("id, full_name, email, plan, role, suspended_at")
       .eq("id", userId)
       .maybeSingle(),
     supabase
@@ -61,6 +61,7 @@ export const getPanelContext = cache(async (): Promise<PanelContext> => {
     email,
     plan: "free",
     role: "user",
+    suspended_at: null,
   };
 
   return {

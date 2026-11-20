@@ -7,6 +7,7 @@ import { sendPagePublishedEmail } from "@/lib/email/page-published";
 import { detectLink, linkUrlSchema } from "@/lib/link-detect";
 import { friendlyDbError } from "@/lib/onboarding";
 import { pageActionsSchema } from "@/lib/panel-helpers";
+import { checkSafeUrl } from "@/lib/safe-browsing";
 import type { Tables, TablesUpdate } from "@/utils/supabase/types";
 import { refreshPublicPage } from "./revalidate";
 
@@ -61,6 +62,11 @@ export async function createLinkAction(
   const detected = detectLink(parsed.data.url);
   if (!detected) {
     return { ok: false, error: "Esse endereço não parece válido." };
+  }
+
+  const safety = await checkSafeUrl(detected.url);
+  if (!safety.safe) {
+    return { ok: false, error: safety.reason };
   }
 
   const { data: last } = await supabase
@@ -146,6 +152,8 @@ export async function updateLinkAction(
   if (parsed.data.url !== undefined) {
     const detected = detectLink(parsed.data.url);
     if (!detected) return { ok: false, error: "Endereço inválido." };
+    const safety = await checkSafeUrl(detected.url);
+    if (!safety.safe) return { ok: false, error: safety.reason };
     patch.url = detected.url;
     patch.kind = detected.kind;
   }

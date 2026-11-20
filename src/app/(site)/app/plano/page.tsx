@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { WaitlistButton } from "@/components/marketing/WaitlistButton";
 import { Badge, Button, Icon, Progress } from "@/components/ui";
 import { getPanelContext } from "@/lib/panel-data";
 import { PLANS, type Plan } from "@/lib/plans";
@@ -35,7 +36,7 @@ const PLAN_FEATURES: Record<Plan, string[]> = {
 };
 
 export default async function PlanoPage() {
-  const { plan, page } = await getPanelContext();
+  const { plan, page, email } = await getPanelContext();
   const current = PLANS[plan];
   const linkCount = page.links.length;
 
@@ -140,14 +141,17 @@ export default async function PlanoPage() {
                 <Button variant="outline" size="md" className="w-full" disabled>
                   Seu plano atual
                 </Button>
-              ) : (
-                <Button
+              ) : key !== "free" ? (
+                <WaitlistButton
+                  plan={key}
+                  label="Entrar na lista de espera"
+                  source="painel"
+                  defaultEmail={email ?? ""}
                   variant={key === "pro" ? "primary" : "secondary"}
-                  size="md"
-                  className="w-full"
-                  disabled
-                >
-                  Em breve
+                />
+              ) : (
+                <Button variant="outline" size="md" className="w-full" disabled>
+                  Plano Grátis
                 </Button>
               )}
             </div>

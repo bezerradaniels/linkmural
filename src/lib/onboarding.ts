@@ -87,6 +87,9 @@ export function friendlyDbError(message: string | undefined): string {
   if (message.includes("plan_limit_links")) {
     return "Sua página atingiu o limite de 5 links no plano Grátis. Salve até 5 agora e você pode editar depois no painel.";
   }
+  if (message.includes("account_suspended")) {
+    return "Sua conta está suspensa. Fale com o suporte em oi@linkmural.com.";
+  }
   if (message.includes("plan_limit_pages")) {
     return "Sua conta já atingiu o limite de páginas do plano atual.";
   }

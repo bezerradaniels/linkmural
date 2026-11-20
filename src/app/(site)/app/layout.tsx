@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const { page, plan, email } = await getPanelContext();
+  const { profile, page, plan, email } = await getPanelContext();
 
   return (
     <AppShell
@@ -23,6 +23,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       published={page.published}
       plan={plan}
       email={email}
+      suspended={Boolean(profile.suspended_at)}
+      isAdmin={profile.role === "admin"}
     >
       {children}
     </AppShell>

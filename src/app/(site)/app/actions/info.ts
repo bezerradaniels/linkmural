@@ -7,6 +7,7 @@ import { friendlyDbError } from "@/lib/onboarding";
 import { retargetWhatsappUrl } from "@/lib/panel-helpers";
 import { phoneDigits } from "@/lib/public-actions";
 import { finalizeSlug, isValidSlug } from "@/lib/slug";
+import { createAdminClient } from "@/utils/supabase/admin";
 import type { ActionResult } from "./links";
 import { refreshPublicPage } from "./revalidate";
 
@@ -193,6 +194,22 @@ export async function changeSlugAction(
 
   if (!page) return { ok: false, error: "Página não encontrada." };
   if (page.slug === nextSlug) return { ok: true, data: { slug: nextSlug } };
+
+  // Also check active landing holds so we don't steal an address being registered.
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const { data: activeHold } = await createAdminClient()
+      .from("slug_holds")
+      .select("slug")
+      .eq("slug", nextSlug)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (activeHold) {
+      return {
+        ok: false,
+        error: "Esse endereço está temporariamente reservado. Tente outro.",
+      };
+    }
+  }
 
   const { error } = await supabase
     .from("pages")

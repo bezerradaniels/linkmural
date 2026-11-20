@@ -139,6 +139,20 @@ export async function getPublicPage(slug: string): Promise<PublicPage | null> {
   );
 }
 
+/** True only when the slug belongs to a page blocked by moderation. */
+export async function isSlugBlocked(slug: string): Promise<boolean> {
+  if (!SLUG_RE.test(slug)) return false;
+  try {
+    const { data, error } = await anonClient().rpc("is_slug_blocked", {
+      p_slug: slug,
+    });
+    if (error) return false;
+    return Boolean(data);
+  } catch {
+    return false;
+  }
+}
+
 export function linkTag(id: string) {
   return `link:${id}`;
 }

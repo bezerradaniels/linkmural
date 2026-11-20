@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SignOutForm } from "@/components/app/SignOutForm";
+import { signOut } from "@/app/auth/actions";
 import { Badge, Button, Icon } from "@/components/ui";
 import { getPanelContext } from "@/lib/panel-data";
 import { PLANS } from "@/lib/plans";
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function MaisPage() {
-  const { email, plan } = await getPanelContext();
+  const { profile, email, plan } = await getPanelContext();
 
   return (
     <div className="flex flex-col gap-6">
@@ -50,6 +50,28 @@ export default async function MaisPage() {
         </Link>
 
         <Link
+          href="/app/conta"
+          className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-body font-medium transition-colors hover:bg-hover"
+        >
+          <span className="flex items-center gap-3">
+            <Icon name="contact" size={20} className="text-ink-muted" />
+            Minha conta
+          </span>
+          <Icon name="arrow" size={16} className="text-ink-muted" />
+        </Link>
+
+        <Link
+          href="/app/ajuda"
+          className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-body font-medium transition-colors hover:bg-hover"
+        >
+          <span className="flex items-center gap-3">
+            <Icon name="info" size={20} className="text-ink-muted" />
+            Ajuda e sugestões
+          </span>
+          <Icon name="arrow" size={16} className="text-ink-muted" />
+        </Link>
+
+        <Link
           href="/app/previa"
           className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-body font-medium transition-colors hover:bg-hover"
         >
@@ -59,13 +81,26 @@ export default async function MaisPage() {
           </span>
           <Icon name="arrow" size={16} className="text-ink-muted" />
         </Link>
+
+        {profile.role === "admin" && (
+          <Link
+            href="/admin"
+            className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 text-body font-semibold transition-colors hover:bg-hover"
+          >
+            <span className="flex items-center gap-3">
+              <Icon name="lock" size={20} className="text-ink-muted" />
+              Painel Admin
+            </span>
+            <Icon name="arrow" size={16} className="text-ink-muted" />
+          </Link>
+        )}
       </div>
 
-      <SignOutForm>
+      <form action={signOut}>
         <Button type="submit" variant="outline" size="lg" className="w-full">
           Sair da conta
         </Button>
-      </SignOutForm>
+      </form>
     </div>
   );
 }

@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { AdminShell } from "@/components/admin/AdminNav";
 import { requireAdmin } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Admin",
+  title: {
+    default: "Admin · linkmural",
+    template: "%s · Admin · linkmural",
+  },
   robots: { index: false, follow: false },
 };
 
@@ -11,6 +15,6 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requireAdmin();
-  return <div className="min-h-dvh bg-paper">{children}</div>;
+  const { email } = await requireAdmin();
+  return <AdminShell email={email}>{children}</AdminShell>;
 }

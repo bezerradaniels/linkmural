@@ -31,9 +31,11 @@ const STATUS_ERROR: Record<Exclude<SlugStatus, "livre">, string> = {
 
 export function SlugClaimForm({
   initialSlug = "",
+  referralSlug,
   notice,
 }: {
   initialSlug?: string;
+  referralSlug?: string;
   notice?: { title: string; message: string };
 }) {
   const router = useRouter();
@@ -116,7 +118,10 @@ export function SlugClaimForm({
       const res = await fetch("/api/slug/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: finalized }),
+        body: JSON.stringify({
+          slug: finalized,
+          ...(referralSlug ? { ref: referralSlug } : {}),
+        }),
       });
 
       const data = (await res.json().catch(() => null)) as {

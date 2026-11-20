@@ -97,14 +97,16 @@ export default async function OnboardingStartPage() {
     redirect(`/?aviso=endereco_ocupado&slug=${encodeURIComponent(hold.slug)}`);
   }
 
-  // 4. Delete the temporary hold and record conta_criada.
+  // 4. Delete the temporary hold and record conta_criada (with referral if present).
   await admin.from("slug_holds").delete().eq("slug", hold.slug);
+  const refSlug = cookieStore.get("lm_ref")?.value;
 
   recordOnboardingEvent({
     event: "conta_criada",
     userId,
     pageId: created.id,
     slug: created.slug,
+    metadata: refSlug ? { ref: refSlug } : {},
   });
 
   redirect("/onboarding/3");
