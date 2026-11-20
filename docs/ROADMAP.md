@@ -7,13 +7,13 @@ Datas do plano: início em 23/11, beta fechado (só Grátis) em 20/12, lançamen
 ---
 
 ## Fase 0 · Fundação (§2, §3, §5, §6, §15)
-- [ ] Criar o app Next.js na raiz do repositório: TypeScript strict, Tailwind, `src/`, ESLint, Prettier, Vitest, Playwright, scripts `typecheck` e `test`.
-- [ ] `src/styles/tokens.css` com os tokens de `design/tokens.json` (claro e escuro) e `@theme` do Tailwind; fontes Unbounded e Inter.
-- [ ] Clientes do Supabase (`server.ts`, `client.ts`, `admin.ts` com `server-only`) e `middleware.ts` com sessão e proteção de `/app`, `/onboarding` e `/admin`.
-- [ ] Ligar o Supabase CLI ao projeto, aplicar `supabase/migrations` e gerar `types.ts`.
-- [ ] Login: `/entrar` com link mágico e Google; `/auth/callback`; sair.
-- [ ] Componentes base do MVP em `src/components/ui`: Button, Input (com prefixo `linkmural.com/`), Switch, Checkbox, Badge, Chip, Segmented, Avatar, Alert, Toast, Skeleton, Progress, EmptyState, Dialog.
-- [ ] Página `/dev/ui` (só em desenvolvimento) mostrando todos os componentes.
+- [x] Criar o app Next.js na raiz do repositório: TypeScript strict, Tailwind, `src/`, ESLint, Prettier, Vitest, Playwright, scripts `typecheck` e `test`.
+- [x] `src/styles/tokens.css` com os tokens de `design/tokens.json` (claro e escuro) e `@theme` do Tailwind; fontes Unbounded e Inter.
+- [x] Clientes do Supabase (`server.ts`, `client.ts`, `admin.ts` com `server-only`) e `middleware.ts` com sessão e proteção de `/app`, `/onboarding` e `/admin`. (Em `src/utils/supabase/` e `src/proxy.ts`, padrão do Next 16.)
+- [x] Ligar o Supabase CLI ao projeto, aplicar `supabase/migrations` e gerar `types.ts`. (Aplicada pelo MCP do Supabase em 20/11; o CLI ainda não está instalado.)
+- [ ] Login: `/entrar` com link mágico e Google; `/auth/callback`; sair. (Código pronto em 20/11; falta ativar o Google e as URLs de retorno no Supabase e testar com um e-mail real.)
+- [x] Componentes base do MVP em `src/components/ui`: Button, Input (com prefixo `linkmural.com/`), Switch, Checkbox, Badge, Chip, Segmented, Avatar, Alert, Toast, Skeleton, Progress, EmptyState, Dialog.
+- [x] Página `/dev/ui` (só em desenvolvimento) mostrando todos os componentes.
 - [ ] Deploy na Hostinger com uma página "olá" em linkmural.com e homologação em `beta.linkmural.com`.
 
 **Pronto quando:** dá para entrar com Google e com e-mail em produção, e o build da Hostinger sai sozinho a cada push.
