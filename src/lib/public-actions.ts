@@ -33,6 +33,25 @@ export function initialsOf(name: string) {
   return (first + last).toLocaleUpperCase("pt-BR");
 }
 
+export type PageActions = {
+  whatsapp: boolean;
+  contact: boolean;
+  directions: boolean;
+};
+
+/** Parses pages.actions jsonb. Defaults all contact shortcuts to true. */
+export function parsePageActions(raw: unknown): PageActions {
+  const obj =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  return {
+    whatsapp: obj.whatsapp !== false,
+    contact: obj.contact !== false,
+    directions: obj.directions !== false,
+  };
+}
+
 export type PageModel = {
   name: string;
   initials: string;
@@ -45,7 +64,7 @@ export type PageModel = {
   call: { href: string; label: string } | null;
   directions: { href: string; label: string } | null;
   email: { href: string; label: string } | null;
-  contactHref: string;
+  contactHref: string | null;
 };
 
 /** Everything the three templates need, derived once from the page row. */
@@ -54,25 +73,30 @@ export function buildModel(
   now: Date = new Date(),
 ): PageModel {
   const name = page.business_name.trim() || page.slug;
+  const actions = parsePageActions(page.actions);
   const featured =
     page.links.find((l) => l.featured && l.kind !== "pix") ?? null;
   const waLink = page.links.find((l) => l.kind === "whatsapp") ?? null;
-  const digits = phoneDigits(page.whatsapp);
+  const waDigits = phoneDigits(page.whatsapp);
+  const callDigits = phoneDigits(page.phone) ?? waDigits;
 
-  const whatsapp = waLink
-    ? { href: linkHref(waLink), tracked: true }
-    : digits
-      ? { href: `https://wa.me/${digits}`, tracked: false }
-      : null;
+  const whatsapp = actions.whatsapp
+    ? waLink
+      ? { href: linkHref(waLink), tracked: true }
+      : waDigits
+        ? { href: `https://wa.me/${waDigits}`, tracked: false }
+        : null
+    : null;
 
   const placeParts = [page.address, page.city].filter(Boolean) as string[];
   const place = page.city ?? page.address ?? null;
-  const directions = placeParts.length
-    ? {
-        href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeParts.join(", "))}`,
-        label: placeParts.join(" · "),
-      }
-    : null;
+  const directions =
+    actions.directions && placeParts.length
+      ? {
+          href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeParts.join(", "))}`,
+          label: placeParts.join(" · "),
+        }
+      : null;
 
   return {
     name,
@@ -84,13 +108,13 @@ export function buildModel(
     featured,
     links: page.links.filter((l) => l !== featured && l !== waLink),
     whatsapp,
-    call: digits
-      ? { href: `tel:+${digits}`, label: formatPhone(digits) }
+    call: callDigits
+      ? { href: `tel:+${callDigits}`, label: formatPhone(callDigits) }
       : null,
     directions,
     email: page.email
       ? { href: `mailto:${page.email}`, label: page.email }
       : null,
-    contactHref: `/${page.slug}/contato.vcf`,
+    contactHref: actions.contact ? `/${page.slug}/contato.vcf` : null,
   };
 }

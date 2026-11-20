@@ -1,9 +1,11 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { after } from "next/server";
+import { revalidateTag, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { sendPagePublishedEmail } from "@/lib/email/page-published";
 import { detectLink, linkUrlSchema } from "@/lib/link-detect";
 import { friendlyDbError } from "@/lib/onboarding";
 import { recordOnboardingEvent } from "@/lib/onboarding-events";
@@ -387,11 +389,11 @@ export async function saveTemplateAction(formData: FormData) {
 // ---------------------------------------------------------------------------
 
 export async function publishPageAction(): Promise<StepActionState> {
-  const { supabase, userId } = await requireUser("/onboarding/7");
+  const { supabase, userId, email } = await requireUser("/onboarding/7");
 
   const { data: page } = await supabase
     .from("pages")
-    .select("id, slug")
+    .select("id, slug, business_name")
     .eq("owner_id", userId)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -408,7 +410,11 @@ export async function publishPageAction(): Promise<StepActionState> {
     return { error: friendlyDbError(error.message) };
   }
 
-  revalidateTag(pageTag(page.slug), "max");
+  try {
+    updateTag(pageTag(page.slug));
+  } catch {
+    revalidateTag(pageTag(page.slug), "max");
+  }
 
   recordOnboardingEvent({
     event: "pagina_publicada",
@@ -416,6 +422,14 @@ export async function publishPageAction(): Promise<StepActionState> {
     pageId: page.id,
     slug: page.slug,
   });
+
+  after(() =>
+    sendPagePublishedEmail({
+      to: email,
+      businessName: page.business_name || page.slug,
+      slug: page.slug,
+    }),
+  );
 
   redirect("/onboarding/pronto");
 }

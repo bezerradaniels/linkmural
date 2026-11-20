@@ -41,6 +41,8 @@ export type PublicPage = Pick<
   | "status_text"
   | "show_branding"
 > & {
+  phone?: string | null;
+  actions?: unknown;
   plan: Plan;
   avatarUrl: string | null;
   coverUrl: string | null;
@@ -73,7 +75,7 @@ export function mediaUrl(path: string | null | undefined) {
 }
 
 const PAGE_FIELDS =
-  "id, slug, template, style, theme, business_name, kind, bio, city, address, whatsapp, email, hours, status_text, show_branding, avatar_path, cover_path, links(id, kind, title, subtitle, url, icon, featured, position)";
+  "id, slug, template, style, theme, business_name, kind, bio, city, address, whatsapp, phone, actions, email, hours, status_text, show_branding, avatar_path, cover_path, links(id, kind, title, subtitle, url, icon, featured, position)";
 
 async function loadPublicPage(slug: string): Promise<PublicPage | null> {
   const supabase = anonClient();

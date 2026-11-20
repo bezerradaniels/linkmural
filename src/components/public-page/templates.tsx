@@ -153,13 +153,21 @@ export function Balcao({ page, model, theme, pageUrl }: TemplateProps) {
 
       <div className="fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] z-10 mx-auto w-full max-w-[460px] px-6">
         <div className="flex gap-1.5 rounded-full bg-(--ink) p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.25)]">
-          <a
-            href={model.contactHref}
-            className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-full bg-(--accent) text-[15px] font-bold text-(--on-accent) no-underline"
-          >
-            <Icon name="contact" size={18} />
-            Salvar contato
-          </a>
+          {model.contactHref ? (
+            <a
+              href={model.contactHref}
+              className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-full bg-(--accent) text-[15px] font-bold text-(--on-accent) no-underline"
+            >
+              <Icon name="contact" size={18} />
+              Salvar contato
+            </a>
+          ) : (
+            <ShareButton
+              url={pageUrl}
+              title={model.name}
+              className="flex h-[52px] flex-1 cursor-pointer items-center justify-center gap-2 rounded-full border-0 bg-(--accent) text-[15px] font-bold text-(--on-accent)"
+            />
+          )}
           <QrButton
             slug={page.slug}
             pageId={page.id}
@@ -275,7 +283,7 @@ export function Mosaico({ page, model, theme, pageUrl }: TemplateProps) {
                 <Icon name="chat" size={18} />
                 Falar no WhatsApp
               </a>
-            ) : (
+            ) : model.contactHref ? (
               <a
                 href={model.contactHref}
                 className="flex h-[52px] flex-1 items-center justify-center gap-2 rounded-full bg-(--accent) text-[15px] font-bold text-(--on-accent) no-underline"
@@ -283,7 +291,7 @@ export function Mosaico({ page, model, theme, pageUrl }: TemplateProps) {
                 <Icon name="contact" size={18} />
                 Salvar contato
               </a>
-            )}
+            ) : null}
             {model.call && (
               <a
                 href={model.call.href}
@@ -405,13 +413,15 @@ export function Cartao({ page, model, theme, pageUrl }: TemplateProps) {
                 </span>
               </a>
             )}
-            <a
-              href={model.contactHref}
-              className="flex h-12 flex-[1_1_150px] items-center justify-center gap-2 rounded-full border border-(--line) px-4 text-[15px] font-semibold whitespace-nowrap text-(--ink) no-underline"
-            >
-              <Icon name="contact" size={18} />
-              Salvar contato
-            </a>
+            {model.contactHref && (
+              <a
+                href={model.contactHref}
+                className="flex h-12 flex-[1_1_150px] items-center justify-center gap-2 rounded-full border border-(--line) px-4 text-[15px] font-semibold whitespace-nowrap text-(--ink) no-underline"
+              >
+                <Icon name="contact" size={18} />
+                Salvar contato
+              </a>
+            )}
           </div>
         </section>
 

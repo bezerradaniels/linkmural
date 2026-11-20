@@ -68,6 +68,8 @@ export function toPreviewPage(
     city: page.city,
     address: page.address,
     whatsapp: page.whatsapp,
+    phone: page.phone,
+    actions: page.actions,
     email: page.email,
     hours: page.hours,
     status_text: page.status_text,

@@ -34,7 +34,7 @@ function fold(line: string): string {
 /** "Salvar contato": vCard 3.0 with name, phone, e-mail, site, address and photo URL. */
 export function buildVCard(page: PublicPage, pageUrl: string): string {
   const name = page.business_name.trim() || page.slug;
-  const digits = phoneDigits(page.whatsapp);
+  const digits = phoneDigits(page.phone) ?? phoneDigits(page.whatsapp);
   const lines = [
     "BEGIN:VCARD",
     "VERSION:3.0",

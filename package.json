@@ -19,12 +19,16 @@
     "seed:demo": "node --env-file=.env.local --experimental-strip-types scripts/seed-demo.mts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.2",
     "next": "^16.0.0",
     "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "resend": "^6.39.0",
     "server-only": "^0.0.1",
     "simple-icons": "^16.38.0",
     "zod": "^4.6.7"
