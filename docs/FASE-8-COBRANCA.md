@@ -203,6 +203,12 @@ EUA, Europa, México e América Latina.
 ## 9. Estado do código em 21/11
 
 - **Já no GitHub e na produção (`main`):** os planos Grátis e Pro com o desconto e o seletor Anual/Mensal (`f11d640`, `25db95d`).
-- **Em commit local na `develop`, ainda não enviados ao GitHub:** a integração com a Stripe (`eceacfe`), as telas Plano e a exclusão de conta (`291e540`) e os docs (`d9237a8`).
-- **Ainda sem commit no momento desta atualização:** a correção do `cancel_at`, o resumo da assinatura, a página pública ligada à cobrança, a tela de entrada, este documento e os ajustes de `HANDOFF.md` e `ROADMAP.md`.
+- **Em commit local na `develop`, ainda não enviados ao GitHub** (7 commits à frente de `origin/develop`):
+  - a integração com a Stripe (`eceacfe`);
+  - as telas Plano e a exclusão de conta (`291e540`);
+  - os primeiros docs da cobrança (`d9237a8`);
+  - o resumo da assinatura e a correção do `cancel_at` (`91d2b2a`);
+  - a página pública de preços ligada à cobrança (`7d33550`);
+  - a tela de entrada para quem é novo (`35cd729`);
+  - este documento e os ajustes de `HANDOFF.md` e `ROADMAP.md` (`4148b34`).
 - A cobrança só liga onde houver `STRIPE_SECRET_KEY`. Em produção e no beta, hoje, a página de preços mostra o Pro como "Em breve", com lista de espera.
