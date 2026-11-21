@@ -1,7 +1,7 @@
-import { inter, unbounded } from "@/lib/fonts";
+import { braveold, inter } from "@/lib/fonts";
 
 /**
- * Panel, login and marketing pages use the brand fonts (Inter + Unbounded).
+ * Panel, login and marketing pages use the brand fonts (Inter + Braveold).
  * Public pages (/[slug]) live outside this group so they only load the font
  * of their own style.
  */
@@ -12,7 +12,7 @@ export default function SiteLayout({
 }) {
   return (
     <div
-      className={`${inter.variable} ${unbounded.variable} min-h-dvh font-sans`}
+      className={`${inter.variable} ${braveold.variable} min-h-dvh font-sans`}
     >
       {children}
     </div>
