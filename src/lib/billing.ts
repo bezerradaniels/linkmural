@@ -8,6 +8,8 @@ import {
   subscriptionRow,
   type StripeSubscriptionLike,
 } from "./billing-core";
+import type { TablesInsert } from "@/utils/supabase/types";
+import { notifyAdminNewSubscriber } from "./email/admin-notifications";
 import { linkTag, pageTag } from "./public-page";
 import { getStripe, isBillingEnabled } from "./stripe";
 
@@ -62,7 +64,7 @@ async function userIdOf(sub: StripeSubscriptionLike): Promise<string | null> {
 export async function syncSubscription(
   subscriptionId: string,
   fallback?: Stripe.Subscription,
-): Promise<void> {
+): Promise<TablesInsert<"subscriptions"> | null> {
   let sub: Stripe.Subscription;
   try {
     sub = await getStripe().subscriptions.retrieve(subscriptionId);
@@ -79,7 +81,7 @@ export async function syncSubscription(
     // Not an error: deleting an account deletes the customer, and Stripe then
     // reports the cancelled subscription for a user that is already gone.
     console.warn("[billing] subscription without an existing user:", sub.id);
-    return;
+    return null;
   }
   const row = subscriptionRow(sub, userId);
   if (!row) {
@@ -87,7 +89,7 @@ export async function syncSubscription(
       "[billing] subscription with an unknown price or status:",
       sub.id,
     );
-    return;
+    return null;
   }
 
   const admin = createAdminClient();
@@ -103,6 +105,7 @@ export async function syncSubscription(
     .eq("id", userId)
     .maybeSingle();
   if (profile?.plan === "free") await applyDowngrade(userId);
+  return row;
 }
 
 /**
@@ -143,7 +146,21 @@ export async function handleStripeEvent(event: Stripe.Event): Promise<void> {
       const session = event.data.object;
       if (session.mode !== "subscription") return;
       const id = subscriptionIdOf(session.subscription);
-      if (id) await syncSubscription(id);
+      if (id) {
+        const sub = await syncSubscription(id);
+        if (sub) {
+          await notifyAdminNewSubscriber({
+            userId: sub.user_id,
+            email:
+              session.customer_details?.email ?? session.customer_email ?? null,
+            plan: sub.plan,
+            interval: sub.billing_interval ?? null,
+            amountTotal: session.amount_total ?? null,
+            currency: session.currency ?? null,
+            subscriptionId: sub.id,
+          });
+        }
+      }
       return;
     }
     case "customer.subscription.created":

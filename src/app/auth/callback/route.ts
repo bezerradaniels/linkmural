@@ -1,5 +1,9 @@
-import type { EmailOtpType } from "@supabase/supabase-js";
+import type { EmailOtpType, User } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  isFirstSignIn,
+  notifyAdminNewUser,
+} from "@/lib/email/admin-notifications";
 import { NEXT_COOKIE, safeNext, siteUrl } from "@/lib/redirect";
 import { createClient } from "@/utils/supabase/server";
 
@@ -28,16 +32,31 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient();
   let ok = false;
+  let user: User | null = null;
 
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     ok = !error;
+    user = data?.user ?? null;
   } else if (tokenHash && type && EMAIL_TYPES.includes(type)) {
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       type,
       token_hash: tokenHash,
     });
     ok = !error;
+    user = data?.user ?? null;
+  }
+
+  if (ok && user && isFirstSignIn(user)) {
+    const provider =
+      typeof user.app_metadata?.provider === "string"
+        ? user.app_metadata.provider
+        : null;
+    await notifyAdminNewUser({
+      userId: user.id,
+      email: user.email,
+      provider,
+    });
   }
 
   // Build the redirect from the public site URL: behind Hostinger's proxy,

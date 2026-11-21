@@ -1,15 +1,6 @@
 import "server-only";
 import { siteUrl } from "@/lib/redirect";
-
-let warned = false;
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { escapeHtml, sendEmail } from "./send";
 
 /**
  * Sends the "Sua página está no ar" email via Resend with link and QR code.
@@ -21,16 +12,6 @@ export async function sendPagePublishedEmail(params: {
   slug: string;
 }) {
   if (!params.to) return;
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    if (!warned) {
-      console.warn(
-        "[email] RESEND_API_KEY is not set; skipping 'Sua página está no ar' email.",
-      );
-      warned = true;
-    }
-    return;
-  }
 
   const base = siteUrl();
   const pageUrl = `${base}/${params.slug}`;
@@ -63,21 +44,10 @@ export async function sendPagePublishedEmail(params: {
     </div>
   `.trim();
 
-  const from = process.env.EMAIL_FROM?.trim() || "Linkmural <oi@linkmural.com>";
-
-  try {
-    const { Resend } = await import("resend");
-    const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from,
-      to: params.to,
-      subject: `Sua página está no ar: linkmural.com/${params.slug}`,
-      html,
-    });
-    if (error) {
-      console.error("[email] Resend error:", error.message);
-    }
-  } catch (err) {
-    console.error("[email] failed to send published email:", err);
-  }
+  await sendEmail({
+    to: params.to,
+    subject: `Sua página está no ar: linkmural.com/${params.slug}`,
+    html,
+    context: "Sua página está no ar",
+  });
 }
