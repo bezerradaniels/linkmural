@@ -55,7 +55,7 @@ Datas do plano: início em 23/11, beta fechado (só Grátis) em 20/12, lançamen
 Substitui a antiga Fase 4 (Cobrança), que passou para a Fase 8. Tudo no plano Grátis; os planos pagos aparecem como "em breve", com lista de espera.
 
 **Antes do primeiro convite**
-- [ ] **A · E-mail de verdade:** domínio `linkmural.com` verificado no Resend (SPF, DKIM, DMARC), SMTP do Resend no Supabase Auth, modelos em português e `RESEND_API_KEY` / `EMAIL_FROM` nos dois sites. Falta conferir o cadastro por e-mail com um endereço de fora da equipe. (O envio de "Sua página está no ar" já está no código.)
+- [ ] **A · E-mail de verdade:** domínio `linkmural.com` verificado no Resend (SPF, DKIM, DMARC) ✔ (confirmado em 21/11), SMTP do Resend no Supabase Auth, modelos em português e `RESEND_API_KEY` / `EMAIL_FROM` nos dois sites. Falta conferir o cadastro por e-mail com um endereço de fora da equipe. (O envio de "Sua página está no ar" já está no código.)
 - [x] **B · Admin MVP:** Dashboard (contas, páginas, funil do onboarding), Empresas (busca, suspender e reativar) e Moderação (bloquear página, sinalizar link, descartar denúncia), com registro em `admin_actions` e cache revalidado.
 - [ ] Marcar a conta admin (`profiles.role = 'admin'`) em produção.
 - [x] **C · Segurança:** cabeçalhos HTTP (CSP, `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors` no painel e no admin), Google Safe Browsing ao salvar link (com `GOOGLE_SAFE_BROWSING_KEY`), aviso "Esta página está indisponível" para página bloqueada, reserva de endereço sem corrida, troca de endereço respeitando reservas e Toast acima da barra de abas.
@@ -71,14 +71,14 @@ Substitui a antiga Fase 4 (Cobrança), que passou para a Fase 8. Tudo no plano G
 - [ ] **I · Supabase separado para o beta e os testes e2e** (hoje o beta e a produção usam o mesmo projeto). Recomendado antes dos primeiros clientes reais.
 - [ ] **Limite de requisições** em `/api/v`, `/l/*`, `/api/slug/check`, `/api/report` e `/api/waitlist` (hoje só o login tem). Pode vir da Cloudflare ou de um limitador no app.
 - [ ] **D · Cloudflare na frente:** proxy, cache do HTML das páginas públicas, bypass em `/app`, `/admin`, `/api`, `/auth`, `/onboarding` e país do visitante nas métricas.
-- [ ] **F · E-mails automáticos essenciais:** "Sua página está quase pronta" (1 h e 24 h) e "Coloque seu link na bio" (dia seguinte), via `pg_cron` + Edge Function + Resend.
+- [x] **F · E-mails automáticos essenciais:** "Sua página está quase pronta" (1 h e 24 h) e "Coloque seu link na bio" (dia seguinte), via `pg_cron` + Edge Function + Resend. (Em produção desde 21/11: migração `email_logs`, função `send-lifecycle-emails` publicada com `--no-verify-jwt` e job `lifecycle-emails` do `pg_cron` a cada 15 minutos, das 8h às 21h de Brasília, com a URL e o segredo no Vault. A função aceita `?dry_run=1` para contar quem receberia sem enviar nada. Sem opção de descadastro nos e-mails ainda.)
 
 **Pronto quando:** um negócio de fora se cadastra pelo Google ou por e-mail, publica a página e recebe o e-mail; o admin vê as contas e o funil, suspende uma conta e resolve uma denúncia; os planos pagos aparecem como "em breve"; e os 10 primeiros negócios convidados estão no ar.
 
 ## Fase 5 · Pro (§7.3, §10)
 Liberado primeiro para quem estiver na lista de espera.
-- [ ] Personalização completa liberada (fonte, paleta personalizada, tamanho, preenchimento, cantos), além de remover a marca.
-- [ ] Métricas por link e por período (DatePicker, ClickChart, DataTable).
+- [x] Personalização completa liberada (fonte, paleta personalizada, tamanho, preenchimento, cantos), além de remover a marca.
+- [x] Métricas por link e por período (7, 30 e 90 dias, ranking de cliques por link e ações de contato/QR).
 
 ## Fase 6 · Negócios (§13)
 - [ ] Até 3 páginas e seletor de página no painel.
@@ -103,7 +103,7 @@ Decisão de 21/11: por enquanto só **Grátis** e **Pro** (R$ 4,99/mês ou R$ 30
 - [x] Regras de downgrade: links acima de 5 desativados (não apagados) e marca "Feito com linkmural" de volta. Páginas extras e domínio entram com o Negócios.
 - [x] Página pública `/planos`: onde `STRIPE_SECRET_KEY` existe, o Pro aparece como "Disponível" com "Assinar o Pro" (leva ao login e à tela Plano com a periodicidade escolhida); sem a chave, continua "Em breve" com a lista de espera. A página é dinâmica por causa disso.
 - [x] Excluir a conta apaga o customer na Stripe (cancela a assinatura); se falhar, a exclusão para.
-- [ ] Convites ao upgrade nos limites (links, aparência, remover marca) e aviso no painel do que mudou no downgrade.
+- [x] Convites ao upgrade nos limites (links, aparência, remover marca) e aviso no painel do que mudou no downgrade.
 - [ ] Criar as chaves de teste, o `.env.local` e o webhook (Stripe CLI local; endpoint próprio no beta e na produção). Separar o Supabase do beta antes.
 - [x] Testado em 21/11 no modo de teste: assinar no anual (R$ 30,00, plano Pro ativado pelo webhook) e **renovação anual no mês 12 (R$ 60,00, sem desconto)**, com relógio de teste.
 - [ ] Ainda a testar no modo de teste: assinar no mensal, cancelar pelo Portal (aviso "Cancelamento agendado"), falha de pagamento (`4000 0000 0000 0341`) e exclusão de conta com assinatura.
