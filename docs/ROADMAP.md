@@ -94,13 +94,17 @@ Liberado primeiro para quem estiver na lista de espera.
 ## Fase 8 · Cobrança (Stripe, §12)
 Decisão de 21/11: por enquanto só **Grátis** e **Pro** (R$ 4,99/mês ou R$ 30,00/ano, que é 50% off do preço regular de R$ 9,98/mês e R$ 60,00/ano, por 12 meses; depois o preço dobra). O Negócios fica para a Fase 6.
 - [x] Produto Pro, preços regulares (`pro_monthly`, `pro_yearly`) e cupom `lancamento_50_12m` criados na conta de teste do Stripe em 21/11.
+- [x] Portal do Cliente configurado na conta de teste (`bpc_1UeDWKQ6BL3v4hg9LAXgB3PL`, padrão): atualizar cartão, nome e e-mail, histórico de faturas e cancelar ao fim do período com motivo. Troca de plano desligada (só há um plano pago).
+- [ ] Repetir a configuração do Portal na conta de produção da Stripe e passar o `return_url` do ambiente (beta ou produção) ao abrir a sessão.
 - [ ] Validar o preço regular com a lista de espera e definir o fim do lançamento (`redeem_by`, `max_redemptions`).
 - [ ] Preços por região (EUA, Europa, México e América Latina) via `currency_options` e/ou Adaptive Pricing; decidir valores, imposto (Stripe Tax) e idiomas.
-- [ ] Checkout, Portal e webhook idempotente → `subscriptions` → `profiles.plan`.
-- [ ] Tela Plano e convites ao upgrade (limite de links, aparência, remover marca); "Entrar na lista de espera" vira "Assinar".
-- [ ] Regras de downgrade (links extras desativados, páginas e domínio despublicados).
-- [ ] Testes: assinar, trocar de mensal para anual, cancelar, falha de pagamento.
-- [ ] Cancelar a assinatura e apagar o customer na Stripe ao excluir a conta (`deleteAccountAction`).
+- [x] Código de Checkout, Portal e webhook idempotente → `subscriptions` → `profiles.plan` (`src/app/api/stripe/*`, `src/lib/billing*.ts`), com testes da sincronização e do rebaixamento. Só liga onde `STRIPE_SECRET_KEY` existe.
+- [x] Tela Plano: "Assinar o Pro" (periodicidade do seletor), "Gerenciar assinatura", avisos de pagamento pendente, fim do plano e ativação.
+- [x] Regras de downgrade: links acima de 5 desativados (não apagados) e marca "Feito com linkmural" de volta. Páginas extras e domínio entram com o Negócios.
+- [x] Excluir a conta apaga o customer na Stripe (cancela a assinatura); se falhar, a exclusão para.
+- [ ] Convites ao upgrade nos limites (links, aparência, remover marca) e aviso no painel do que mudou no downgrade.
+- [ ] Criar as chaves de teste, o `.env.local` e o webhook (Stripe CLI local; endpoint próprio no beta e na produção). Separar o Supabase do beta antes.
+- [ ] Testar de ponta a ponta no modo de teste: assinar (mensal e anual), cancelar, falha de pagamento (`4000 0000 0000 0341`), renovação no mês 12 com o cupom e exclusão de conta com assinatura.
 - [ ] Fluxo completo em modo de teste, troca para as chaves de produção do Stripe e checklist final.
 
 ---

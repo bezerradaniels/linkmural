@@ -300,17 +300,19 @@ Telas desenhadas: Dashboard, Empresas (contas e plano), Usuários, Links, Inform
 - **Desconto de lançamento:** cupom `lancamento_50_12m` de 50% (`percent_off`), `duration=repeating` por 12 meses, aplicado pelo servidor no Checkout. O cliente paga R$ 4,99/mês ou R$ 30,00/ano e, depois dos 12 meses, o preço regular (no máximo o dobro: o salto é de propósito pequeno, para não gerar cancelamento na renovação). Usar `redeem_by` e `max_redemptions` para encerrar o lançamento. Conferir no sandbox que a renovação anual (mês 12) já cobra o preço regular e avisar o cliente antes (e-mail e tela Plano).
 - Decisão de 21/11: foi descartado o desconto de 80% sobre R$ 24,95 (salto de 5× na renovação). Em seguida, o preço de R$ 14,90 e R$ 119,90 também foi descartado por não ser vendável; valem R$ 4,99 e R$ 30,00 no lançamento. O preço regular de R$ 9,98 e R$ 60,00 (usado no "de/por") deve ser validado com a lista de espera. Evitar R$ 9,99: 50% daria R$ 4,995, e o arredondamento da Stripe é incerto.
 - **Outras regiões (EUA, Europa, México, América Latina):** preços por moeda em `currency_options` dos mesmos dois preços (padrão BRL); valores e Adaptive Pricing a decidir. Implica imposto (IVA, sales tax) e tradução da interface.
+- **Implementado** em `src/lib/stripe.ts`, `src/lib/billing.ts` (servidor), `src/lib/billing-core.ts` (regras puras, testadas) e `src/app/api/stripe/*`. A cobrança só liga onde `STRIPE_SECRET_KEY` existe; sem ela o painel mantém a lista de espera e as rotas respondem 503 ou voltam a `/app/plano?erro=indisponivel`.
+- As rotas `checkout` e `portal` recebem um **formulário** (POST, sem JavaScript) da tela Plano, conferem a origem (CSRF) e respondem com redirecionamento 303. O CSP libera `checkout.stripe.com` e `billing.stripe.com` em `form-action`, porque o Chrome aplica essa regra também ao redirecionamento.
 - `POST /api/stripe/checkout`:
-  1. Cria ou reaproveita o `customer` (salvar `profiles.stripe_customer_id`).
-  2. Abre uma sessão `mode=subscription` com `client_reference_id=user.id`, `locale=pt-BR`, `allow_promotion_codes=true`.
-  3. Retorno para `/app/plano?ok=1`.
-- `POST /api/stripe/portal`: sessão do Portal do Cliente (trocar plano, cartão, cancelar).
+  1. Cria ou reaproveita o `customer` (salva `profiles.stripe_customer_id`; chave de idempotência por usuário).
+  2. Busca o preço pela `lookup_key` (`pro_monthly` ou `pro_yearly`) e abre uma sessão `mode=subscription` com `client_reference_id=user.id`, `subscription_data.metadata.user_id`, `locale=pt-BR` e o cupom de lançamento em `discounts`. A Stripe não aceita `discounts` junto com `allow_promotion_codes` na mesma sessão, por isso não há campo de código promocional.
+  3. Retorno para `/app/plano?ok=1` (ou `?cancelado=1`). Quem já tem plano pago é mandado ao Portal.
+- `POST /api/stripe/portal`: sessão do Portal do Cliente (cartão, faturas, cancelar ao fim do período). Troca de plano desligada.
 - `POST /api/stripe/webhook`:
   - Verifica a assinatura com `STRIPE_WEBHOOK_SECRET` (body bruto).
-  - Trata `checkout.session.completed`, `customer.subscription.created|updated|deleted` e `invoice.payment_failed`.
-  - Faz upsert em `subscriptions` com a service role. O gatilho atualiza `profiles.plan`.
-  - Precisa ser idempotente.
-- **Downgrade:** links acima de 5 ficam `active=false` (não apagar); domínio e páginas extras são despublicados. O painel avisa o que mudou.
+  - Trata `checkout.session.completed`, `customer.subscription.created|updated|deleted`, `invoice.paid` e `invoice.payment_failed`.
+  - Em cada evento relê a assinatura na Stripe e faz upsert em `subscriptions` com a service role; o gatilho atualiza `profiles.plan`. Como depende só do estado atual da Stripe, é idempotente e não depende da ordem dos eventos. Falha devolve 500 para a Stripe tentar de novo; usuário já excluído é ignorado.
+- **Downgrade** (quando `profiles.plan` volta a `free`): links acima de 5 ficam `active=false` (não apagar; o destacado e os primeiros na ordem ficam), "Feito com linkmural" volta e o cache da página é renovado. Páginas extras e domínio só existem no Negócios (Fase 6). Ainda falta o aviso no painel dizendo o que mudou.
+- **Excluir a conta** apaga o `customer` na Stripe (o que cancela as assinaturas); se a Stripe falhar, a exclusão para.
 - Em aberto: Pix (decidir se entra no lançamento). Começar só com cartão.
 - Testar tudo em modo de teste com `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 
