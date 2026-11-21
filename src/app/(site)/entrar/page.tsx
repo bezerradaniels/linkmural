@@ -31,6 +31,8 @@ export default async function EntrarPage({
   if (data?.claims?.sub) redirect(next);
 
   const error = params.erro ? ERRORS[params.erro] : undefined;
+  // Coming from "Assinar o Pro" on the price page.
+  const wantsPlan = next === "/app/plano" || next.startsWith("/app/plano?");
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
@@ -57,7 +59,18 @@ export default async function EntrarPage({
             <p className="text-small text-ink-muted">
               Sem senha: use o Google ou receba um link no e-mail.
             </p>
+            <p className="text-small text-ink-muted">
+              É a sua primeira vez? A conta é criada na hora, sem cadastro
+              separado.
+            </p>
           </div>
+
+          {wantsPlan && (
+            <Alert tone="info" title="Para assinar o Pro">
+              Entre ou crie a sua conta. Quem ainda não tem página monta a
+              primeira em poucos passos e depois assina em “Plano”.
+            </Alert>
+          )}
 
           {error && (
             <Alert tone="error" title="Não foi possível entrar">
@@ -67,6 +80,16 @@ export default async function EntrarPage({
 
           <LoginForm next={next} />
         </div>
+
+        <p className="text-center text-small text-ink-muted">
+          Ainda não tem uma página?{" "}
+          <Link
+            href="/"
+            className="font-semibold text-ink underline underline-offset-2"
+          >
+            Crie a sua grátis
+          </Link>
+        </p>
 
         <p className="text-center text-caption text-ink-muted">
           Ao continuar, você concorda com os{" "}
