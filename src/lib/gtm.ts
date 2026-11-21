@@ -85,6 +85,32 @@ export type GaEventMap = {
   denuncia_enviada: {
     motivo: string;
   };
+
+  // Cobrança e Stripe
+  clique_assinar_pro: {
+    plano: "pro";
+    periodicidade: "month" | "year";
+    origem: "planos";
+  };
+  begin_checkout: {
+    currency: "BRL";
+    value: number;
+    plano: "pro";
+    periodicidade: "month" | "year";
+  };
+  purchase: {
+    currency: "BRL";
+    value: number;
+    transaction_id: string;
+    plano: "pro" | "business";
+    periodicidade: "month" | "year";
+  };
+  checkout_cancelado: {
+    origem: "painel_plano";
+  };
+  portal_assinatura_aberto: {
+    plano: "pro" | "business";
+  };
 };
 
 export type GaEventName = keyof GaEventMap;

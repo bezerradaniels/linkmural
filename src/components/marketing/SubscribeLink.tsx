@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useBillingInterval } from "@/components/marketing/BillingInterval";
 import { buttonClasses } from "@/components/ui";
+import { trackGaEvent } from "@/lib/gtm";
 
 /**
  * "Assinar o Pro" on the public price page. A visitor has to sign in (and own
@@ -15,6 +16,13 @@ export function SubscribeLink({ label = "Assinar o Pro" }: { label?: string }) {
   return (
     <Link
       href={`/entrar?next=${encodeURIComponent(next)}`}
+      onClick={() =>
+        trackGaEvent("clique_assinar_pro", {
+          plano: "pro",
+          periodicidade: interval,
+          origem: "planos",
+        })
+      }
       className={buttonClasses({
         variant: "secondary",
         size: "md",

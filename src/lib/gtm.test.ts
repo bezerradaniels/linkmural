@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import { GA_MEASUREMENT_ID, trackGaEvent, type GaEventName } from "./gtm";
 
@@ -20,6 +22,11 @@ const ALL_EVENTS: GaEventName[] = [
   "qrcode_visualizado",
   "chave_pix_copiada",
   "denuncia_enviada",
+  "clique_assinar_pro",
+  "begin_checkout",
+  "purchase",
+  "checkout_cancelado",
+  "portal_assinatura_aberto",
 ];
 
 describe("gtm", () => {
@@ -67,6 +74,46 @@ describe("gtm", () => {
   it("uses valid GA4 event names (lowercase ASCII snake_case, max 40 chars)", () => {
     for (const name of ALL_EVENTS) {
       expect(name).toMatch(/^[a-z][a-z0-9_]{0,39}$/);
+    }
+  });
+
+  it("keeps docs/gtm/linkmural-gtm-ga4.json in sync with every tracked event", () => {
+    const gtmPath = path.resolve(
+      process.cwd(),
+      "docs/gtm/linkmural-gtm-ga4.json",
+    );
+    const json = JSON.parse(fs.readFileSync(gtmPath, "utf8")) as {
+      containerVersion: {
+        tag: { parameter?: { key: string; value?: string }[] }[];
+        trigger: {
+          customEventFilter?: { parameter: { key: string; value: string }[] }[];
+        }[];
+      };
+    };
+
+    const tagEventNames = new Set(
+      json.containerVersion.tag
+        .map(
+          (t) => t.parameter?.find((p) => p.key === "eventName")?.value ?? "",
+        )
+        .filter(Boolean),
+    );
+    const triggerEventNames = new Set(
+      json.containerVersion.trigger
+        .map(
+          (tr) =>
+            tr.customEventFilter?.[0]?.parameter.find((p) => p.key === "arg1")
+              ?.value ?? "",
+        )
+        .filter(Boolean),
+    );
+
+    for (const name of ALL_EVENTS) {
+      expect(tagEventNames.has(name), `missing GTM tag for ${name}`).toBe(true);
+      expect(
+        triggerEventNames.has(name),
+        `missing GTM trigger for ${name}`,
+      ).toBe(true);
     }
   });
 });

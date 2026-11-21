@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { BillingEventTracker } from "@/components/app/BillingEventTracker";
+import { ManageSubscriptionButton } from "@/components/app/ManageSubscriptionButton";
 import { PendingActivation } from "@/components/app/PendingActivation";
 import { SubscriptionSummary } from "@/components/app/SubscriptionSummary";
 import {
@@ -55,21 +57,6 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Não conseguimos abrir o gerenciamento agora. Tente de novo em instantes.",
 };
 
-/** Opens the Stripe Customer Portal (card, invoices, cancel at period end). */
-function ManageButton({
-  variant = "outline",
-}: {
-  variant?: "outline" | "primary";
-}) {
-  return (
-    <form method="post" action="/api/stripe/portal" className="w-full">
-      <Button type="submit" variant={variant} size="md" className="w-full">
-        Gerenciar assinatura
-      </Button>
-    </form>
-  );
-}
-
 export default async function PlanoPage({
   searchParams,
 }: {
@@ -92,13 +79,14 @@ export default async function PlanoPage({
   const { data: subscription } = await supabase
     .from("subscriptions")
     .select(
-      "status, billing_interval, current_period_end, cancel_at_period_end, created_at",
+      "id, status, billing_interval, current_period_end, cancel_at_period_end, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   const paid = plan !== "free";
+  const paidPlan: "pro" | "business" = plan === "business" ? "business" : "pro";
   const errorMessage = params.erro ? ERROR_MESSAGES[params.erro] : undefined;
 
   const periodEnd = subscription?.current_period_end
@@ -132,16 +120,30 @@ export default async function PlanoPage({
 
       {params.ok === "1" &&
         (paid ? (
-          <Alert tone="success" title="Assinatura ativa">
-            Obrigado! Seu plano {current.label} já está valendo.
-          </Alert>
+          <>
+            {subscription && summary && (
+              <BillingEventTracker
+                kind="purchase"
+                transactionId={subscription.id}
+                value={summary.currentPrice / 100}
+                plan={paidPlan}
+                interval={summary.interval}
+              />
+            )}
+            <Alert tone="success" title="Assinatura ativa">
+              Obrigado! Seu plano {current.label} já está valendo.
+            </Alert>
+          </>
         ) : (
           <PendingActivation />
         ))}
       {params.cancelado === "1" && (
-        <Alert tone="info" title="Pagamento cancelado">
-          Nenhuma cobrança foi feita. Você pode assinar quando quiser.
-        </Alert>
+        <>
+          <BillingEventTracker kind="checkout_canceled" />
+          <Alert tone="info" title="Pagamento cancelado">
+            Nenhuma cobrança foi feita. Você pode assinar quando quiser.
+          </Alert>
+        </>
       )}
       {errorMessage && (
         <Alert tone="error" title="Não deu certo">
@@ -152,7 +154,7 @@ export default async function PlanoPage({
         <Alert
           tone="warning"
           title="Pagamento pendente"
-          action={<ManageButton variant="primary" />}
+          action={<ManageSubscriptionButton plan={paidPlan} variant="primary" />}
         >
           Não conseguimos cobrar a sua assinatura. Atualize o cartão para não
           perder o plano {current.label}.
@@ -164,7 +166,11 @@ export default async function PlanoPage({
           <Alert
             tone="warning"
             title="Sua próxima renovação terá o valor regular"
-            action={billingEnabled ? <ManageButton /> : undefined}
+            action={
+              billingEnabled ? (
+                <ManageSubscriptionButton plan={paidPlan} />
+              ) : undefined
+            }
           >
             O desconto de lançamento termina antes da próxima cobrança. Em{" "}
             {new Intl.DateTimeFormat("pt-BR", {
@@ -223,7 +229,11 @@ export default async function PlanoPage({
           summary={summary}
           discountPercent={current.promo?.percentOff ?? null}
           features={PLAN_FEATURES[plan]}
-          actions={billingEnabled ? <ManageButton /> : null}
+          actions={
+            billingEnabled ? (
+              <ManageSubscriptionButton plan={paidPlan} />
+            ) : null
+          }
         />
       ) : (
         <BillingIntervalProvider
