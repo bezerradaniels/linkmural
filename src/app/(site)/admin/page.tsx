@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Badge, Progress } from "@/components/ui";
+import { PAID_STATUSES } from "@/lib/billing-core";
 import { formatMetricNumber } from "@/lib/panel-helpers";
+import { PLANS, formatBrl } from "@/lib/plans";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const FUNNEL_STEPS = [
@@ -38,6 +40,7 @@ export default async function AdminDashboardPage() {
     recentProfilesRes,
     recentPagesRes,
     eventsRes,
+    activeSubsRes,
   ] = await Promise.all([
     admin.from("profiles").select("id", { count: "exact", head: true }),
     admin
@@ -64,7 +67,21 @@ export default async function AdminDashboardPage() {
       .order("created_at", { ascending: false })
       .limit(50),
     admin.from("onboarding_events").select("event").limit(5000),
+    admin
+      .from("subscriptions")
+      .select("plan, billing_interval, status")
+      .in("status", [...PAID_STATUSES]),
   ]);
+
+  const activeSubs = activeSubsRes.data ?? [];
+  const mrrCents = activeSubs.reduce((sum, sub) => {
+    const tier = sub.plan === "business" ? PLANS.business : PLANS.pro;
+    const monthly =
+      sub.billing_interval === "year"
+        ? Math.round(tier.price.yearly / 12)
+        : tier.price.monthly;
+    return sum + monthly;
+  }, 0);
 
   const clicks7d = clicks7dRes.data ?? [];
   let viewsToday = 0;
@@ -111,7 +128,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* KPIs */}
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <div className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-4">
           <span className="text-caption text-ink-muted">Contas</span>
           <span className="font-display text-display-md">
@@ -127,6 +144,21 @@ export default async function AdminDashboardPage() {
             {formatMetricNumber(publishedCountRes.count ?? 0)}
           </span>
         </div>
+
+        <Link
+          href="/admin/faturamento"
+          className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-4 hover:border-ink"
+        >
+          <span className="text-caption text-ink-muted">
+            Assinaturas · MRR est.
+          </span>
+          <span className="font-display text-title">
+            {formatMetricNumber(activeSubs.length)} · {formatBrl(mrrCents)}
+          </span>
+          <span className="text-caption text-ink-muted">
+            Ver faturamento →
+          </span>
+        </Link>
 
         <div className="flex flex-col gap-1 rounded-xl border border-line bg-surface p-4">
           <span className="text-caption text-ink-muted">

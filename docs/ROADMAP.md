@@ -87,8 +87,8 @@ Liberado primeiro para quem estiver na lista de espera.
 - [ ] Horários para agendar, catálogo e pixel de anúncios (Meta e Google), na ordem que fizer sentido. Se o prazo apertar, ficam para depois.
 
 ## Fase 7 · E-mails restantes e admin completo (§11, §14)
-- [ ] Demais e-mails do §14 (além dos dois da Fase 4 · F).
-- [ ] Admin completo: o que faltar do §11 além de Dashboard, Empresas e Moderação.
+- [x] Demais e-mails do §14: Dia 3 ("Seus primeiros cliques", só se houver cliques), Dia 7 (dica ligada aos links escolhidos) via `send-lifecycle-emails` e "Você chegou ao limite do Grátis" ao bater 5 links (`src/lib/email/link-limit.ts`), todos deduplicados em `email_logs`.
+- [x] Admin completo: KPIs de assinaturas e MRR no Dashboard, nova aba Faturamento (`/admin/faturamento`) e nova aba Atividades (`/admin/atividades`, auditoria `admin_actions` + histórico de `email_logs`), além de Empresas, Moderação e Espera & Feedback.
 - [ ] Cabeçalhos de segurança revisados (CSP com nonce, se viável) e checklist de lançamento.
 
 ## Fase 8 · Cobrança (Stripe, §12) · plano detalhado em `docs/FASE-8-COBRANCA.md`

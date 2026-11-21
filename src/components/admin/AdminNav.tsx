@@ -9,8 +9,10 @@ import type { ReactNode } from "react";
 const TABS = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/empresas", label: "Empresas" },
+  { href: "/admin/faturamento", label: "Faturamento" },
   { href: "/admin/moderacao", label: "Moderação" },
   { href: "/admin/feedback", label: "Espera & Feedback" },
+  { href: "/admin/atividades", label: "Atividades" },
 ];
 
 export function AdminShell({

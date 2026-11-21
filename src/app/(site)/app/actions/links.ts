@@ -3,10 +3,12 @@
 import { after } from "next/server";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { sendFreeLinkLimitEmail } from "@/lib/email/link-limit";
 import { sendPagePublishedEmail } from "@/lib/email/page-published";
 import { detectLink, linkUrlSchema } from "@/lib/link-detect";
 import { friendlyDbError } from "@/lib/onboarding";
 import { pageActionsSchema } from "@/lib/panel-helpers";
+import { PLANS } from "@/lib/plans";
 import { checkSafeUrl } from "@/lib/safe-browsing";
 import type { Tables, TablesUpdate } from "@/utils/supabase/types";
 import { refreshPublicPage } from "./revalidate";
@@ -55,7 +57,7 @@ export async function createLinkAction(
     };
   }
 
-  const { supabase, userId } = await requireUser("/app/pagina");
+  const { supabase, userId, email } = await requireUser("/app/pagina");
   const page = await getOwnedPage(supabase, userId);
   if (!page) return { ok: false, error: "Página não encontrada." };
 
@@ -113,6 +115,27 @@ export async function createLinkAction(
   }
 
   refreshPublicPage(page.slug, [created.id]);
+
+  // One-time email when a Free user hits the 5-link cap (docs/HANDOFF.md §14).
+  const freeLimit = PLANS.free.maxLinks ?? 5;
+  const [{ count: totalLinks }, { data: prof }] = await Promise.all([
+    supabase
+      .from("links")
+      .select("id", { count: "exact", head: true })
+      .eq("page_id", page.id),
+    supabase.from("profiles").select("plan").eq("id", userId).maybeSingle(),
+  ]);
+  if ((prof?.plan ?? "free") === "free" && (totalLinks ?? 0) >= freeLimit) {
+    after(() =>
+      sendFreeLinkLimitEmail({
+        userId,
+        pageId: page.id,
+        to: email,
+        businessName: page.business_name || page.slug,
+      }),
+    );
+  }
+
   return { ok: true, data: created };
 }
 

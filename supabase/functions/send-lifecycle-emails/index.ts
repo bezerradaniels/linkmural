@@ -1,7 +1,9 @@
-// Supabase Edge Function: envia os e-mails automáticos essenciais (Fase 4 · F e Fase 8)
+// Supabase Edge Function: envia os e-mails automáticos (Fase 4 · F, Fase 7 e Fase 8)
 // 1. "Sua página está quase pronta" (1h e 24h após cadastro parado)
 // 2. "Coloque seu link na bio" (24h após publicação)
-// 3. "Sua assinatura Pro renova com valor regular" (até 15 dias antes da 1ª cobrança após os 12 meses de lançamento)
+// 3. "Seus primeiros cliques" (Dia 3, só se houver cliques)
+// 4. Dica ligada aos links escolhidos (Dia 7)
+// 5. "Sua assinatura Pro renova com valor regular" (até 15 dias antes da 1ª cobrança após os 12 meses de lançamento)
 //
 // Secrets esperados na Edge Function:
 // - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (automáticos no Supabase)
@@ -19,7 +21,11 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 type PageEmailKind = "onboarding_1h" | "onboarding_24h" | "put_in_bio";
-type EmailKind = PageEmailKind | "renewal_price_increase";
+type EmailKind =
+  | PageEmailKind
+  | "day3_first_clicks"
+  | "day7_tip"
+  | "renewal_price_increase";
 
 type ProfileMini = {
   id: string;
@@ -103,6 +109,104 @@ function buildRenewalEmail(
           <p style="margin:24px 0 0;text-align:center;">
             <a href="${escapeHtml(planUrl)}" style="display:inline-block;background:#CDF54A;color:#0E0E0E;font-weight:700;font-size:15px;padding:13px 24px;border-radius:999px;text-decoration:none;">
               Gerenciar minha assinatura
+            </a>
+          </p>
+        </div>
+      </div>
+    `.trim(),
+  };
+}
+
+function buildDay3ClicksEmail(
+  row: CandidateRow,
+  clickCount: number,
+  siteUrl: string,
+): { subject: string; html: string } {
+  const firstName = row.profiles?.full_name?.trim().split(/\s+/)[0];
+  const greeting = firstName ? `Olá, ${escapeHtml(firstName)}!` : "Olá!";
+  const business = escapeHtml(row.business_name.trim() || row.slug);
+  const metricsUrl = `${siteUrl}/app/metricas`;
+  const clicksLabel =
+    clickCount === 1 ? "1 clique" : `${clickCount} cliques`;
+
+  return {
+    subject: `Seus primeiros cliques chegaram no Linkmural (${clicksLabel})`,
+    html: `
+      <div style="font-family:Inter,system-ui,-apple-system,sans-serif;background:#F4F4EF;padding:32px 16px;color:#0E0E0E;">
+        <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;padding:32px;border:1px solid #E2E2DC;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6B6B66;">linkmural</p>
+          <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;">${greeting}</h1>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#6B6B66;">
+            A página de <strong style="color:#0E0E0E;">${business}</strong> já recebeu <strong style="color:#0E0E0E;">${escapeHtml(clicksLabel)}</strong> nos seus primeiros dias no ar!
+          </p>
+          <p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#6B6B66;">
+            Acompanhe quantas pessoas visitam sua página e clicam nos seus links direto pelo painel.
+          </p>
+          <p style="margin:24px 0 0;text-align:center;">
+            <a href="${escapeHtml(metricsUrl)}" style="display:inline-block;background:#CDF54A;color:#0E0E0E;font-weight:700;font-size:15px;padding:13px 24px;border-radius:999px;text-decoration:none;">
+              Ver minhas métricas
+            </a>
+          </p>
+        </div>
+      </div>
+    `.trim(),
+  };
+}
+
+function buildDay7TipEmail(
+  row: CandidateRow,
+  links: { kind: string; featured: boolean; active: boolean }[],
+  siteUrl: string,
+): { subject: string; html: string } {
+  const firstName = row.profiles?.full_name?.trim().split(/\s+/)[0];
+  const greeting = firstName ? `Olá, ${escapeHtml(firstName)}!` : "Olá!";
+  const activeLinks = links.filter((l) => l.active);
+  const hasWhatsapp = activeLinks.some((l) => l.kind === "whatsapp");
+  const hasFeatured = activeLinks.some((l) => l.featured);
+
+  let subject: string;
+  let tipTitle: string;
+  let tipBody: string;
+  let ctaLabel: string;
+  let ctaUrl: string;
+
+  if (!hasWhatsapp) {
+    subject = "Dica rápida: facilite o contato pelo WhatsApp";
+    tipTitle = "Adicione seu WhatsApp na página";
+    tipBody =
+      "Negócios que deixam o botão de WhatsApp visível recebem muito mais mensagens. Você pode adicionar seu número em menos de 1 minuto nas Informações da página.";
+    ctaLabel = "Adicionar WhatsApp";
+    ctaUrl = `${siteUrl}/app/informacoes`;
+  } else if (!hasFeatured && activeLinks.length >= 2) {
+    subject = "Dica rápida: destaque seu link mais importante";
+    tipTitle = "Use o alfinete no link principal";
+    tipBody =
+      "Você já tem vários links ativos! Marcar o principal como destaque (ex.: agendamento, cardápio ou WhatsApp) chama atenção logo no topo da página.";
+    ctaLabel = "Destacar um link";
+    ctaUrl = `${siteUrl}/app/pagina`;
+  } else {
+    subject = "Dica rápida: leve seu Linkmural para fora da internet";
+    tipTitle = "Imprima o QR code da sua página";
+    tipBody =
+      "Sua página já está bem completa! Baixe o QR code pronto no painel e coloque no balcão, embalagem ou cartão de visita para transformar clientes presenciais em seguidores e contatos.";
+    ctaLabel = "Baixar meu QR code";
+    ctaUrl = `${siteUrl}/app`;
+  }
+
+  return {
+    subject,
+    html: `
+      <div style="font-family:Inter,system-ui,-apple-system,sans-serif;background:#F4F4EF;padding:32px 16px;color:#0E0E0E;">
+        <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;padding:32px;border:1px solid #E2E2DC;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6B6B66;">linkmural · dica da semana</p>
+          <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;">${greeting}</h1>
+          <h2 style="margin:0 0 10px;font-size:16px;line-height:1.35;color:#0E0E0E;">${escapeHtml(tipTitle)}</h2>
+          <p style="margin:0 0 20px;font-size:15px;line-height:1.5;color:#6B6B66;">
+            ${escapeHtml(tipBody)}
+          </p>
+          <p style="margin:24px 0 0;text-align:center;">
+            <a href="${escapeHtml(ctaUrl)}" style="display:inline-block;background:#CDF54A;color:#0E0E0E;font-weight:700;font-size:15px;padding:13px 24px;border-radius:999px;text-decoration:none;">
+              ${escapeHtml(ctaLabel)}
             </a>
           </p>
         </div>
@@ -267,11 +371,11 @@ Deno.serve(async (req) => {
   const isoAgo = (hours: number) =>
     new Date(now - hours * 3_600_000).toISOString();
 
-  // Fetch already-sent logs (last 8 days for onboarding/bio + all renewal notices).
+  // Fetch already-sent logs (last 16 days for lifecycle + all renewal notices).
   const { data: recentLogs } = await supabase
     .from("email_logs")
     .select("user_id, kind")
-    .or(`sent_at.gte.${isoAgo(24 * 8)},kind.eq.renewal_price_increase`);
+    .or(`sent_at.gte.${isoAgo(24 * 16)},kind.eq.renewal_price_increase`);
 
   const sentSet = new Set(
     (recentLogs ?? []).map((l) => `${l.user_id}:${l.kind}`),
@@ -283,7 +387,7 @@ Deno.serve(async (req) => {
     now + RENEWAL_NOTICE_DAYS * 24 * 3_600_000,
   ).toISOString();
 
-  const [res1h, res24h, resBio, resRenewals] = await Promise.all([
+  const [res1h, res24h, resBio, resDay3, resDay7, resRenewals] = await Promise.all([
     supabase
       .from("pages")
       .select(
@@ -316,6 +420,28 @@ Deno.serve(async (req) => {
       .gte("published_at", isoAgo(24 * 7))
       .limit(50),
     supabase
+      .from("pages")
+      .select(
+        "id, slug, business_name, owner_id, profiles!inner(id, email, full_name, suspended_at)",
+      )
+      .eq("published", true)
+      .is("blocked_at", null)
+      .not("published_at", "is", null)
+      .lte("published_at", isoAgo(24 * 3))
+      .gte("published_at", isoAgo(24 * 10))
+      .limit(50),
+    supabase
+      .from("pages")
+      .select(
+        "id, slug, business_name, owner_id, profiles!inner(id, email, full_name, suspended_at)",
+      )
+      .eq("published", true)
+      .is("blocked_at", null)
+      .not("published_at", "is", null)
+      .lte("published_at", isoAgo(24 * 7))
+      .gte("published_at", isoAgo(24 * 14))
+      .limit(50),
+    supabase
       .from("subscriptions")
       .select(
         "id, user_id, plan, billing_interval, created_at, current_period_end, profiles!inner(id, email, full_name, suspended_at)",
@@ -338,6 +464,8 @@ Deno.serve(async (req) => {
     onboarding_1h: 0,
     onboarding_24h: 0,
     put_in_bio: 0,
+    day3_first_clicks: 0,
+    day7_tip: 0,
     renewal_price_increase: 0,
   };
 
@@ -379,6 +507,97 @@ Deno.serve(async (req) => {
           .eq("user_id", profile.id)
           .eq("kind", batch.kind);
       }
+    }
+  }
+
+  // Day 3: "Seus primeiros cliques" (only when the page actually got clicks).
+  const day3Rows = (resDay3.data ?? []) as unknown as CandidateRow[];
+  for (const row of day3Rows) {
+    const profile = row.profiles;
+    if (!profile?.email || profile.suspended_at) continue;
+    if (sentSet.has(`${profile.id}:day3_first_clicks`)) continue;
+
+    const { count: clickCount } = await supabase
+      .from("click_events")
+      .select("id", { count: "exact", head: true })
+      .eq("page_id", row.id)
+      .neq("event", "view");
+
+    if (!clickCount || clickCount < 1) continue;
+
+    if (dryRun) {
+      counts.day3_first_clicks += 1;
+      continue;
+    }
+
+    const { error: logErr } = await supabase.from("email_logs").insert({
+      user_id: profile.id,
+      page_id: row.id,
+      kind: "day3_first_clicks",
+    });
+    if (logErr) continue;
+
+    const { subject, html } = buildDay3ClicksEmail(row, clickCount, siteUrl);
+    const sent = await sendViaResend({
+      apiKey: resendKey!,
+      from,
+      to: profile.email,
+      subject,
+      html,
+    });
+    if (sent) {
+      sentSet.add(`${profile.id}:day3_first_clicks`);
+      counts.day3_first_clicks += 1;
+    } else {
+      await supabase
+        .from("email_logs")
+        .delete()
+        .eq("user_id", profile.id)
+        .eq("kind", "day3_first_clicks");
+    }
+  }
+
+  // Day 7: contextual tip based on the page's active links.
+  const day7Rows = (resDay7.data ?? []) as unknown as CandidateRow[];
+  for (const row of day7Rows) {
+    const profile = row.profiles;
+    if (!profile?.email || profile.suspended_at) continue;
+    if (sentSet.has(`${profile.id}:day7_tip`)) continue;
+
+    if (dryRun) {
+      counts.day7_tip += 1;
+      continue;
+    }
+
+    const { data: pageLinks } = await supabase
+      .from("links")
+      .select("kind, featured, active")
+      .eq("page_id", row.id);
+
+    const { error: logErr } = await supabase.from("email_logs").insert({
+      user_id: profile.id,
+      page_id: row.id,
+      kind: "day7_tip",
+    });
+    if (logErr) continue;
+
+    const { subject, html } = buildDay7TipEmail(row, pageLinks ?? [], siteUrl);
+    const sent = await sendViaResend({
+      apiKey: resendKey!,
+      from,
+      to: profile.email,
+      subject,
+      html,
+    });
+    if (sent) {
+      sentSet.add(`${profile.id}:day7_tip`);
+      counts.day7_tip += 1;
+    } else {
+      await supabase
+        .from("email_logs")
+        .delete()
+        .eq("user_id", profile.id)
+        .eq("kind", "day7_tip");
     }
   }
 
