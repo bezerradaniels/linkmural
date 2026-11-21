@@ -1,0 +1,294 @@
+// Supabase Edge Function: envia os e-mails automáticos essenciais (Fase 4 · F)
+// 1. "Sua página está quase pronta" (1h e 24h após cadastro parado)
+// 2. "Coloque seu link na bio" (24h após publicação)
+//
+// Secrets esperados na Edge Function:
+// - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (automáticos no Supabase)
+// - RESEND_API_KEY
+// - EMAIL_FROM (opcional; padrão "Linkmural <oi@linkmural.com>")
+// - SITE_URL (opcional; padrão "https://linkmural.com")
+// - CRON_SECRET (opcional; se ausente, exige SUPABASE_SERVICE_ROLE_KEY no Bearer)
+//
+// Teste seguro: chamar com ?dry_run=1 só conta quem receberia cada e-mail, sem
+// enviar nada e sem gravar em email_logs. Use antes de agendar o cron.
+//
+// Publicar com --no-verify-jwt: a autenticação é feita aqui, pelo Bearer acima
+// (as chaves novas do Supabase, sb_secret_..., não são JWT).
+
+import { createClient } from "npm:@supabase/supabase-js@2";
+
+type EmailKind = "onboarding_1h" | "onboarding_24h" | "put_in_bio";
+
+type CandidateRow = {
+  id: string;
+  slug: string;
+  business_name: string;
+  owner_id: string;
+  profiles: {
+    id: string;
+    email: string | null;
+    full_name: string | null;
+    suspended_at: string | null;
+  } | null;
+};
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildEmail(
+  kind: EmailKind,
+  row: CandidateRow,
+  siteUrl: string,
+): { subject: string; html: string } {
+  const firstName = row.profiles?.full_name?.trim().split(/\s+/)[0];
+  const greeting = firstName ? `Olá, ${escapeHtml(firstName)}!` : "Olá!";
+  const pageUrl = `${siteUrl}/${row.slug}`;
+  const onboardingUrl = `${siteUrl}/onboarding`;
+  const panelUrl = `${siteUrl}/app`;
+  const business = escapeHtml(row.business_name.trim() || row.slug);
+
+  if (kind === "onboarding_1h") {
+    return {
+      subject: "Sua página no Linkmural está quase pronta",
+      html: `
+        <div style="font-family:Inter,system-ui,-apple-system,sans-serif;background:#F4F4EF;padding:32px 16px;color:#0E0E0E;">
+          <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;padding:32px;border:1px solid #E2E2DC;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6B6B66;">linkmural</p>
+            <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;">${greeting}</h1>
+            <p style="margin:0 0 20px;font-size:15px;line-height:1.5;color:#6B6B66;">
+              Você já garantiu o endereço <strong style="color:#0E0E0E;">linkmural.com/${escapeHtml(row.slug)}</strong>, mas ainda não publicou sua página. Leva menos de 2 minutos para colocar no ar.
+            </p>
+            <p style="margin:24px 0 0;text-align:center;">
+              <a href="${escapeHtml(onboardingUrl)}" style="display:inline-block;background:#CDF54A;color:#0E0E0E;font-weight:700;font-size:15px;padding:13px 24px;border-radius:999px;text-decoration:none;">
+                Continuar minha página
+              </a>
+            </p>
+          </div>
+        </div>
+      `.trim(),
+    };
+  }
+
+  if (kind === "onboarding_24h") {
+    return {
+      subject: "Falta pouco para colocar seu negócio no ar",
+      html: `
+        <div style="font-family:Inter,system-ui,-apple-system,sans-serif;background:#F4F4EF;padding:32px 16px;color:#0E0E0E;">
+          <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;padding:32px;border:1px solid #E2E2DC;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6B6B66;">linkmural</p>
+            <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;">${greeting}</h1>
+            <p style="margin:0 0 20px;font-size:15px;line-height:1.5;color:#6B6B66;">
+              Seu endereço <strong style="color:#0E0E0E;">linkmural.com/${escapeHtml(row.slug)}</strong> ainda está guardado esperando você publicar. Adicione seu WhatsApp e seus links principais para seus clientes encontrarem tudo em um lugar só.
+            </p>
+            <p style="margin:24px 0 0;text-align:center;">
+              <a href="${escapeHtml(onboardingUrl)}" style="display:inline-block;background:#CDF54A;color:#0E0E0E;font-weight:700;font-size:15px;padding:13px 24px;border-radius:999px;text-decoration:none;">
+                Publicar minha página agora
+              </a>
+            </p>
+          </div>
+        </div>
+      `.trim(),
+    };
+  }
+
+  return {
+    subject: "Coloque seu link na bio do Instagram e WhatsApp",
+    html: `
+      <div style="font-family:Inter,system-ui,-apple-system,sans-serif;background:#F4F4EF;padding:32px 16px;color:#0E0E0E;">
+        <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;padding:32px;border:1px solid #E2E2DC;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6B6B66;">linkmural</p>
+          <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;">${greeting}</h1>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#6B6B66;">
+            A página de <strong style="color:#0E0E0E;">${business}</strong> já está no ar! Agora é só colocar o link onde seus clientes já falam com você:
+          </p>
+          <div style="background:#F4F4EF;border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:14px;font-weight:600;word-break:break-all;">
+            <a href="${escapeHtml(pageUrl)}" style="color:#0E0E0E;text-decoration:none;">${escapeHtml(pageUrl)}</a>
+          </div>
+          <ul style="margin:0 0 20px;padding-left:18px;font-size:14px;line-height:1.6;color:#0E0E0E;">
+            <li><strong>Instagram:</strong> Editar perfil → Links → Adicionar link externo.</li>
+            <li><strong>WhatsApp Business:</strong> Ferramentas comerciais → Perfil → Site.</li>
+          </ul>
+          <p style="margin:24px 0 0;text-align:center;">
+            <a href="${escapeHtml(panelUrl)}" style="display:inline-block;background:#CDF54A;color:#0E0E0E;font-weight:700;font-size:15px;padding:13px 24px;border-radius:999px;text-decoration:none;">
+              Abrir meu painel
+            </a>
+          </p>
+        </div>
+      </div>
+    `.trim(),
+  };
+}
+
+async function sendViaResend(params: {
+  apiKey: string;
+  from: string;
+  to: string;
+  subject: string;
+  html: string;
+}): Promise<boolean> {
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${params.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: params.from,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+    }),
+  });
+  if (!res.ok) {
+    console.error("[lifecycle] Resend error:", res.status, await res.text());
+    return false;
+  }
+  return true;
+}
+
+Deno.serve(async (req) => {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const expectedSecret = Deno.env.get("CRON_SECRET")?.trim() || serviceKey;
+
+  const auth = req.headers.get("authorization") ?? "";
+  if (!expectedSecret || auth !== `Bearer ${expectedSecret}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  const dryRun = new URL(req.url).searchParams.get("dry_run") === "1";
+
+  const resendKey = Deno.env.get("RESEND_API_KEY")?.trim();
+  if (!resendKey && !dryRun) {
+    return new Response(
+      JSON.stringify({ ok: false, reason: "Missing RESEND_API_KEY" }),
+      { status: 503, headers: { "Content-Type": "application/json" } },
+    );
+  }
+
+  const from =
+    Deno.env.get("EMAIL_FROM")?.trim() || "Linkmural <oi@linkmural.com>";
+  const siteUrl = (
+    Deno.env.get("SITE_URL")?.trim() || "https://linkmural.com"
+  ).replace(/\/+$/, "");
+
+  const supabase = createClient(supabaseUrl, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  const now = Date.now();
+  const isoAgo = (hours: number) =>
+    new Date(now - hours * 3_600_000).toISOString();
+
+  // Fetch already-sent logs from the last 8 days to filter in memory.
+  const { data: recentLogs } = await supabase
+    .from("email_logs")
+    .select("user_id, kind")
+    .gte("sent_at", isoAgo(24 * 8));
+
+  const sentSet = new Set(
+    (recentLogs ?? []).map((l) => `${l.user_id}:${l.kind}`),
+  );
+
+  const batches: { kind: EmailKind; rows: CandidateRow[] }[] = [];
+
+  const [res1h, res24h, resBio] = await Promise.all([
+    supabase
+      .from("pages")
+      .select(
+        "id, slug, business_name, owner_id, profiles!inner(id, email, full_name, suspended_at)",
+      )
+      .eq("published", false)
+      .is("blocked_at", null)
+      .lte("created_at", isoAgo(1))
+      .gte("created_at", isoAgo(24))
+      .limit(50),
+    supabase
+      .from("pages")
+      .select(
+        "id, slug, business_name, owner_id, profiles!inner(id, email, full_name, suspended_at)",
+      )
+      .eq("published", false)
+      .is("blocked_at", null)
+      .lte("created_at", isoAgo(24))
+      .gte("created_at", isoAgo(24 * 7))
+      .limit(50),
+    supabase
+      .from("pages")
+      .select(
+        "id, slug, business_name, owner_id, profiles!inner(id, email, full_name, suspended_at)",
+      )
+      .eq("published", true)
+      .is("blocked_at", null)
+      .not("published_at", "is", null)
+      .lte("published_at", isoAgo(24))
+      .gte("published_at", isoAgo(24 * 7))
+      .limit(50),
+  ]);
+
+  batches.push(
+    { kind: "onboarding_1h", rows: (res1h.data ?? []) as unknown as CandidateRow[] },
+    { kind: "onboarding_24h", rows: (res24h.data ?? []) as unknown as CandidateRow[] },
+    { kind: "put_in_bio", rows: (resBio.data ?? []) as unknown as CandidateRow[] },
+  );
+
+  const counts: Record<EmailKind, number> = {
+    onboarding_1h: 0,
+    onboarding_24h: 0,
+    put_in_bio: 0,
+  };
+
+  for (const batch of batches) {
+    for (const row of batch.rows) {
+      const profile = row.profiles;
+      if (!profile?.email || profile.suspended_at) continue;
+      if (sentSet.has(`${profile.id}:${batch.kind}`)) continue;
+
+      // Dry run: count who would receive it, send and record nothing.
+      if (dryRun) {
+        counts[batch.kind] += 1;
+        continue;
+      }
+
+      // Reserve the log row first (unique constraint prevents concurrent duplicates).
+      const { error: logErr } = await supabase.from("email_logs").insert({
+        user_id: profile.id,
+        page_id: row.id,
+        kind: batch.kind,
+      });
+      if (logErr) continue;
+
+      const { subject, html } = buildEmail(batch.kind, row, siteUrl);
+      const sent = await sendViaResend({
+        apiKey: resendKey!,
+        from,
+        to: profile.email,
+        subject,
+        html,
+      });
+      if (sent) {
+        sentSet.add(`${profile.id}:${batch.kind}`);
+        counts[batch.kind] += 1;
+      } else {
+        await supabase
+          .from("email_logs")
+          .delete()
+          .eq("user_id", profile.id)
+          .eq("kind", batch.kind);
+      }
+    }
+  }
+
+  return new Response(JSON.stringify({ ok: true, dry_run: dryRun, sent: counts }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+});

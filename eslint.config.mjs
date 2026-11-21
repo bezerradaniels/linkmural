@@ -14,5 +14,6 @@ export default defineConfig([
     "playwright-report/**",
     "test-results/**",
     "src/utils/supabase/types.ts",
+    "supabase/functions/**",
   ]),
 ]);
