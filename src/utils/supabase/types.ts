@@ -141,6 +141,45 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          id: number
+          kind: string
+          page_id: string | null
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: never
+          kind: string
+          page_id?: string | null
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: never
+          kind?: string
+          page_id?: string | null
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_page_id_fkey"
+            columns: ["page_id"]
+            isOneToOne: false
+            referencedRelation: "pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback: {
         Row: {
           created_at: string
