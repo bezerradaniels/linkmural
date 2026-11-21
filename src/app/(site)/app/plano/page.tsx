@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import { PendingActivation } from "@/components/app/PendingActivation";
 import {
   BillingIntervalProvider,
   BillingToggle,
 } from "@/components/marketing/BillingInterval";
 import { PlanPrice } from "@/components/marketing/PlanPrice";
+import { SubscribeButton } from "@/components/marketing/SubscribeButton";
 import { WaitlistButton } from "@/components/marketing/WaitlistButton";
-import { Badge, Button, Icon, Progress } from "@/components/ui";
+import { Alert, Badge, Button, Icon, Progress } from "@/components/ui";
+import { requireUser } from "@/lib/auth";
 import { getPanelContext } from "@/lib/panel-data";
 import { PLANS, SALE_PLANS, type Plan } from "@/lib/plans";
+import { isBillingEnabled } from "@/lib/stripe";
 
 export const metadata: Metadata = {
   title: "Plano e cobrança",
@@ -35,10 +39,69 @@ const PLAN_FEATURES: Record<Plan, string[]> = {
   ],
 };
 
-export default async function PlanoPage() {
-  const { plan, page, email } = await getPanelContext();
+/** Messages for the ?erro= codes set by the /api/stripe routes. */
+const ERROR_MESSAGES: Record<string, string> = {
+  indisponivel:
+    "A assinatura ainda não está disponível. Entre na lista de espera para ser avisado.",
+  checkout:
+    "Não conseguimos abrir o pagamento agora. Tente de novo em instantes.",
+  ja_assinante:
+    "Você já tem um plano pago. Use “Gerenciar assinatura” para fazer mudanças.",
+  suspensa: "Sua conta está suspensa. Fale com o suporte em oi@linkmural.com.",
+  sem_assinatura: "Não encontramos uma assinatura para gerenciar.",
+  portal:
+    "Não conseguimos abrir o gerenciamento agora. Tente de novo em instantes.",
+};
+
+function formatDate(iso: string | null): string | null {
+  if (!iso) return null;
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "long",
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date(iso));
+}
+
+/** Opens the Stripe Customer Portal (card, invoices, cancel at period end). */
+function ManageButton({
+  variant = "outline",
+}: {
+  variant?: "outline" | "primary";
+}) {
+  return (
+    <form method="post" action="/api/stripe/portal" className="w-full">
+      <Button type="submit" variant={variant} size="md" className="w-full">
+        Gerenciar assinatura
+      </Button>
+    </form>
+  );
+}
+
+export default async function PlanoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ok?: string; cancelado?: string; erro?: string }>;
+}) {
+  const [{ plan, page, email }, params, { supabase }] = await Promise.all([
+    getPanelContext(),
+    searchParams,
+    requireUser("/app/plano"),
+  ]);
+  const billingEnabled = isBillingEnabled();
   const current = PLANS[plan];
   const linkCount = page.links.length;
+
+  const { data: subscription } = await supabase
+    .from("subscriptions")
+    .select(
+      "status, billing_interval, current_period_end, cancel_at_period_end",
+    )
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const paid = plan !== "free";
+  const periodEnd = formatDate(subscription?.current_period_end ?? null);
+  const errorMessage = params.erro ? ERROR_MESSAGES[params.erro] : undefined;
 
   return (
     <div className="flex flex-col gap-6">
@@ -51,6 +114,41 @@ export default async function PlanoPage() {
           <strong className="text-ink">{current.label}</strong>.
         </p>
       </div>
+
+      {params.ok === "1" &&
+        (paid ? (
+          <Alert tone="success" title="Assinatura ativa">
+            Obrigado! Seu plano {current.label} já está valendo.
+          </Alert>
+        ) : (
+          <PendingActivation />
+        ))}
+      {params.cancelado === "1" && (
+        <Alert tone="info" title="Pagamento cancelado">
+          Nenhuma cobrança foi feita. Você pode assinar quando quiser.
+        </Alert>
+      )}
+      {errorMessage && (
+        <Alert tone="error" title="Não deu certo">
+          {errorMessage}
+        </Alert>
+      )}
+      {paid && subscription?.status === "past_due" && (
+        <Alert
+          tone="warning"
+          title="Pagamento pendente"
+          action={<ManageButton variant="primary" />}
+        >
+          Não conseguimos cobrar a sua assinatura. Atualize o cartão para não
+          perder o plano {current.label}.
+        </Alert>
+      )}
+      {paid && subscription?.cancel_at_period_end && periodEnd && (
+        <Alert tone="info" title={`Seu plano termina em ${periodEnd}`}>
+          Até lá, tudo continua funcionando. Para manter o plano, reative em
+          “Gerenciar assinatura”.
+        </Alert>
+      )}
 
       {/* Current Usage */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -128,22 +226,30 @@ export default async function PlanoPage() {
                 </div>
 
                 {isCurrent ? (
-                  <Button
-                    variant="outline"
-                    size="md"
-                    className="w-full"
-                    disabled
-                  >
-                    Seu plano atual
-                  </Button>
+                  key !== "free" && billingEnabled ? (
+                    <ManageButton />
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="md"
+                      className="w-full"
+                      disabled
+                    >
+                      Seu plano atual
+                    </Button>
+                  )
                 ) : key !== "free" ? (
-                  <WaitlistButton
-                    plan="pro"
-                    label="Entrar na lista de espera"
-                    source="painel"
-                    defaultEmail={email ?? ""}
-                    variant="primary"
-                  />
+                  billingEnabled ? (
+                    <SubscribeButton />
+                  ) : (
+                    <WaitlistButton
+                      plan="pro"
+                      label="Entrar na lista de espera"
+                      source="painel"
+                      defaultEmail={email ?? ""}
+                      variant="primary"
+                    />
+                  )
                 ) : (
                   <Button
                     variant="outline"

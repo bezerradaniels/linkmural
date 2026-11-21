@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
+import { deleteStripeCustomerForUser } from "@/lib/billing";
 import { finalizeSlug } from "@/lib/slug";
 import { createAdminClient } from "@/utils/supabase/admin";
 import type { ActionResult } from "./links";
@@ -60,6 +61,18 @@ export async function deleteAccountAction(
   }
 
   const admin = createAdminClient();
+
+  // 0. Stop billing first: deleting the Stripe customer cancels its
+  //    subscriptions. If that fails, the account stays so nobody is charged
+  //    after deleting it.
+  const billing = await deleteStripeCustomerForUser(userId);
+  if (!billing.ok) {
+    return {
+      ok: false,
+      error:
+        "Não conseguimos cancelar a sua assinatura agora. Tente de novo em instantes.",
+    };
+  }
 
   // 1. Delete user's uploaded files in bucket "media/<userId>/"
   try {
