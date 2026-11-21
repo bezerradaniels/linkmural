@@ -17,7 +17,7 @@ Um negócio cria a página `linkmural.com/studioforca` em menos de 3 minutos. A 
 
 | | Grátis | Pro | Negócios |
 |---|---|---|---|
-| Preço | R$ 0 | R$ 19/mês ou R$ 190/ano | R$ 49/mês ou R$ 490/ano |
+| Preço | R$ 0 | R$ 4,99/mês ou R$ 30,00/ano (lançamento, 50% off por 12 meses; regular R$ 9,98/mês ou R$ 60,00/ano) | fora de venda por ora (Fase 6) |
 | Páginas | 1 | 1 | 3 |
 | Links | até 5 | ilimitados | ilimitados |
 | WhatsApp, Salvar contato, QR | sim | sim | sim |
@@ -294,11 +294,12 @@ Telas desenhadas: Dashboard, Empresas (contas e plano), Usuários, Links, Inform
 
 ## 12. Cobrança (Stripe)
 
-- Produtos: **Linkmural Pro** e **Linkmural Negócios**. Preços em BRL com `lookup_key`:
-  - `pro_monthly` = 1900;
-  - `pro_yearly` = 19000;
-  - `business_monthly` = 4900;
-  - `business_yearly` = 49000.
+- Por enquanto só o produto **Linkmural Pro** (o Negócios volta na Fase 6, sem preço definido). Preços regulares em BRL, com `lookup_key`:
+  - `pro_monthly` = 998 (R$ 9,98);
+  - `pro_yearly` = 6000 (R$ 60,00).
+- **Desconto de lançamento:** cupom `lancamento_50_12m` de 50% (`percent_off`), `duration=repeating` por 12 meses, aplicado pelo servidor no Checkout. O cliente paga R$ 4,99/mês ou R$ 30,00/ano e, depois dos 12 meses, o preço regular (no máximo o dobro: o salto é de propósito pequeno, para não gerar cancelamento na renovação). Usar `redeem_by` e `max_redemptions` para encerrar o lançamento. Conferir no sandbox que a renovação anual (mês 12) já cobra o preço regular e avisar o cliente antes (e-mail e tela Plano).
+- Decisão de 21/11: foi descartado o desconto de 80% sobre R$ 24,95 (salto de 5× na renovação). Em seguida, o preço de R$ 14,90 e R$ 119,90 também foi descartado por não ser vendável; valem R$ 4,99 e R$ 30,00 no lançamento. O preço regular de R$ 9,98 e R$ 60,00 (usado no "de/por") deve ser validado com a lista de espera. Evitar R$ 9,99: 50% daria R$ 4,995, e o arredondamento da Stripe é incerto.
+- **Outras regiões (EUA, Europa, México, América Latina):** preços por moeda em `currency_options` dos mesmos dois preços (padrão BRL); valores e Adaptive Pricing a decidir. Implica imposto (IVA, sales tax) e tradução da interface.
 - `POST /api/stripe/checkout`:
   1. Cria ou reaproveita o `customer` (salvar `profiles.stripe_customer_id`).
   2. Abre uma sessão `mode=subscription` com `client_reference_id=user.id`, `locale=pt-BR`, `allow_promotion_codes=true`.
