@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import {
+  BillingIntervalProvider,
+  BillingToggle,
+} from "@/components/marketing/BillingInterval";
+import { PlanPrice } from "@/components/marketing/PlanPrice";
 import { WaitlistButton } from "@/components/marketing/WaitlistButton";
 import { Badge, buttonClasses, Icon } from "@/components/ui";
-import { PLANS, type Plan } from "@/lib/plans";
+import { PLANS, SALE_PLANS, type Plan } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Planos",
   description:
-    "Comece grátis sem cartão. Conheça os planos Grátis, Pro e Negócios do linkmural.",
+    "Comece grátis sem cartão. Conheça os planos Grátis e Pro do linkmural, com 50% de desconto de lançamento.",
 };
-
-function formatBrl(cents: number): string {
-  if (cents === 0) return "R$ 0";
-  return `R$ ${Math.round(cents / 100)}`;
-}
 
 const FEATURES: Record<Plan, string[]> = {
   free: [
@@ -76,86 +76,79 @@ export default function PlanosPage() {
             Planos simples para crescer com você
           </h1>
           <p className="max-w-xl text-body text-ink-muted">
-            O plano Grátis já tem tudo para colocar seu negócio no ar hoje. Os
-            planos Pro e Negócios chegam em breve — entre na lista de espera.
+            O plano Grátis já tem tudo para colocar seu negócio no ar hoje. O
+            Pro chega em breve, com 50% de desconto de lançamento — entre na
+            lista de espera.
           </p>
         </div>
 
-        <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          {(["free", "pro", "business"] as Plan[]).map((key) => {
-            const info = PLANS[key];
-            return (
-              <div
-                key={key}
-                className={`flex flex-col justify-between gap-6 rounded-xl border bg-surface p-6 ${
-                  key === "free" ? "border-ink shadow-sm" : "border-line"
-                }`}
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="font-display text-title">{info.label}</h2>
-                    {key === "free" ? (
-                      <Badge variant="neutral" dot="positive">
-                        Disponível hoje
-                      </Badge>
-                    ) : (
-                      <Badge variant={key === "pro" ? "pro" : "business"}>
-                        Em breve
-                      </Badge>
-                    )}
+        <BillingIntervalProvider>
+          <div className="flex justify-center">
+            <BillingToggle />
+          </div>
+
+          <section className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-5 md:grid-cols-2">
+            {SALE_PLANS.map((key) => {
+              const info = PLANS[key];
+              return (
+                <div
+                  key={key}
+                  className={`flex flex-col justify-between gap-6 rounded-xl border bg-surface p-6 ${
+                    key === "free" ? "border-ink shadow-sm" : "border-line"
+                  }`}
+                >
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="font-display text-title">{info.label}</h2>
+                      {key === "free" ? (
+                        <Badge variant="neutral" dot="positive">
+                          Disponível hoje
+                        </Badge>
+                      ) : (
+                        <Badge variant="pro">Em breve</Badge>
+                      )}
+                    </div>
+
+                    <PlanPrice plan={key} />
+
+                    <ul className="flex flex-col gap-2.5 text-small text-ink-muted">
+                      {FEATURES[key].map((feat) => (
+                        <li key={feat} className="flex items-start gap-2">
+                          <Icon
+                            name="check"
+                            size={16}
+                            className="mt-0.5 shrink-0 text-positive"
+                          />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  <div>
-                    <span className="font-display text-display-md">
-                      {formatBrl(info.price.monthly)}
-                    </span>
-                    {info.price.monthly > 0 && (
-                      <span className="text-small text-ink-muted">/mês</span>
-                    )}
-                    {info.price.yearly > 0 && (
-                      <p className="mt-0.5 text-caption text-ink-muted">
-                        ou {formatBrl(info.price.yearly)}/ano
-                      </p>
-                    )}
-                  </div>
-
-                  <ul className="flex flex-col gap-2.5 text-small text-ink-muted">
-                    {FEATURES[key].map((feat) => (
-                      <li key={feat} className="flex items-start gap-2">
-                        <Icon
-                          name="check"
-                          size={16}
-                          className="mt-0.5 shrink-0 text-positive"
-                        />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {key === "free" ? (
+                    <Link
+                      href="/"
+                      className={buttonClasses({
+                        variant: "primary",
+                        size: "md",
+                        className: "w-full",
+                      })}
+                    >
+                      Criar minha página grátis
+                    </Link>
+                  ) : (
+                    <WaitlistButton
+                      plan="pro"
+                      label="Quero ser avisado"
+                      source="planos"
+                      variant="secondary"
+                    />
+                  )}
                 </div>
-
-                {key === "free" ? (
-                  <Link
-                    href="/"
-                    className={buttonClasses({
-                      variant: "primary",
-                      size: "md",
-                      className: "w-full",
-                    })}
-                  >
-                    Criar minha página grátis
-                  </Link>
-                ) : (
-                  <WaitlistButton
-                    plan={key}
-                    label="Quero ser avisado"
-                    source="planos"
-                    variant={key === "pro" ? "secondary" : "outline"}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </section>
+              );
+            })}
+          </section>
+        </BillingIntervalProvider>
       </main>
     </div>
   );

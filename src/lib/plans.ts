@@ -7,8 +7,14 @@ export type Plan = "free" | "pro" | "business";
 
 export type PlanInfo = {
   label: string;
-  /** Monthly and yearly price in cents (BRL). */
+  /** Sold today? Business stays out of the price pages until Phase 6. */
+  onSale: boolean;
+  /** What the customer pays, monthly and yearly, in cents (BRL), launch discount included. */
   price: { monthly: number; yearly: number };
+  /** Regular price in cents (BRL), shown crossed out while the launch discount runs. */
+  listPrice?: { monthly: number; yearly: number };
+  /** Launch discount: percentage off, applied for this many months after signup. */
+  promo?: { percentOff: number; months: number };
   maxPages: number;
   /** null = unlimited. */
   maxLinks: number | null;
@@ -24,6 +30,7 @@ export type PlanInfo = {
 export const PLANS: Record<Plan, PlanInfo> = {
   free: {
     label: "Grátis",
+    onSale: true,
     price: { monthly: 0, yearly: 0 },
     maxPages: 1,
     maxLinks: 5,
@@ -35,7 +42,12 @@ export const PLANS: Record<Plan, PlanInfo> = {
   },
   pro: {
     label: "Pro",
-    price: { monthly: 1900, yearly: 19000 },
+    onSale: true,
+    // 50% off the regular price (R$ 9,98 and R$ 60,00) for 12 months:
+    // 998 × 0,5 = 499 and 6000 × 0,5 = 3000. After that the price doubles at most.
+    price: { monthly: 499, yearly: 3000 },
+    listPrice: { monthly: 998, yearly: 6000 },
+    promo: { percentOff: 50, months: 12 },
     maxPages: 1,
     maxLinks: null,
     customTheme: true,
@@ -46,6 +58,7 @@ export const PLANS: Record<Plan, PlanInfo> = {
   },
   business: {
     label: "Negócios",
+    onSale: false,
     price: { monthly: 4900, yearly: 49000 },
     maxPages: 3,
     maxLinks: null,
@@ -56,6 +69,34 @@ export const PLANS: Record<Plan, PlanInfo> = {
     businessFeatures: true,
   },
 };
+
+/** Plans shown on the price pages, in display order. */
+export const SALE_PLANS: Plan[] = (
+  ["free", "pro", "business"] as Plan[]
+).filter((p) => PLANS[p].onSale);
+
+/** 499 → "R$ 4,99"; 0 → "R$ 0". */
+export function formatBrl(cents: number): string {
+  if (cents === 0) return "R$ 0";
+  return `R$ ${(cents / 100).toFixed(2).replace(".", ",")}`;
+}
+
+/** Billing cadence of a paid plan. */
+export type BillingInterval = "year" | "month";
+
+/** Yearly price spread over 12 months, in cents (3000 → 250). */
+export function monthlyEquivalent(yearlyCents: number): number {
+  return Math.round(yearlyCents / 12);
+}
+
+/** How much cheaper the yearly price is than 12 monthly payments, in whole percent. */
+export function yearlySavingsPercent(prices: {
+  monthly: number;
+  yearly: number;
+}): number {
+  if (prices.monthly <= 0) return 0;
+  return Math.round((1 - prices.yearly / (prices.monthly * 12)) * 100);
+}
 
 export function planInfo(plan: Plan | null | undefined): PlanInfo {
   return PLANS[plan ?? "free"] ?? PLANS.free;

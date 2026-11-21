@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
+import {
+  BillingIntervalProvider,
+  BillingToggle,
+} from "@/components/marketing/BillingInterval";
+import { PlanPrice } from "@/components/marketing/PlanPrice";
 import { WaitlistButton } from "@/components/marketing/WaitlistButton";
 import { Badge, Button, Icon, Progress } from "@/components/ui";
 import { getPanelContext } from "@/lib/panel-data";
-import { PLANS, type Plan } from "@/lib/plans";
+import { PLANS, SALE_PLANS, type Plan } from "@/lib/plans";
 
 export const metadata: Metadata = {
   title: "Plano e cobrança",
 };
-
-function formatBrl(cents: number): string {
-  if (cents === 0) return "R$ 0";
-  return `R$ ${Math.round(cents / 100)}`;
-}
 
 const PLAN_FEATURES: Record<Plan, string[]> = {
   free: [
@@ -84,80 +84,81 @@ export default async function PlanoPage() {
         </div>
       </section>
 
-      {/* Plans grid */}
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {(["free", "pro", "business"] as Plan[]).map((key) => {
-          const info = PLANS[key];
-          const isCurrent = plan === key;
+      <BillingIntervalProvider>
+        <BillingToggle />
 
-          return (
-            <div
-              key={key}
-              className={`flex flex-col justify-between gap-5 rounded-xl border p-5 ${
-                isCurrent
-                  ? "border-ink bg-surface shadow-sm"
-                  : "border-line bg-surface"
-              }`}
-            >
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="font-display text-title">{info.label}</h2>
-                  {isCurrent ? (
-                    <Badge variant="neutral">Plano atual</Badge>
-                  ) : key === "pro" ? (
-                    <Badge variant="pro">Popular</Badge>
-                  ) : null}
+        {/* Plans grid */}
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {SALE_PLANS.map((key) => {
+            const info = PLANS[key];
+            const isCurrent = plan === key;
+
+            return (
+              <div
+                key={key}
+                className={`flex flex-col justify-between gap-5 rounded-xl border p-5 ${
+                  isCurrent
+                    ? "border-ink bg-surface shadow-sm"
+                    : "border-line bg-surface"
+                }`}
+              >
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="font-display text-title">{info.label}</h2>
+                    {isCurrent ? (
+                      <Badge variant="neutral">Plano atual</Badge>
+                    ) : key === "pro" ? (
+                      <Badge variant="pro">Popular</Badge>
+                    ) : null}
+                  </div>
+
+                  <PlanPrice plan={key} />
+                  <ul className="flex flex-col gap-2 text-small text-ink-muted">
+                    {PLAN_FEATURES[key].map((feat) => (
+                      <li key={feat} className="flex items-start gap-2">
+                        <Icon
+                          name="check"
+                          size={16}
+                          className="mt-0.5 shrink-0 text-positive"
+                        />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <div>
-                  <span className="font-display text-display-md">
-                    {formatBrl(info.price.monthly)}
-                  </span>
-                  {info.price.monthly > 0 && (
-                    <span className="text-small text-ink-muted">/mês</span>
-                  )}
-                  {info.price.yearly > 0 && (
-                    <p className="mt-0.5 text-caption text-ink-muted">
-                      ou {formatBrl(info.price.yearly)}/ano (2 meses grátis)
-                    </p>
-                  )}
-                </div>
-
-                <ul className="flex flex-col gap-2 text-small text-ink-muted">
-                  {PLAN_FEATURES[key].map((feat) => (
-                    <li key={feat} className="flex items-start gap-2">
-                      <Icon
-                        name="check"
-                        size={16}
-                        className="mt-0.5 shrink-0 text-positive"
-                      />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
+                {isCurrent ? (
+                  <Button
+                    variant="outline"
+                    size="md"
+                    className="w-full"
+                    disabled
+                  >
+                    Seu plano atual
+                  </Button>
+                ) : key !== "free" ? (
+                  <WaitlistButton
+                    plan="pro"
+                    label="Entrar na lista de espera"
+                    source="painel"
+                    defaultEmail={email ?? ""}
+                    variant="primary"
+                  />
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="md"
+                    className="w-full"
+                    disabled
+                  >
+                    Plano Grátis
+                  </Button>
+                )}
               </div>
-
-              {isCurrent ? (
-                <Button variant="outline" size="md" className="w-full" disabled>
-                  Seu plano atual
-                </Button>
-              ) : key !== "free" ? (
-                <WaitlistButton
-                  plan={key}
-                  label="Entrar na lista de espera"
-                  source="painel"
-                  defaultEmail={email ?? ""}
-                  variant={key === "pro" ? "primary" : "secondary"}
-                />
-              ) : (
-                <Button variant="outline" size="md" className="w-full" disabled>
-                  Plano Grátis
-                </Button>
-              )}
-            </div>
-          );
-        })}
-      </section>
+            );
+          })}
+        </section>
+      </BillingIntervalProvider>
     </div>
   );
 }
