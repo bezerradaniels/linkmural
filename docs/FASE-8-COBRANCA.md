@@ -5,7 +5,7 @@ Referências: `docs/HANDOFF.md` §12 (cobrança), `docs/ROADMAP.md` (Fase 8), `d
 
 **Meta:** cobrar o plano Pro com segurança, sem surpresa para o cliente na renovação, começando só com cartão e só em reais.
 
-**Situação em 21/11:** o fluxo completo funciona em modo de teste (assinar, renovar, cancelar, refletir no painel). Falta separar o banco do beta, configurar a Stripe de produção, os avisos ao cliente e as outras regiões.
+**Situação em 21/11:** o fluxo completo funciona em modo de teste (assinar, renovar, cancelar, refletir no painel). A conta real da Stripe já tem produto, preços, cupom, Portal e webhook (seção 3), e a produção está com a cobrança ligada, mas **nenhum pagamento real foi feito ainda**. Falta provar o ciclo real, separar o banco do beta, os avisos ao cliente e as outras regiões.
 
 ---
 
@@ -59,7 +59,20 @@ Conta da versão adotada: 998 × 0,5 = **499** centavos e 6000 × 0,5 = **3000**
 
 ## 3. Configuração na Stripe (conta de teste)
 
-Conta: "Área restrita de Link Mural" (sandbox, `acct_1UdvDGQ6BL3v4hg9`). **Nada disso existe ainda na conta de produção.**
+### Conta real ("Link Mural", `acct_1UeCnuLV3zoRMMDf`), modo real
+
+Conferida em 21/11 pela conexão da Stripe (só leitura, mais a atualização do Portal). Cobranças habilitadas (cartão, Pix e boleto ativos), nome na fatura "LINKMURAL". **Repasses ainda desabilitados** (`payouts_enabled = false`, com saque em 30 dias, padrão de conta nova), e o perfil da empresa **não tem e-mail de suporte**. Nenhuma assinatura real até agora.
+
+| Objeto | ID | Detalhe |
+|---|---|---|
+| Produto | `prod_VfaLAN7w4kv5Kk` | Linkmural Pro |
+| Preço mensal | `price_1UeFAcLV3zoRMMDfT944hhD8` | R$ 9,98, `lookup_key` = `pro_monthly` |
+| Preço anual | `price_1UeFAcLV3zoRMMDfVIykJjQ5` | R$ 60,00, `lookup_key` = `pro_yearly` |
+| Cupom | `lancamento_50_12m` | 50%, repetindo, 12 meses; sem `redeem_by` nem `max_redemptions` ainda |
+| Portal do Cliente | `bpc_1UeFDlLV3zoRMMDfwurm01IW` | padrão; cancelar ao fim do período com motivo, cartão, faturas, sem troca de plano; título, termos e privacidade preenchidos em 21/11 |
+| Webhook | `we_1UeFKNLV3zoRMMDfoRxEayK7` | `https://linkmural.com/api/stripe/webhook`, os 6 eventos tratados, API `2026-11-18.endive` |
+
+### Conta de teste ("Área restrita de Link Mural", sandbox, `acct_1UdvDGQ6BL3v4hg9`)
 
 | Objeto | ID | Detalhe |
 |---|---|---|
@@ -155,8 +168,8 @@ O plano **mensal** não foi simulado mês a mês. Pela mesma regra, são 12 cobr
 ### Antes de ligar no beta ou na produção
 
 1. **Separar o Supabase do beta e dos testes.** Hoje os dois ambientes usam o projeto de produção, e uma assinatura de teste grava plano real em conta real.
-2. **Conta de produção da Stripe:** criar o produto, os dois preços com as mesmas `lookup_key`, o cupom e a configuração do Portal (nada disso existe fora do sandbox). Definir `redeem_by` e `max_redemptions` do cupom para encerrar o lançamento.
-3. **Webhook de cada ambiente:** criar um endpoint por ambiente na Stripe e cadastrar `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` na Hostinger (as variáveis `NEXT_PUBLIC_*` só valem depois de um build novo).
+2. ~~Conta de produção da Stripe~~ **Feito**: produto, preços, cupom, Portal e webhook existem na conta real (seção 3). Falta definir `redeem_by` e `max_redemptions` do cupom para encerrar o lançamento, o e-mail de suporte no perfil e acompanhar a liberação dos repasses.
+3. **Webhook e variáveis:** o endpoint de produção existe. Conferir que a Hostinger de `linkmural.com` tem `STRIPE_SECRET_KEY` (`sk_live_...`) e o `STRIPE_WEBHOOK_SECRET` desse endpoint, e que o beta continua sem as chaves até o Supabase ser separado (as variáveis `NEXT_PUBLIC_*` só valem depois de um build novo).
 4. **Revisar a linha da assinatura de teste** na conta usada nos testes (hoje aparece como Pro em produção e termina em 21/11/2027).
 
 ### Ainda a testar em modo de teste
@@ -189,8 +202,8 @@ EUA, Europa, México e América Latina.
 ## 8. Checklist de lançamento da cobrança
 
 - [ ] Supabase do beta separado do de produção.
-- [ ] Produto, preços, cupom e Portal criados na Stripe de produção.
-- [ ] Endpoint de webhook criado em cada ambiente, com o seu `whsec_...`.
+- [x] Produto, preços, cupom e Portal criados na Stripe de produção.
+- [x] Endpoint de webhook de produção criado (`we_1UeFKNLV3zoRMMDfoRxEayK7`). O beta não tem endpoint, de propósito.
 - [ ] Variáveis da Stripe cadastradas na Hostinger (beta primeiro) e build novo feito.
 - [ ] Roteiro completo no beta, em modo de teste: assinar (mensal e anual), cancelar, reativar, falha de pagamento, excluir conta.
 - [ ] Aviso de renovação com aumento (e-mail e tela).
