@@ -15,8 +15,14 @@ const BillingIntervalContext = createContext<Ctx>({
 });
 
 /** Shares the chosen billing interval (yearly by default) between the toggle and the prices. */
-export function BillingIntervalProvider({ children }: { children: ReactNode }) {
-  const [interval, setInterval] = useState<BillingInterval>("year");
+export function BillingIntervalProvider({
+  children,
+  initial = "year",
+}: {
+  children: ReactNode;
+  initial?: BillingInterval;
+}) {
+  const [interval, setInterval] = useState<BillingInterval>(initial);
   return (
     <BillingIntervalContext.Provider value={{ interval, setInterval }}>
       {children}

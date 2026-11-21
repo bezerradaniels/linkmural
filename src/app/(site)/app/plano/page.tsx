@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PendingActivation } from "@/components/app/PendingActivation";
+import { SubscriptionSummary } from "@/components/app/SubscriptionSummary";
 import {
   BillingIntervalProvider,
   BillingToggle,
@@ -9,6 +10,7 @@ import { SubscribeButton } from "@/components/marketing/SubscribeButton";
 import { WaitlistButton } from "@/components/marketing/WaitlistButton";
 import { Alert, Badge, Button, Icon, Progress } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
+import { summarizeSubscription } from "@/lib/billing-core";
 import { getPanelContext } from "@/lib/panel-data";
 import { PLANS, SALE_PLANS, type Plan } from "@/lib/plans";
 import { isBillingEnabled } from "@/lib/stripe";
@@ -53,14 +55,6 @@ const ERROR_MESSAGES: Record<string, string> = {
     "Não conseguimos abrir o gerenciamento agora. Tente de novo em instantes.",
 };
 
-function formatDate(iso: string | null): string | null {
-  if (!iso) return null;
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "long",
-    timeZone: "America/Sao_Paulo",
-  }).format(new Date(iso));
-}
-
 /** Opens the Stripe Customer Portal (card, invoices, cancel at period end). */
 function ManageButton({
   variant = "outline",
@@ -79,7 +73,12 @@ function ManageButton({
 export default async function PlanoPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ok?: string; cancelado?: string; erro?: string }>;
+  searchParams: Promise<{
+    ok?: string;
+    cancelado?: string;
+    erro?: string;
+    periodo?: string;
+  }>;
 }) {
   const [{ plan, page, email }, params, { supabase }] = await Promise.all([
     getPanelContext(),
@@ -93,15 +92,31 @@ export default async function PlanoPage({
   const { data: subscription } = await supabase
     .from("subscriptions")
     .select(
-      "status, billing_interval, current_period_end, cancel_at_period_end",
+      "status, billing_interval, current_period_end, cancel_at_period_end, created_at",
     )
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   const paid = plan !== "free";
-  const periodEnd = formatDate(subscription?.current_period_end ?? null);
   const errorMessage = params.erro ? ERROR_MESSAGES[params.erro] : undefined;
+
+  const periodEnd = subscription?.current_period_end
+    ? new Date(subscription.current_period_end)
+    : null;
+  const summary = subscription
+    ? summarizeSubscription({
+        interval:
+          subscription.billing_interval === "year" ||
+          subscription.billing_interval === "month"
+            ? subscription.billing_interval
+            : null,
+        createdAt: new Date(subscription.created_at),
+        periodEnd,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        now: new Date(),
+      })
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -143,12 +158,6 @@ export default async function PlanoPage({
           perder o plano {current.label}.
         </Alert>
       )}
-      {paid && subscription?.cancel_at_period_end && periodEnd && (
-        <Alert tone="info" title={`Seu plano termina em ${periodEnd}`}>
-          Até lá, tudo continua funcionando. Para manter o plano, reative em
-          “Gerenciar assinatura”.
-        </Alert>
-      )}
 
       {/* Current Usage */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -182,53 +191,65 @@ export default async function PlanoPage({
         </div>
       </section>
 
-      <BillingIntervalProvider>
-        <BillingToggle />
+      {paid ? (
+        /* A customer already paying sees the subscription, not the price comparison. */
+        <SubscriptionSummary
+          planLabel={current.label}
+          status={subscription?.status ?? "active"}
+          cancelAtPeriodEnd={subscription?.cancel_at_period_end ?? false}
+          endsOn={periodEnd}
+          summary={summary}
+          discountPercent={current.promo?.percentOff ?? null}
+          features={PLAN_FEATURES[plan]}
+          actions={billingEnabled ? <ManageButton /> : null}
+        />
+      ) : (
+        <BillingIntervalProvider
+          initial={params.periodo === "month" ? "month" : "year"}
+        >
+          <BillingToggle />
 
-        {/* Plans grid */}
-        <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {SALE_PLANS.map((key) => {
-            const info = PLANS[key];
-            const isCurrent = plan === key;
+          {/* Plans grid */}
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {SALE_PLANS.map((key) => {
+              const info = PLANS[key];
+              const isCurrent = plan === key;
 
-            return (
-              <div
-                key={key}
-                className={`flex flex-col justify-between gap-5 rounded-xl border p-5 ${
-                  isCurrent
-                    ? "border-ink bg-surface shadow-sm"
-                    : "border-line bg-surface"
-                }`}
-              >
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="font-display text-title">{info.label}</h2>
-                    {isCurrent ? (
-                      <Badge variant="neutral">Plano atual</Badge>
-                    ) : key === "pro" ? (
-                      <Badge variant="pro">Popular</Badge>
-                    ) : null}
+              return (
+                <div
+                  key={key}
+                  className={`flex flex-col justify-between gap-5 rounded-xl border p-5 ${
+                    isCurrent
+                      ? "border-ink bg-surface shadow-sm"
+                      : "border-line bg-surface"
+                  }`}
+                >
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="font-display text-title">{info.label}</h2>
+                      {isCurrent ? (
+                        <Badge variant="neutral">Plano atual</Badge>
+                      ) : key === "pro" ? (
+                        <Badge variant="pro">Popular</Badge>
+                      ) : null}
+                    </div>
+
+                    <PlanPrice plan={key} />
+                    <ul className="flex flex-col gap-2 text-small text-ink-muted">
+                      {PLAN_FEATURES[key].map((feat) => (
+                        <li key={feat} className="flex items-start gap-2">
+                          <Icon
+                            name="check"
+                            size={16}
+                            className="mt-0.5 shrink-0 text-positive"
+                          />
+                          <span>{feat}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
 
-                  <PlanPrice plan={key} />
-                  <ul className="flex flex-col gap-2 text-small text-ink-muted">
-                    {PLAN_FEATURES[key].map((feat) => (
-                      <li key={feat} className="flex items-start gap-2">
-                        <Icon
-                          name="check"
-                          size={16}
-                          className="mt-0.5 shrink-0 text-positive"
-                        />
-                        <span>{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {isCurrent ? (
-                  key !== "free" && billingEnabled ? (
-                    <ManageButton />
-                  ) : (
+                  {isCurrent ? (
                     <Button
                       variant="outline"
                       size="md"
@@ -237,9 +258,7 @@ export default async function PlanoPage({
                     >
                       Seu plano atual
                     </Button>
-                  )
-                ) : key !== "free" ? (
-                  billingEnabled ? (
+                  ) : billingEnabled ? (
                     <SubscribeButton />
                   ) : (
                     <WaitlistButton
@@ -249,22 +268,13 @@ export default async function PlanoPage({
                       defaultEmail={email ?? ""}
                       variant="primary"
                     />
-                  )
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="md"
-                    className="w-full"
-                    disabled
-                  >
-                    Plano Grátis
-                  </Button>
-                )}
-              </div>
-            );
-          })}
-        </section>
-      </BillingIntervalProvider>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        </BillingIntervalProvider>
+      )}
     </div>
   );
 }

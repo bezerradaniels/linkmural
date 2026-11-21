@@ -35,6 +35,12 @@ export type StripeSubscriptionLike = {
   customer: string | { id: string };
   status: string;
   cancel_at_period_end: boolean;
+  /**
+   * Date the subscription is set to end. With the current Stripe API the
+   * Customer Portal cancels "at the end of the period" by setting this date
+   * and leaves cancel_at_period_end false.
+   */
+  cancel_at?: number | null;
   metadata?: Record<string, string> | null;
   items: {
     data: {
@@ -95,7 +101,9 @@ export function subscriptionRow(
     current_period_end: item.current_period_end
       ? new Date(item.current_period_end * 1000).toISOString()
       : null,
-    cancel_at_period_end: sub.cancel_at_period_end,
+    // Scheduled to end by either flag (see cancel_at above).
+    cancel_at_period_end:
+      sub.cancel_at_period_end || (sub.cancel_at ?? null) !== null,
   };
 }
 
@@ -114,6 +122,68 @@ export function linksToDeactivate(
         Number(b.featured) - Number(a.featured) || a.position - b.position,
     );
   return active.slice(limit).map((l) => l.id);
+}
+
+export type SubscriptionSummary = {
+  interval: BillingInterval;
+  /** What each charge is now, in cents: the launch price while the discount runs, else the regular one. */
+  currentPrice: number;
+  /** Is the launch discount still running? */
+  promoActive: boolean;
+  /** When the launch discount ends (12 months after the subscription started), if there is one. */
+  promoEndsAt: Date | null;
+  /** The next charge (date and amount in cents), or null when the plan will not renew. */
+  next: { at: Date; price: number } | null;
+};
+
+/** A charge this close to the end of the discount window is treated as the first one after it. */
+const PROMO_EDGE_MS = 2 * 24 * 60 * 60 * 1000;
+
+/**
+ * What the Plano screen tells a subscriber: the price now, when the launch
+ * discount ends and what the next charge will be. The discount is a coupon of
+ * `promo.months` months counted from the start of the subscription, so a
+ * monthly plan is discounted 12 times and a yearly plan only once. The dates
+ * come from our own copy of the subscription (created_at, current_period_end).
+ */
+export function summarizeSubscription(
+  input: {
+    interval: BillingInterval | null;
+    createdAt: Date;
+    periodEnd: Date | null;
+    cancelAtPeriodEnd: boolean;
+    now: Date;
+  },
+  pro = PLANS.pro,
+): SubscriptionSummary {
+  const interval: BillingInterval = input.interval ?? "month";
+  const launch = pro.price[interval === "year" ? "yearly" : "monthly"];
+  const regular = (pro.listPrice ?? pro.price)[
+    interval === "year" ? "yearly" : "monthly"
+  ];
+
+  let promoEndsAt: Date | null = null;
+  if (pro.promo) {
+    promoEndsAt = new Date(input.createdAt);
+    promoEndsAt.setUTCMonth(promoEndsAt.getUTCMonth() + pro.promo.months);
+  }
+  const promoActive = promoEndsAt !== null && input.now < promoEndsAt;
+
+  let next: SubscriptionSummary["next"] = null;
+  if (input.periodEnd && !input.cancelAtPeriodEnd) {
+    const discounted =
+      promoEndsAt !== null &&
+      input.periodEnd.getTime() < promoEndsAt.getTime() - PROMO_EDGE_MS;
+    next = { at: input.periodEnd, price: discounted ? launch : regular };
+  }
+
+  return {
+    interval,
+    currentPrice: promoActive ? launch : regular,
+    promoActive,
+    promoEndsAt,
+    next,
+  };
 }
 
 /**

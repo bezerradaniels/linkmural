@@ -5,6 +5,7 @@ import {
   planFromPrice,
   PRICE_LOOKUP_KEYS,
   subscriptionRow,
+  summarizeSubscription,
   type StripeSubscriptionLike,
 } from "./billing-core";
 
@@ -70,6 +71,18 @@ describe("subscriptionRow", () => {
     expect(row?.cancel_at_period_end).toBe(true);
   });
 
+  it("treats a cancel_at date as a scheduled cancellation (what the Customer Portal sets)", () => {
+    const row = subscriptionRow(
+      sub({ cancel_at: 1_826_802_803, cancel_at_period_end: false }),
+      "user-1",
+    );
+    expect(row?.cancel_at_period_end).toBe(true);
+    expect(
+      subscriptionRow(sub({ cancel_at: null }), "u")?.cancel_at_period_end,
+    ).toBe(false);
+    expect(subscriptionRow(sub(), "u")?.cancel_at_period_end).toBe(false);
+  });
+
   it("keeps past_due and canceled statuses as they are", () => {
     expect(subscriptionRow(sub({ status: "past_due" }), "u")?.status).toBe(
       "past_due",
@@ -123,6 +136,85 @@ describe("linksToDeactivate", () => {
     links[0].active = false;
     links[1].active = false;
     expect(linksToDeactivate(links)).toEqual([]);
+  });
+});
+
+describe("summarizeSubscription", () => {
+  const start = new Date("2026-11-21T12:00:00Z");
+  const at = (iso: string) => new Date(iso);
+
+  it("yearly: R$ 30,00 now, and the renewal in 12 months is the regular R$ 60,00", () => {
+    const s = summarizeSubscription({
+      interval: "year",
+      createdAt: new Date(start.getTime() + 5000), // our copy is saved a few seconds later
+      periodEnd: at("2027-11-21T12:00:00Z"),
+      cancelAtPeriodEnd: false,
+      now: at("2026-11-22T12:00:00Z"),
+    });
+    expect(s.currentPrice).toBe(3000);
+    expect(s.promoActive).toBe(true);
+    expect(s.promoEndsAt?.toISOString().slice(0, 10)).toBe("2027-11-21");
+    expect(s.next).toEqual({ at: at("2027-11-21T12:00:00Z"), price: 6000 });
+  });
+
+  it("monthly: R$ 4,99 with the launch discount, still discounted next month", () => {
+    const s = summarizeSubscription({
+      interval: "month",
+      createdAt: start,
+      periodEnd: at("2026-12-21T12:00:00Z"),
+      cancelAtPeriodEnd: false,
+      now: at("2026-11-22T12:00:00Z"),
+    });
+    expect(s.currentPrice).toBe(499);
+    expect(s.next?.price).toBe(499);
+  });
+
+  it("monthly: the 13th charge is the regular R$ 9,98", () => {
+    const s = summarizeSubscription({
+      interval: "month",
+      createdAt: start,
+      periodEnd: at("2027-11-21T12:00:00Z"),
+      cancelAtPeriodEnd: false,
+      now: at("2027-10-25T12:00:00Z"),
+    });
+    expect(s.currentPrice).toBe(499);
+    expect(s.next?.price).toBe(998);
+  });
+
+  it("after the launch window the regular price is the current one", () => {
+    const s = summarizeSubscription({
+      interval: "month",
+      createdAt: start,
+      periodEnd: at("2027-12-21T12:00:00Z"),
+      cancelAtPeriodEnd: false,
+      now: at("2027-11-30T12:00:00Z"),
+    });
+    expect(s.promoActive).toBe(false);
+    expect(s.currentPrice).toBe(998);
+    expect(s.next?.price).toBe(998);
+  });
+
+  it("has no next charge when the plan is set to cancel", () => {
+    const s = summarizeSubscription({
+      interval: "year",
+      createdAt: start,
+      periodEnd: at("2027-11-21T12:00:00Z"),
+      cancelAtPeriodEnd: true,
+      now: at("2026-12-01T12:00:00Z"),
+    });
+    expect(s.next).toBeNull();
+  });
+
+  it("falls back to monthly without an interval and to no next charge without a period end", () => {
+    const s = summarizeSubscription({
+      interval: null,
+      createdAt: start,
+      periodEnd: null,
+      cancelAtPeriodEnd: false,
+      now: at("2026-11-22T12:00:00Z"),
+    });
+    expect(s.interval).toBe("month");
+    expect(s.next).toBeNull();
   });
 });
 
