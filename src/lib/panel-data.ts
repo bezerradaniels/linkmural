@@ -17,6 +17,8 @@ export type PanelContext = {
   profile: PanelProfile;
   page: OnboardingPageRow;
   plan: Plan;
+  /** True when the user is on Free after a previous paid subscription ended. */
+  downgraded: boolean;
 };
 
 /**
@@ -27,7 +29,7 @@ export type PanelContext = {
 export const getPanelContext = cache(async (): Promise<PanelContext> => {
   const { supabase, userId, email } = await requireUser("/app");
 
-  const [profileRes, pageRes] = await Promise.all([
+  const [profileRes, pageRes, pastSubRes] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, email, plan, role, suspended_at")
@@ -38,6 +40,12 @@ export const getPanelContext = cache(async (): Promise<PanelContext> => {
       .select("*, links(*)")
       .eq("owner_id", userId)
       .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("subscriptions")
+      .select("id")
+      .eq("user_id", userId)
       .limit(1)
       .maybeSingle(),
   ]);
@@ -64,11 +72,14 @@ export const getPanelContext = cache(async (): Promise<PanelContext> => {
     suspended_at: null,
   };
 
+  const plan = profile.plan ?? "free";
+
   return {
     userId,
     email: profile.email ?? email,
     profile,
     page: { ...page, links: sortedLinks } as OnboardingPageRow,
-    plan: profile.plan ?? "free",
+    plan,
+    downgraded: plan === "free" && Boolean(pastSubRes.data),
   };
 });

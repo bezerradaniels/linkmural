@@ -188,11 +188,13 @@ export function LinksEditor({
   previewBase,
   pageUrl,
   plan,
+  downgraded = false,
 }: {
   initialLinks: LinkRow[];
   previewBase: PublicPage;
   pageUrl: string;
   plan: Plan;
+  downgraded?: boolean;
 }) {
   const toast = useToast();
   const limits = planInfo(plan);
@@ -354,7 +356,11 @@ export function LinksEditor({
         setLinks((prev) =>
           prev.map((l) => (l.id === link.id ? { ...l, active: !active } : l)),
         );
-        toast(res.error);
+        if (res.code === "plan_limit_links") {
+          setLimitError(res.error);
+        } else {
+          toast(res.error);
+        }
       }
     });
   }
@@ -505,7 +511,7 @@ export function LinksEditor({
         {/* Free plan link counter */}
         {limits.maxLinks !== null && (
           <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-4">
-            <div className="flex items-center justify-between gap-2 text-small">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-small">
               <span className="font-semibold">
                 {links.length} de {limits.maxLinks} links no Grátis
               </span>
@@ -514,7 +520,7 @@ export function LinksEditor({
                   href="/app/plano"
                   className="text-small font-semibold underline"
                 >
-                  Ver planos
+                  Desbloquear links ilimitados no Pro →
                 </Link>
               )}
             </div>
@@ -527,11 +533,21 @@ export function LinksEditor({
           </div>
         )}
 
+        {downgraded && links.some((l) => !l.active) && (
+          <Alert tone="warning" title="Links pausados no retorno ao Grátis">
+            Links acima do limite de 5 foram pausados automaticamente (nenhum foi
+            apagado). Para reativar todos de uma vez, volte para o{" "}
+            <Link href="/app/plano" className="font-semibold underline">
+              plano Pro →
+            </Link>
+          </Alert>
+        )}
+
         {limitError && (
           <Alert tone="warning" title="Limite de links atingido">
             {limitError}{" "}
             <Link href="/app/plano" className="font-semibold underline">
-              Ver planos
+              Assinar o Pro →
             </Link>
           </Alert>
         )}

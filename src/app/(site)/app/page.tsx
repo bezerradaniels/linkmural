@@ -18,7 +18,7 @@ function isoDateOffset(daysAgo: number): string {
 }
 
 export default async function AppHomePage() {
-  const { profile, page, plan } = await getPanelContext();
+  const { profile, page, plan, downgraded } = await getPanelContext();
   const limits = planInfo(plan);
   const pageUrl = `${siteUrl()}/${page.slug}`;
   const firstName = profile.full_name?.trim().split(/\s+/)[0] ?? null;
@@ -97,6 +97,7 @@ export default async function AppHomePage() {
 
   const doneCount = checklist.filter((c) => c.done).length;
   const linkCount = page.links.length;
+  const pausedCount = page.links.filter((l) => !l.active).length;
   const nearLinkLimit =
     limits.maxLinks !== null && linkCount >= limits.maxLinks - 1;
 
@@ -121,11 +122,22 @@ export default async function AppHomePage() {
         />
       </div>
 
-      {nearLinkLimit && (
+      {downgraded && (
+        <Alert tone="warning" title="Seu plano voltou para o Grátis">
+          {pausedCount > 0
+            ? `${pausedCount} ${pausedCount === 1 ? "link acima do limite foi pausado" : "links acima do limite foram pausados"} (nenhum foi apagado) e a marca “Feito com linkmural” voltou ao rodapé.`
+            : "Os recursos do Pro (personalização avançada e remoção da marca “Feito com linkmural”) foram desativados, mas seus links continuam salvos."}{" "}
+          <Link href="/app/plano" className="font-semibold underline">
+            Reativar o Pro →
+          </Link>
+        </Alert>
+      )}
+
+      {nearLinkLimit && !downgraded && (
         <Alert tone="warning" title="Você está perto do limite do Grátis">
           Sua página já usa {linkCount} de {limits.maxLinks} links.{" "}
           <Link href="/app/plano" className="font-semibold underline">
-            Ver planos
+            Assinar o Pro (links ilimitados) →
           </Link>
         </Alert>
       )}

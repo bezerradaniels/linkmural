@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function PaginaPage() {
-  const { page, plan } = await getPanelContext();
+  const { page, plan, downgraded } = await getPanelContext();
   const pageUrl = `${siteUrl()}/${page.slug}`;
 
   return (
@@ -18,6 +18,7 @@ export default async function PaginaPage() {
       previewBase={toPreviewPage(page, undefined, plan)}
       pageUrl={pageUrl}
       plan={plan}
+      downgraded={downgraded}
     />
   );
 }
