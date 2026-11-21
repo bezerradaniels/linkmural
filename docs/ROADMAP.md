@@ -91,7 +91,7 @@ Liberado primeiro para quem estiver na lista de espera.
 - [ ] Admin completo: o que faltar do §11 além de Dashboard, Empresas e Moderação.
 - [ ] Cabeçalhos de segurança revisados (CSP com nonce, se viável) e checklist de lançamento.
 
-## Fase 8 · Cobrança (Stripe, §12)
+## Fase 8 · Cobrança (Stripe, §12) · plano detalhado em `docs/FASE-8-COBRANCA.md`
 Decisão de 21/11: por enquanto só **Grátis** e **Pro** (R$ 4,99/mês ou R$ 30,00/ano, que é 50% off do preço regular de R$ 9,98/mês e R$ 60,00/ano, por 12 meses; depois o preço dobra). O Negócios fica para a Fase 6.
 - [x] Produto Pro, preços regulares (`pro_monthly`, `pro_yearly`) e cupom `lancamento_50_12m` criados na conta de teste do Stripe em 21/11.
 - [x] Portal do Cliente configurado na conta de teste (`bpc_1UeDWKQ6BL3v4hg9LAXgB3PL`, padrão): atualizar cartão, nome e e-mail, histórico de faturas e cancelar ao fim do período com motivo. Troca de plano desligada (só há um plano pago).
@@ -99,12 +99,15 @@ Decisão de 21/11: por enquanto só **Grátis** e **Pro** (R$ 4,99/mês ou R$ 30
 - [ ] Validar o preço regular com a lista de espera e definir o fim do lançamento (`redeem_by`, `max_redemptions`).
 - [ ] Preços por região (EUA, Europa, México e América Latina) via `currency_options` e/ou Adaptive Pricing; decidir valores, imposto (Stripe Tax) e idiomas.
 - [x] Código de Checkout, Portal e webhook idempotente → `subscriptions` → `profiles.plan` (`src/app/api/stripe/*`, `src/lib/billing*.ts`), com testes da sincronização e do rebaixamento. Só liga onde `STRIPE_SECRET_KEY` existe.
-- [x] Tela Plano: "Assinar o Pro" (periodicidade do seletor), "Gerenciar assinatura", avisos de pagamento pendente, fim do plano e ativação.
+- [x] Tela Plano: "Assinar o Pro" (periodicidade do seletor) para quem está no Grátis; para quem já assina, um resumo (plano e periodicidade, valor atual, fim do desconto de lançamento, próxima cobrança) com "Gerenciar assinatura", mais avisos de pagamento pendente, cancelamento agendado e ativação. As datas e valores do resumo vêm da nossa cópia da assinatura (`created_at` e `current_period_end`) e batem com o teste de renovação anual (R$ 60,00 no mês 12).
 - [x] Regras de downgrade: links acima de 5 desativados (não apagados) e marca "Feito com linkmural" de volta. Páginas extras e domínio entram com o Negócios.
+- [x] Página pública `/planos`: onde `STRIPE_SECRET_KEY` existe, o Pro aparece como "Disponível" com "Assinar o Pro" (leva ao login e à tela Plano com a periodicidade escolhida); sem a chave, continua "Em breve" com a lista de espera. A página é dinâmica por causa disso.
 - [x] Excluir a conta apaga o customer na Stripe (cancela a assinatura); se falhar, a exclusão para.
 - [ ] Convites ao upgrade nos limites (links, aparência, remover marca) e aviso no painel do que mudou no downgrade.
 - [ ] Criar as chaves de teste, o `.env.local` e o webhook (Stripe CLI local; endpoint próprio no beta e na produção). Separar o Supabase do beta antes.
-- [ ] Testar de ponta a ponta no modo de teste: assinar (mensal e anual), cancelar, falha de pagamento (`4000 0000 0000 0341`), renovação no mês 12 com o cupom e exclusão de conta com assinatura.
+- [x] Testado em 21/11 no modo de teste: assinar no anual (R$ 30,00, plano Pro ativado pelo webhook) e **renovação anual no mês 12 (R$ 60,00, sem desconto)**, com relógio de teste.
+- [ ] Ainda a testar no modo de teste: assinar no mensal, cancelar pelo Portal (aviso "Cancelamento agendado"), falha de pagamento (`4000 0000 0000 0341`) e exclusão de conta com assinatura.
+- [ ] Avisar o cliente antes da renovação com aumento de preço (e-mail e tela Plano), já que o valor dobra no mês 12.
 - [ ] Fluxo completo em modo de teste, troca para as chaves de produção do Stripe e checklist final.
 
 ---
