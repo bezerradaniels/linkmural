@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { recordOnboardingEvent } from "@/lib/onboarding-events";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import {
   buildSlugCandidates,
   finalizeSlug,
@@ -99,6 +100,18 @@ async function checkSlugStatus(
 
 /** GET /api/slug/check?slug=... — checks availability and returns 3 suggestions if taken. */
 export async function GET(request: NextRequest) {
+  const rl = checkRateLimit(request, {
+    bucket: "slug:get",
+    limit: 60,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return rateLimitResponse(
+      rl.retryAfterSeconds,
+      "Muitas consultas seguidas. Aguarde alguns segundos.",
+    );
+  }
+
   const raw = request.nextUrl.searchParams.get("slug") ?? "";
   const cookieHold = parseHoldCookie(
     request.cookies.get(SLUG_HOLD_COOKIE)?.value,
@@ -125,6 +138,18 @@ const reserveBodySchema = z.object({
 
 /** POST /api/slug/check — holds the slug for 30 minutes and sets the httpOnly hold cookie. */
 export async function POST(request: NextRequest) {
+  const rl = checkRateLimit(request, {
+    bucket: "slug:post",
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) {
+    return rateLimitResponse(
+      rl.retryAfterSeconds,
+      "Muitas tentativas de reserva seguidas. Aguarde um instante.",
+    );
+  }
+
   const parsed = reserveBodySchema.safeParse(
     await request.json().catch(() => null),
   );

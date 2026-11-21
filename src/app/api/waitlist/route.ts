@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
 
@@ -11,6 +12,17 @@ const bodySchema = z.object({
 
 /** POST /api/waitlist — registers interest in Pro or Business plans. */
 export async function POST(request: Request) {
+  const rl = checkRateLimit(request, {
+    bucket: "api:waitlist",
+    limit: 10,
+    windowMs: 10 * 60_000,
+  });
+  if (!rl.ok) {
+    return rateLimitResponse(
+      rl.retryAfterSeconds,
+      "Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.",
+    );
+  }
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json(

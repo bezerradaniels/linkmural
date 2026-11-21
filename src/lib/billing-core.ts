@@ -134,10 +134,19 @@ export type SubscriptionSummary = {
   promoEndsAt: Date | null;
   /** The next charge (date and amount in cents), or null when the plan will not renew. */
   next: { at: Date; price: number } | null;
+  /**
+   * Populated when the upcoming renewal is within 30 days and will charge the
+   * higher regular price (launch discount ending). Used to warn the customer
+   * ahead of time (CDC / docs/FASE-8-COBRANCA.md).
+   */
+  priceIncreaseNotice: { at: Date; newPrice: number; daysUntil: number } | null;
 };
 
 /** A charge this close to the end of the discount window is treated as the first one after it. */
 const PROMO_EDGE_MS = 2 * 24 * 60 * 60 * 1000;
+/** Show the upcoming price-increase warning on the Plano screen up to 30 days before renewal. */
+const PRICE_INCREASE_NOTICE_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * What the Plano screen tells a subscriber: the price now, when the launch
@@ -177,12 +186,24 @@ export function summarizeSubscription(
     next = { at: input.periodEnd, price: discounted ? launch : regular };
   }
 
+  const currentPrice = promoActive ? launch : regular;
+
+  let priceIncreaseNotice: SubscriptionSummary["priceIncreaseNotice"] = null;
+  if (promoActive && next && next.price > currentPrice) {
+    const msUntil = next.at.getTime() - input.now.getTime();
+    const daysUntil = Math.ceil(msUntil / DAY_MS);
+    if (daysUntil >= 0 && daysUntil <= PRICE_INCREASE_NOTICE_DAYS) {
+      priceIncreaseNotice = { at: next.at, newPrice: next.price, daysUntil };
+    }
+  }
+
   return {
     interval,
-    currentPrice: promoActive ? launch : regular,
+    currentPrice,
     promoActive,
     promoEndsAt,
     next,
+    priceIncreaseNotice,
   };
 }
 

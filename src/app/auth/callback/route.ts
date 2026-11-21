@@ -4,7 +4,13 @@ import {
   isFirstSignIn,
   notifyAdminNewUser,
 } from "@/lib/email/admin-notifications";
-import { NEXT_COOKIE, safeNext, siteUrl } from "@/lib/redirect";
+import {
+  isPlanDestination,
+  NEXT_COOKIE,
+  POST_ONBOARDING_COOKIE,
+  safeNext,
+  siteUrl,
+} from "@/lib/redirect";
 import { createClient } from "@/utils/supabase/server";
 
 const EMAIL_TYPES: EmailOtpType[] = [
@@ -65,5 +71,18 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(target);
   response.cookies.delete(NEXT_COOKIE);
+
+  // If the visitor arrived from "Assinar o Pro", remember the Plano URL so we
+  // can send them back there right after they finish creating their page.
+  if (ok && isPlanDestination(next)) {
+    response.cookies.set(POST_ONBOARDING_COOKIE, next, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 2,
+      path: "/",
+    });
+  }
+
   return response;
 }

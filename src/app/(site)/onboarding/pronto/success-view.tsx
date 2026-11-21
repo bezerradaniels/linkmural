@@ -25,11 +25,15 @@ export function SuccessView({
   slug,
   businessName,
   pageUrl,
+  continueHref = "/app",
+  continueLabel = "Ir para o painel",
 }: {
   pageId: string;
   slug: string;
   businessName: string;
   pageUrl: string;
+  continueHref?: string;
+  continueLabel?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -68,14 +72,14 @@ export function SuccessView({
       slug={slug}
       footer={
         <Link
-          href="/app"
+          href={continueHref}
           className={buttonClasses({
             variant: "primary",
             size: "lg",
             className: "w-full",
           })}
         >
-          Ir para o painel
+          {continueLabel}
         </Link>
       }
     >

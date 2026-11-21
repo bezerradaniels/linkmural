@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isBot } from "@/lib/analytics";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const bodySchema = z.object({
@@ -12,6 +13,18 @@ const bodySchema = z.object({
 export async function POST(request: Request) {
   if (isBot(request.headers.get("user-agent")))
     return new Response(null, { status: 403 });
+
+  const rl = checkRateLimit(request, {
+    bucket: "api:report",
+    limit: 5,
+    windowMs: 10 * 60_000,
+  });
+  if (!rl.ok) {
+    return rateLimitResponse(
+      rl.retryAfterSeconds,
+      "Muitas denúncias enviadas em pouco tempo. Tente novamente mais tarde.",
+    );
+  }
 
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

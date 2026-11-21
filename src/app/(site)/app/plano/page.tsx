@@ -12,7 +12,7 @@ import { Alert, Badge, Button, Icon, Progress } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { summarizeSubscription } from "@/lib/billing-core";
 import { getPanelContext } from "@/lib/panel-data";
-import { PLANS, SALE_PLANS, type Plan } from "@/lib/plans";
+import { PLANS, SALE_PLANS, formatBrl, type Plan } from "@/lib/plans";
 import { isBillingEnabled } from "@/lib/stripe";
 
 export const metadata: Metadata = {
@@ -158,6 +158,28 @@ export default async function PlanoPage({
           perder o plano {current.label}.
         </Alert>
       )}
+      {paid &&
+        subscription?.status !== "past_due" &&
+        summary?.priceIncreaseNotice && (
+          <Alert
+            tone="warning"
+            title="Sua próxima renovação terá o valor regular"
+            action={billingEnabled ? <ManageButton /> : undefined}
+          >
+            O desconto de lançamento termina antes da próxima cobrança. Em{" "}
+            {new Intl.DateTimeFormat("pt-BR", {
+              dateStyle: "long",
+              timeZone: "America/Sao_Paulo",
+            }).format(summary.priceIncreaseNotice.at)}
+            , a assinatura renova por{" "}
+            <strong>
+              {formatBrl(summary.priceIncreaseNotice.newPrice)}
+              {summary.interval === "year" ? "/ano" : "/mês"}
+            </strong>
+            . Você pode cancelar antes da data pelo botão ao lado sem novas
+            cobranças.
+          </Alert>
+        )}
 
       {/* Current Usage */}
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">

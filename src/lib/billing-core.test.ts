@@ -169,7 +169,7 @@ describe("summarizeSubscription", () => {
     expect(s.next?.price).toBe(499);
   });
 
-  it("monthly: the 13th charge is the regular R$ 9,98", () => {
+  it("monthly: the 13th charge is the regular R$ 9,98 and triggers priceIncreaseNotice within 30 days", () => {
     const s = summarizeSubscription({
       interval: "month",
       createdAt: start,
@@ -179,6 +179,37 @@ describe("summarizeSubscription", () => {
     });
     expect(s.currentPrice).toBe(499);
     expect(s.next?.price).toBe(998);
+    expect(s.priceIncreaseNotice).toEqual({
+      at: at("2027-11-21T12:00:00Z"),
+      newPrice: 998,
+      daysUntil: 27,
+    });
+  });
+
+  it("yearly: does not trigger priceIncreaseNotice when renewal is more than 30 days away", () => {
+    const s = summarizeSubscription({
+      interval: "year",
+      createdAt: start,
+      periodEnd: at("2027-11-21T12:00:00Z"),
+      cancelAtPeriodEnd: false,
+      now: at("2027-09-01T12:00:00Z"),
+    });
+    expect(s.priceIncreaseNotice).toBeNull();
+  });
+
+  it("yearly: triggers priceIncreaseNotice in the last 30 days before the R$ 60,00 renewal", () => {
+    const s = summarizeSubscription({
+      interval: "year",
+      createdAt: start,
+      periodEnd: at("2027-11-21T12:00:00Z"),
+      cancelAtPeriodEnd: false,
+      now: at("2027-11-01T12:00:00Z"),
+    });
+    expect(s.priceIncreaseNotice).toEqual({
+      at: at("2027-11-21T12:00:00Z"),
+      newPrice: 6000,
+      daysUntil: 20,
+    });
   });
 
   it("after the launch window the regular price is the current one", () => {

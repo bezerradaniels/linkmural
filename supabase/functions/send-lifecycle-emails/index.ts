@@ -1,6 +1,7 @@
-// Supabase Edge Function: envia os e-mails automáticos essenciais (Fase 4 · F)
+// Supabase Edge Function: envia os e-mails automáticos essenciais (Fase 4 · F e Fase 8)
 // 1. "Sua página está quase pronta" (1h e 24h após cadastro parado)
 // 2. "Coloque seu link na bio" (24h após publicação)
+// 3. "Sua assinatura Pro renova com valor regular" (até 15 dias antes da 1ª cobrança após os 12 meses de lançamento)
 //
 // Secrets esperados na Edge Function:
 // - SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (automáticos no Supabase)
@@ -17,20 +18,98 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-type EmailKind = "onboarding_1h" | "onboarding_24h" | "put_in_bio";
+type PageEmailKind = "onboarding_1h" | "onboarding_24h" | "put_in_bio";
+type EmailKind = PageEmailKind | "renewal_price_increase";
+
+type ProfileMini = {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  suspended_at: string | null;
+};
 
 type CandidateRow = {
   id: string;
   slug: string;
   business_name: string;
   owner_id: string;
-  profiles: {
-    id: string;
-    email: string | null;
-    full_name: string | null;
-    suspended_at: string | null;
-  } | null;
+  profiles: ProfileMini | null;
 };
+
+type RenewalSubRow = {
+  id: string;
+  user_id: string;
+  plan: string;
+  billing_interval: string | null;
+  created_at: string;
+  current_period_end: string | null;
+  profiles: ProfileMini | null;
+};
+
+const LAUNCH_PROMO_MONTHS = 12;
+const PROMO_EDGE_MS = 2 * 24 * 60 * 60 * 1000;
+const FIRST_REGULAR_WINDOW_MS = 35 * 24 * 60 * 60 * 1000;
+const RENEWAL_NOTICE_DAYS = 15;
+
+function isFirstRegularRenewal(createdAtIso: string, periodEndIso: string): boolean {
+  const createdAt = new Date(createdAtIso);
+  const periodEnd = new Date(periodEndIso);
+  if (Number.isNaN(createdAt.getTime()) || Number.isNaN(periodEnd.getTime())) {
+    return false;
+  }
+  const promoEndsAt = new Date(createdAt);
+  promoEndsAt.setUTCMonth(promoEndsAt.getUTCMonth() + LAUNCH_PROMO_MONTHS);
+  const diff = periodEnd.getTime() - promoEndsAt.getTime();
+  return diff >= -PROMO_EDGE_MS && diff <= FIRST_REGULAR_WINDOW_MS;
+}
+
+function formatDatePtBr(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "long",
+    timeZone: "America/Sao_Paulo",
+  }).format(new Date(iso));
+}
+
+function buildRenewalEmail(
+  row: RenewalSubRow,
+  siteUrl: string,
+): { subject: string; html: string } {
+  const firstName = row.profiles?.full_name?.trim().split(/\s+/)[0];
+  const greeting = firstName ? `Olá, ${escapeHtml(firstName)}!` : "Olá!";
+  const isYearly = row.billing_interval === "year";
+  const newPrice = isYearly ? "R$ 60,00 por ano" : "R$ 9,98 por mês";
+  const renewalDate = row.current_period_end
+    ? formatDatePtBr(row.current_period_end)
+    : "em breve";
+  const planUrl = `${siteUrl}/app/plano`;
+
+  return {
+    subject: "Aviso: sua assinatura Linkmural Pro renova com o valor regular",
+    html: `
+      <div style="font-family:Inter,system-ui,-apple-system,sans-serif;background:#F4F4EF;padding:32px 16px;color:#0E0E0E;">
+        <div style="max-width:480px;margin:0 auto;background:#FFFFFF;border-radius:24px;padding:32px;border:1px solid #E2E2DC;">
+          <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6B6B66;">linkmural</p>
+          <h1 style="margin:0 0 12px;font-size:22px;line-height:1.25;">${greeting}</h1>
+          <p style="margin:0 0 16px;font-size:15px;line-height:1.5;color:#6B6B66;">
+            O seu desconto de lançamento de 50% (12 meses) está chegando ao fim. Por transparência, queremos avisar antes da próxima cobrança:
+          </p>
+          <div style="background:#F4F4EF;border-radius:12px;padding:16px;margin-bottom:20px;font-size:14px;line-height:1.6;">
+            <div><strong>Data da renovação:</strong> ${escapeHtml(renewalDate)}</div>
+            <div><strong>Novo valor:</strong> ${escapeHtml(newPrice)}</div>
+          </div>
+          <p style="margin:0 0 20px;font-size:14px;line-height:1.5;color:#6B6B66;">
+            Se quiser continuar no Pro, não precisa fazer nada. Se preferir cancelar antes da cobrança, basta acessar a tela de plano no painel.
+          </p>
+          <p style="margin:24px 0 0;text-align:center;">
+            <a href="${escapeHtml(planUrl)}" style="display:inline-block;background:#CDF54A;color:#0E0E0E;font-weight:700;font-size:15px;padding:13px 24px;border-radius:999px;text-decoration:none;">
+              Gerenciar minha assinatura
+            </a>
+          </p>
+        </div>
+      </div>
+    `.trim(),
+  };
+}
 
 function escapeHtml(str: string): string {
   return str
@@ -41,7 +120,7 @@ function escapeHtml(str: string): string {
 }
 
 function buildEmail(
-  kind: EmailKind,
+  kind: PageEmailKind,
   row: CandidateRow,
   siteUrl: string,
 ): { subject: string; html: string } {
@@ -188,19 +267,23 @@ Deno.serve(async (req) => {
   const isoAgo = (hours: number) =>
     new Date(now - hours * 3_600_000).toISOString();
 
-  // Fetch already-sent logs from the last 8 days to filter in memory.
+  // Fetch already-sent logs (last 8 days for onboarding/bio + all renewal notices).
   const { data: recentLogs } = await supabase
     .from("email_logs")
     .select("user_id, kind")
-    .gte("sent_at", isoAgo(24 * 8));
+    .or(`sent_at.gte.${isoAgo(24 * 8)},kind.eq.renewal_price_increase`);
 
   const sentSet = new Set(
     (recentLogs ?? []).map((l) => `${l.user_id}:${l.kind}`),
   );
 
-  const batches: { kind: EmailKind; rows: CandidateRow[] }[] = [];
+  const batches: { kind: PageEmailKind; rows: CandidateRow[] }[] = [];
+  const nowIso = new Date(now).toISOString();
+  const in15DaysIso = new Date(
+    now + RENEWAL_NOTICE_DAYS * 24 * 3_600_000,
+  ).toISOString();
 
-  const [res1h, res24h, resBio] = await Promise.all([
+  const [res1h, res24h, resBio, resRenewals] = await Promise.all([
     supabase
       .from("pages")
       .select(
@@ -232,6 +315,17 @@ Deno.serve(async (req) => {
       .lte("published_at", isoAgo(24))
       .gte("published_at", isoAgo(24 * 7))
       .limit(50),
+    supabase
+      .from("subscriptions")
+      .select(
+        "id, user_id, plan, billing_interval, created_at, current_period_end, profiles!inner(id, email, full_name, suspended_at)",
+      )
+      .eq("plan", "pro")
+      .eq("status", "active")
+      .eq("cancel_at_period_end", false)
+      .gte("current_period_end", nowIso)
+      .lte("current_period_end", in15DaysIso)
+      .limit(50),
   ]);
 
   batches.push(
@@ -244,6 +338,7 @@ Deno.serve(async (req) => {
     onboarding_1h: 0,
     onboarding_24h: 0,
     put_in_bio: 0,
+    renewal_price_increase: 0,
   };
 
   for (const batch of batches) {
@@ -284,6 +379,47 @@ Deno.serve(async (req) => {
           .eq("user_id", profile.id)
           .eq("kind", batch.kind);
       }
+    }
+  }
+
+  // Renewal price-increase notice (up to 15 days before first regular-price renewal).
+  const renewalRows = (resRenewals.data ?? []) as unknown as RenewalSubRow[];
+  for (const row of renewalRows) {
+    const profile = row.profiles;
+    if (!profile?.email || profile.suspended_at) continue;
+    if (!row.current_period_end) continue;
+    if (!isFirstRegularRenewal(row.created_at, row.current_period_end)) continue;
+    if (sentSet.has(`${profile.id}:renewal_price_increase`)) continue;
+
+    if (dryRun) {
+      counts.renewal_price_increase += 1;
+      continue;
+    }
+
+    const { error: logErr } = await supabase.from("email_logs").insert({
+      user_id: profile.id,
+      page_id: null,
+      kind: "renewal_price_increase",
+    });
+    if (logErr) continue;
+
+    const { subject, html } = buildRenewalEmail(row, siteUrl);
+    const sent = await sendViaResend({
+      apiKey: resendKey!,
+      from,
+      to: profile.email,
+      subject,
+      html,
+    });
+    if (sent) {
+      sentSet.add(`${profile.id}:renewal_price_increase`);
+      counts.renewal_price_increase += 1;
+    } else {
+      await supabase
+        .from("email_logs")
+        .delete()
+        .eq("user_id", profile.id)
+        .eq("kind", "renewal_price_increase");
     }
   }
 

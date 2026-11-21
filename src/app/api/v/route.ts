@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { recordEvent } from "@/lib/events";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const bodySchema = z.object({
   pageId: z.uuid(),
@@ -11,6 +12,13 @@ const bodySchema = z.object({
 
 /** Visit beacon (once per session) and QR / Pix copy events from the public page. */
 export async function POST(request: Request) {
+  const rl = checkRateLimit(request, {
+    bucket: "api:v",
+    limit: 120,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSeconds);
+
   let body: unknown;
   try {
     body = JSON.parse(await request.text());

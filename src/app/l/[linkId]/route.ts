@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { recordEvent } from "@/lib/events";
 import { getPublicLink } from "@/lib/public-page";
+import { checkRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { siteUrl } from "@/lib/redirect";
 
 /** Only these schemes are ever redirected to (never javascript:, data:…). */
@@ -20,6 +21,13 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ linkId: string }> },
 ) {
+  const rl = checkRateLimit(request, {
+    bucket: "l:click",
+    limit: 120,
+    windowMs: 60_000,
+  });
+  if (!rl.ok) return rateLimitResponse(rl.retryAfterSeconds);
+
   const { linkId } = await params;
   const link = await getPublicLink(linkId);
   const target = link && link.kind !== "pix" ? safeTarget(link.url) : null;

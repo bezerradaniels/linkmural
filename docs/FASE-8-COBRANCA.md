@@ -5,7 +5,7 @@ Referências: `docs/HANDOFF.md` §12 (cobrança), `docs/ROADMAP.md` (Fase 8), `d
 
 **Meta:** cobrar o plano Pro com segurança, sem surpresa para o cliente na renovação, começando só com cartão e só em reais.
 
-**Situação em 21/11:** o fluxo completo funciona em modo de teste (assinar, renovar, cancelar, refletir no painel). A conta real da Stripe já tem produto, preços, cupom, Portal e webhook (seção 3), e a produção está com a cobrança ligada, mas **nenhum pagamento real foi feito ainda**. Falta provar o ciclo real, separar o banco do beta, os avisos ao cliente e as outras regiões.
+**Situação em 21/11:** o fluxo completo funciona em modo de teste (assinar, renovar, cancelar, refletir no painel) e o Supabase do beta já está separado (`ctmhsvmbwwfkucpqaggt`). A conta real da Stripe já tem produto, preços, cupom, Portal e webhook (seção 3), e a produção está com a cobrança ligada, mas **nenhum pagamento real foi feito ainda**. Falta provar o ciclo real, concluir os testes pendentes no beta, os avisos ao cliente e as outras regiões.
 
 ---
 
@@ -167,10 +167,10 @@ O plano **mensal** não foi simulado mês a mês. Pela mesma regra, são 12 cobr
 
 ### Antes de ligar no beta ou na produção
 
-1. **Separar o Supabase do beta e dos testes.** Hoje os dois ambientes usam o projeto de produção, e uma assinatura de teste grava plano real em conta real.
+1. ~~Separar o Supabase do beta e dos testes.~~ **Feito em 21/11:** projeto **Beta Linkmural** (`ctmhsvmbwwfkucpqaggt`) criado com todas as 9 migrações aplicadas; variáveis atualizadas na Hostinger (`beta.linkmural.com`, build concluído) e no `.env.local`.
 2. ~~Conta de produção da Stripe~~ **Feito**: produto, preços, cupom, Portal e webhook existem na conta real (seção 3). Falta definir `redeem_by` e `max_redemptions` do cupom para encerrar o lançamento, o e-mail de suporte no perfil e acompanhar a liberação dos repasses.
-3. **Webhook e variáveis:** o endpoint de produção existe. Conferir que a Hostinger de `linkmural.com` tem `STRIPE_SECRET_KEY` (`sk_live_...`) e o `STRIPE_WEBHOOK_SECRET` desse endpoint, e que o beta continua sem as chaves até o Supabase ser separado (as variáveis `NEXT_PUBLIC_*` só valem depois de um build novo).
-4. **Revisar a linha da assinatura de teste** na conta usada nos testes (hoje aparece como Pro em produção e termina em 21/11/2027).
+3. **Webhook e variáveis:** o endpoint de produção existe. Conferir que a Hostinger de `linkmural.com` tem `STRIPE_SECRET_KEY` (`sk_live_...`) e o `STRIPE_WEBHOOK_SECRET` desse endpoint; agora com o Supabase do beta separado, já é seguro colocar as chaves de teste da Stripe em `beta.linkmural.com` (as variáveis `NEXT_PUBLIC_*` só valem depois de um build novo).
+4. ~~Revisar a linha da assinatura de teste~~ **Feito em 21/11:** assinatura de sandbox `sub_1UeE6bQ6BL3v4hg9LiSti6za` removida de produção e `stripe_customer_id` de sandbox zerados em `portalconectalapa@gmail.com` e `lapamarketplace@gmail.com`.
 
 ### Ainda a testar em modo de teste
 
@@ -181,10 +181,10 @@ O plano **mensal** não foi simulado mês a mês. Pela mesma regra, são 12 cobr
 
 ### Produto e comunicação
 
-- **Avisar o cliente antes da renovação com aumento** (e-mail e tela): o valor dobra no mês 12.
-- Aviso no painel dizendo o que mudou quando um rebaixamento desativa links.
-- Convites ao upgrade nos limites (links, aparência, remover marca).
-- Levar quem chega por "Assinar o Pro" sem conta de volta à tela Plano depois do onboarding (hoje cai no painel).
+- ~~**Avisar o cliente antes da renovação com aumento** (e-mail e tela): o valor dobra no mês 12.~~ **Feito:** alerta na tela Plano nos últimos 30 dias (`priceIncreaseNotice`) + e-mail automático até 15 dias antes via `send-lifecycle-emails`.
+- ~~Aviso no painel dizendo o que mudou quando um rebaixamento desativa links.~~ **Feito.**
+- ~~Convites ao upgrade nos limites (links, aparência, remover marca).~~ **Feito.**
+- ~~Levar quem chega por "Assinar o Pro" sem conta de volta à tela Plano depois do onboarding (hoje cai no painel).~~ **Feito:** cookie `lm_after_onboarding` preservado no callback e usado na tela `/onboarding/pronto`.
 - **Validar o preço regular** (R$ 9,98 e R$ 60,00) com a lista de espera. O "de/por" só pode ser anunciado se esse for um preço realmente praticado depois do lançamento.
 - Conferir as taxas da Stripe: em R$ 4,99 e R$ 30,00 a taxa fixa por transação pesa muito.
 
@@ -201,12 +201,12 @@ EUA, Europa, México e América Latina.
 
 ## 8. Checklist de lançamento da cobrança
 
-- [ ] Supabase do beta separado do de produção.
+- [x] Supabase do beta separado do de produção (`ctmhsvmbwwfkucpqaggt`).
 - [x] Produto, preços, cupom e Portal criados na Stripe de produção.
 - [x] Endpoint de webhook de produção criado (`we_1UeFKNLV3zoRMMDfoRxEayK7`). O beta não tem endpoint, de propósito.
 - [ ] Variáveis da Stripe cadastradas na Hostinger (beta primeiro) e build novo feito.
 - [ ] Roteiro completo no beta, em modo de teste: assinar (mensal e anual), cancelar, reativar, falha de pagamento, excluir conta.
-- [ ] Aviso de renovação com aumento (e-mail e tela).
+- [x] Aviso de renovação com aumento (e-mail e tela).
 - [ ] Revisão dos Termos e da Política de Privacidade com a cobrança no ar (renovação automática, cancelamento, reembolso).
 - [ ] Troca para as chaves de produção da Stripe e um pagamento real de baixo valor para conferir.
 - [ ] Juntar na `main` (fast-forward) só depois do build passar e do beta conferido.

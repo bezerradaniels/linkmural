@@ -21,3 +21,14 @@ export function siteUrl(): string {
 
 /** Cookie that remembers where to go after the magic link (same browser). */
 export const NEXT_COOKIE = "lm_next";
+
+/**
+ * Cookie that remembers an upgrade destination (e.g. /app/plano?periodo=year)
+ * across onboarding when a brand-new user arrives from "Assinar o Pro".
+ */
+export const POST_ONBOARDING_COOKIE = "lm_after_onboarding";
+
+/** Returns true when `path` points to the Plano screen (with optional query). */
+export function isPlanDestination(path: string): boolean {
+  return path === "/app/plano" || path.startsWith("/app/plano?");
+}
