@@ -6,9 +6,14 @@ import {
   BillingToggle,
 } from "@/components/marketing/BillingInterval";
 import { PlanPrice } from "@/components/marketing/PlanPrice";
+import { SubscribeLink } from "@/components/marketing/SubscribeLink";
 import { WaitlistButton } from "@/components/marketing/WaitlistButton";
 import { Badge, buttonClasses, Icon } from "@/components/ui";
 import { PLANS, SALE_PLANS, type Plan } from "@/lib/plans";
+import { isBillingEnabled } from "@/lib/stripe";
+
+// Whether billing is on depends on the environment at request time, not at build time.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Planos",
@@ -39,6 +44,9 @@ const FEATURES: Record<Plan, string[]> = {
 };
 
 export default function PlanosPage() {
+  // Without Stripe keys in this environment the Pro plan is still "coming soon" (waiting list).
+  const billingEnabled = isBillingEnabled();
+
   return (
     <div className="flex min-h-dvh flex-col bg-paper text-ink">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-5 sm:px-8">
@@ -76,9 +84,9 @@ export default function PlanosPage() {
             Planos simples para crescer com você
           </h1>
           <p className="max-w-xl text-body text-ink-muted">
-            O plano Grátis já tem tudo para colocar seu negócio no ar hoje. O
-            Pro chega em breve, com 50% de desconto de lançamento — entre na
-            lista de espera.
+            {billingEnabled
+              ? "O plano Grátis já tem tudo para colocar seu negócio no ar hoje. Quando precisar de mais, o Pro está com 50% de desconto de lançamento."
+              : "O plano Grátis já tem tudo para colocar seu negócio no ar hoje. O Pro chega em breve, com 50% de desconto de lançamento — entre na lista de espera."}
           </p>
         </div>
 
@@ -104,6 +112,8 @@ export default function PlanosPage() {
                         <Badge variant="neutral" dot="positive">
                           Disponível hoje
                         </Badge>
+                      ) : billingEnabled ? (
+                        <Badge variant="pro">Disponível</Badge>
                       ) : (
                         <Badge variant="pro">Em breve</Badge>
                       )}
@@ -136,6 +146,8 @@ export default function PlanosPage() {
                     >
                       Criar minha página grátis
                     </Link>
+                  ) : billingEnabled ? (
+                    <SubscribeLink />
                   ) : (
                     <WaitlistButton
                       plan="pro"
