@@ -10,7 +10,9 @@ const cspBase = [
   "frame-src 'self' https://www.googletagmanager.com",
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  // Chrome also applies form-action to the redirect that follows a form post:
+  // the Assinar / Gerenciar buttons post to our route, which redirects to Stripe.
+  "form-action 'self' https://checkout.stripe.com https://billing.stripe.com",
 ];
 
 const nextConfig = {
