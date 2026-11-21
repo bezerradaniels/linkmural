@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MetricsView } from "@/components/app/MetricsView";
+import type { MetricLinkInput } from "@/lib/metrics-helpers";
 import { getPanelContext } from "@/lib/panel-data";
 import { createClient } from "@/utils/supabase/server";
 
@@ -14,32 +15,34 @@ function isoDateSaoPaulo(nowMs: number, daysAgo: number): string {
   }).format(d);
 }
 
-function getDateWindow() {
+function getDateWindow(maxDays: number) {
   const nowMs = Date.now();
   return {
     nowMs,
-    from60: isoDateSaoPaulo(nowMs, 59),
+    from: isoDateSaoPaulo(nowMs, maxDays - 1),
     toToday: isoDateSaoPaulo(nowMs, 0),
-    sinceIso: new Date(nowMs - 60 * 86_400_000).toISOString(),
+    sinceIso: new Date(nowMs - maxDays * 86_400_000).toISOString(),
   };
 }
 
 export default async function MetricasPage() {
   const { page, plan } = await getPanelContext();
   const supabase = await createClient();
-  const { nowMs, from60, toToday, sinceIso } = getDateWindow();
+  // Pro/Business support up to 90d + previous 90d comparison (180d); Free up to 30d + 30d (60d).
+  const windowDays = plan === "free" ? 60 : 180;
+  const { nowMs, from, toToday, sinceIso } = getDateWindow(windowDays);
 
-  const [dailyRes, waEventsRes] = await Promise.all([
+  const [dailyRes, eventsRes] = await Promise.all([
     supabase.rpc("page_stats_daily", {
       p_page: page.id,
-      p_from: from60,
+      p_from: from,
       p_to: toToday,
     }),
     supabase
       .from("click_events")
-      .select("occurred_at")
+      .select("link_id, event, occurred_at")
       .eq("page_id", page.id)
-      .eq("event", "whatsapp")
+      .neq("event", "view")
       .gte("occurred_at", sinceIso),
   ]);
 
@@ -49,12 +52,27 @@ export default async function MetricasPage() {
     clicks: Number(r.clicks ?? 0),
   }));
 
-  const waTimestamps = (waEventsRes.data ?? []).map((e) => e.occurred_at);
+  const clickEvents = (eventsRes.data ?? []).map((e) => ({
+    link_id: e.link_id,
+    event: e.event,
+    occurred_at: e.occurred_at,
+  }));
+
+  const links: MetricLinkInput[] = (page.links ?? []).map((l) => ({
+    id: l.id,
+    title: l.title,
+    url: l.url,
+    kind: l.kind,
+    active: l.active,
+    featured: l.featured,
+    position: l.position,
+  }));
 
   return (
     <MetricsView
-      daily60={daily}
-      waTimestamps={waTimestamps}
+      daily={daily}
+      clickEvents={clickEvents}
+      links={links}
       referenceMs={nowMs}
       plan={plan}
     />
