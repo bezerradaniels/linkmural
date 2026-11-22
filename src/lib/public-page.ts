@@ -74,6 +74,7 @@ function anonClient() {
 
 export function mediaUrl(path: string | null | undefined) {
   if (!path) return null;
+  if (path.startsWith("https://images.unsplash.com/")) return path;
   return `${supabaseUrl()}/storage/v1/object/public/media/${path.split("/").map(encodeURIComponent).join("/")}`;
 }
 

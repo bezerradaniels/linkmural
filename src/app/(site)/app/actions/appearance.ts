@@ -6,6 +6,7 @@ import { friendlyDbError } from "@/lib/onboarding";
 import { planInfo } from "@/lib/plans";
 import { STYLE_KEYS, type StyleKey } from "@/lib/styles";
 import { themeSchema } from "@/lib/theme";
+import { isUnsplashCdnUrl } from "@/lib/unsplash";
 import type { TablesUpdate } from "@/utils/supabase/types";
 import type { ActionResult } from "./links";
 import { refreshPublicPage } from "./revalidate";
@@ -16,7 +17,7 @@ const appearanceSchema = z.object({
   theme: themeSchema,
   show_branding: z.boolean(),
   avatar_path: z.string().trim().max(300).optional(),
-  cover_path: z.string().trim().max(300).optional(),
+  cover_path: z.string().trim().max(600).optional(),
 });
 
 export async function saveAppearanceAction(
@@ -42,7 +43,8 @@ export async function saveAppearanceAction(
   }
   if (
     parsed.data.cover_path &&
-    !parsed.data.cover_path.startsWith(`${userId}/`)
+    !parsed.data.cover_path.startsWith(`${userId}/`) &&
+    !isUnsplashCdnUrl(parsed.data.cover_path)
   ) {
     return { ok: false, error: "Caminho da capa inválido." };
   }

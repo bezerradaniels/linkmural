@@ -30,6 +30,7 @@ import {
 import { IconPicker } from "@/components/app/IconPicker";
 import { LinkIconGlyph } from "@/components/app/LinkIconGlyph";
 import { PhonePreview } from "@/components/app/PhonePreview";
+import { UnsplashPicker } from "@/components/app/UnsplashPicker";
 import {
   Alert,
   Badge,
@@ -348,6 +349,7 @@ export function LinksEditor({
   // Add/Edit dialog state
   const [modalOpen, setModalOpen] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [unsplashOpen, setUnsplashOpen] = useState(false);
   const [draft, setDraft] = useState<ModalDraft>({
     blockKind: "link",
     title: "",
@@ -1327,26 +1329,36 @@ export function LinksEditor({
           {/* GALLERY SPECIFIC FIELDS */}
           {draft.blockKind === "gallery" && (
             <div className="flex flex-col gap-3 rounded-lg border border-line bg-paper p-3.5">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-small font-semibold">
                   Fotos do carrossel ({draft.images.length}/10)
                 </span>
-                <input
-                  ref={galleryFileRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="sr-only"
-                  onChange={handleUploadGalleryPhoto}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  loading={uploadingPhoto}
-                  onClick={() => galleryFileRef.current?.click()}
-                >
-                  + Enviar foto
-                </Button>
+                <div className="flex flex-wrap gap-1.5">
+                  <input
+                    ref={galleryFileRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    onChange={handleUploadGalleryPhoto}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    loading={uploadingPhoto}
+                    onClick={() => galleryFileRef.current?.click()}
+                  >
+                    + Enviar foto
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setUnsplashOpen(true)}
+                  >
+                    Buscar no Unsplash
+                  </Button>
+                </div>
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -1482,6 +1494,34 @@ export function LinksEditor({
         value={draft.icon}
         onSelect={(iconRef) => setDraft((p) => ({ ...p, icon: iconRef }))}
         onClose={() => setIconPickerOpen(false)}
+      />
+
+      <UnsplashPicker
+        open={unsplashOpen}
+        onClose={() => setUnsplashOpen(false)}
+        title="Adicionar foto do Unsplash à galeria"
+        onSelect={(photo) => {
+          if (draft.images.length >= 10) {
+            setDraft((p) => ({
+              ...p,
+              error: "Máximo de 10 fotos por galeria.",
+            }));
+            return;
+          }
+          setDraft((p) => ({
+            ...p,
+            images: [
+              ...p.images,
+              {
+                url: photo.regularUrl,
+                caption:
+                  p.newImageCaption.trim() || `Foto por ${photo.authorName}`,
+              },
+            ],
+            newImageCaption: "",
+            error: undefined,
+          }));
+        }}
       />
 
       {/* Delete Confirmation Dialog */}

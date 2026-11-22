@@ -68,6 +68,9 @@ Conferida em 21/11 pela conexão da Stripe (só leitura, mais a atualização do
 | Produto | `prod_VfaLAN7w4kv5Kk` | Linkmural Pro |
 | Preço mensal | `price_1UeFAcLV3zoRMMDfT944hhD8` | R$ 9,98, `lookup_key` = `pro_monthly` |
 | Preço anual | `price_1UeFAcLV3zoRMMDfVIykJjQ5` | R$ 60,00, `lookup_key` = `pro_yearly` |
+| Produto (Studio) | `prod_VfyBQhmLGHW6FC` | Linkmural Studio |
+| Preço mensal (Studio) | `price_1UecFULV3zoRMMDf3lFCSEaA` | R$ 39,80, `lookup_key` = `business_monthly` |
+| Preço anual (Studio) | `price_1UecFlLV3zoRMMDfwxSZpyMi` | R$ 298,00, `lookup_key` = `business_yearly` |
 | Cupom | `lancamento_50_12m` | 50%, repetindo, 12 meses; sem `redeem_by` nem `max_redemptions` ainda |
 | Portal do Cliente | `bpc_1UeFDlLV3zoRMMDfwurm01IW` | padrão; cancelar ao fim do período com motivo, cartão, faturas, sem troca de plano; título, termos e privacidade preenchidos em 21/11 |
 | Webhook | `we_1UeFKNLV3zoRMMDfoRxEayK7` | `https://linkmural.com/api/stripe/webhook`, os 6 eventos tratados, API `2026-11-18.endive` |

@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { saveAppearanceAction } from "@/app/(site)/app/actions/appearance";
 import { PhonePreview } from "@/components/app/PhonePreview";
+import { UnsplashPicker } from "@/components/app/UnsplashPicker";
 import {
   Alert,
   Avatar,
@@ -156,6 +157,9 @@ export function AppearanceForm({
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [unsplashTarget, setUnsplashTarget] = useState<
+    "cover" | "background" | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
 
@@ -565,6 +569,14 @@ export function AppearanceForm({
                       onClick={() => coverInputRef.current?.click()}
                     >
                       {coverPreview ? "Trocar capa" : "Enviar capa"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setUnsplashTarget("cover")}
+                    >
+                      Buscar no Unsplash
                     </Button>
                     {coverPreview && (
                       <Button
@@ -1189,17 +1201,26 @@ export function AppearanceForm({
                 )}
 
                 {limits.customTheme && theme.bgType === "image" && (
-                  <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {(Object.keys(BG_IMAGE_PRESETS) as BgImagePresetKey[]).map(
-                      (ik) => {
+                  <div className="mt-1 flex flex-col gap-3">
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                      {(
+                        Object.keys(BG_IMAGE_PRESETS) as BgImagePresetKey[]
+                      ).map((ik) => {
                         const img = BG_IMAGE_PRESETS[ik];
-                        const selected = (theme.bgImage ?? "mesh-lime") === ik;
+                        const selected =
+                          !theme.bgImageUrl &&
+                          (theme.bgImage ?? "mesh-lime") === ik;
                         return (
                           <button
                             key={ik}
                             type="button"
                             onClick={() =>
-                              setTheme((p) => ({ ...p, bgImage: ik }))
+                              setTheme((p) => {
+                                const next = { ...p, bgImage: ik };
+                                delete next.bgImageUrl;
+                                delete next.bgImageColor;
+                                return next;
+                              })
                             }
                             className={`flex h-14 cursor-pointer flex-col justify-end rounded-lg border-2 p-1.5 text-left ${
                               selected
@@ -1213,8 +1234,41 @@ export function AppearanceForm({
                             </span>
                           </button>
                         );
-                      },
-                    )}
+                      })}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-paper p-3">
+                      <div className="flex items-center gap-3">
+                        {theme.bgImageUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={theme.bgImageUrl}
+                            alt="Fundo do Unsplash"
+                            className="h-10 w-16 rounded border border-line object-cover"
+                          />
+                        )}
+                        <div className="flex flex-col">
+                          <span className="text-small font-semibold">
+                            {theme.bgImageUrl
+                              ? "Foto do Unsplash selecionada"
+                              : "Ou escolha uma foto gratuita do Unsplash"}
+                          </span>
+                          <span className="text-caption text-ink-muted">
+                            Milhares de fotos profissionais de alta resolução.
+                          </span>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setUnsplashTarget("background")}
+                      >
+                        {theme.bgImageUrl
+                          ? "Trocar foto do Unsplash"
+                          : "Buscar no Unsplash"}
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1264,6 +1318,30 @@ export function AppearanceForm({
       </div>
 
       <PhonePreview page={livePreview} pageUrl={pageUrl} />
+
+      <UnsplashPicker
+        open={unsplashTarget !== null}
+        onClose={() => setUnsplashTarget(null)}
+        orientation={unsplashTarget === "background" ? "portrait" : "landscape"}
+        title={
+          unsplashTarget === "background"
+            ? "Escolher fundo da página no Unsplash"
+            : "Escolher imagem de capa no Unsplash"
+        }
+        onSelect={(photo) => {
+          if (unsplashTarget === "cover") {
+            setCoverPath(photo.regularUrl);
+            setCoverPreview(photo.regularUrl);
+          } else if (unsplashTarget === "background") {
+            setTheme((p) => ({
+              ...p,
+              bgType: "image",
+              bgImageUrl: photo.regularUrl,
+              bgImageColor: photo.color,
+            }));
+          }
+        }}
+      />
     </div>
   );
 }
