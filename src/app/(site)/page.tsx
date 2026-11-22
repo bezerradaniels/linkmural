@@ -12,24 +12,24 @@ import { STYLE_KEYS, STYLES } from "@/lib/styles";
 export const metadata: Metadata = {
   title: {
     absolute:
-      "linkmural — Sua bio transformada em uma vitrine em Bento Grid que converte",
+      "linkmural | Sua bio transformada em uma vitrine em Bento Grid que converte",
   },
   description:
-    "Crie sua página em Bento Grid com logo e capa personalizados, fotos gratuitas do Unsplash, WhatsApp, galeria em carrossel, vídeo do YouTube, cards de serviços e gerador de UTM. Comece grátis.",
+    "Crie sua página em Bento Grid com logo e capa personalizados, fotos gratuitas do Unsplash, WhatsApp, galeria em carrossel, vídeo do YouTube, cards de serviços e link rastreável. Comece grátis.",
   alternates: { canonical: siteUrl() },
   openGraph: {
-    title: "linkmural — Sua bio em Bento Grid que converte",
+    title: "linkmural | Sua bio em Bento Grid que converte",
     description:
-      "Bento Grid drag-and-drop, Logo & Capa com Unsplash, Galeria, YouTube, Serviços, WhatsApp, Pix e Gerador de UTM em menos de 3 minutos.",
+      "Bento Grid drag-and-drop, Logo & Capa com Unsplash, Galeria, YouTube, Serviços, WhatsApp, Pix e Link rastreável em menos de 3 minutos.",
     url: siteUrl(),
     siteName: "linkmural",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "linkmural — Sua bio em Bento Grid que converte",
+    title: "linkmural | Sua bio em Bento Grid que converte",
     description:
-      "Bento Grid drag-and-drop, Logo & Capa com Unsplash, Galeria, YouTube, Serviços e Gerador de UTM.",
+      "Bento Grid drag-and-drop, Logo & Capa com Unsplash, Galeria, YouTube, Serviços e Link rastreável.",
   },
 };
 
@@ -63,11 +63,11 @@ const FAQS = [
   },
   {
     q: "Qual a diferença entre Grátis, Pro e Studio?",
-    a: "No Grátis os cards são 2×1 (barra). O Pro libera links ilimitados, cards 1×1 e 2×2 no Bento Grid, efeitos Glass e Glossy, Doodles e remove a marca. O Studio adiciona Galeria em carrossel, Vídeo do YouTube, Cards de Serviços, 3 páginas e domínio próprio.",
+    a: "No Grátis os cards ficam no formato Faixa. O Pro libera links ilimitados, cards em Bloco e Destaque no Bento Grid, efeitos Glass e Glossy, Doodles e remove a marca. O Studio adiciona Galeria em carrossel, Vídeo do YouTube, Cards de Serviços, 3 páginas e domínio próprio.",
   },
   {
-    q: "Como funcionam o Unsplash e o Gerador de UTM?",
-    a: "Você busca fotos profissionais gratuitas do Unsplash direto no painel (Capa, Fundo e Galeria) e gera links com UTM em 1 clique para ver qual rede social (TikTok, Instagram, WhatsApp) traz mais visitas.",
+    q: "Como funcionam o Unsplash e o Link rastreável?",
+    a: "Você busca fotos profissionais gratuitas do Unsplash direto no painel (Capa, Fundo e Galeria) e cria links rastreáveis em 1 clique para ver qual rede social (TikTok, Instagram, WhatsApp) traz mais visitas.",
   },
   {
     q: "Posso cancelar quando quiser?",
@@ -205,8 +205,8 @@ export default async function Home({
             </h1>
 
             <p className="max-w-lg text-body leading-relaxed text-white/80">
-              Bento Grid redimensionável, Logo & Capa com fotos do Unsplash,
-              Galeria, YouTube, Serviços e Gerador de UTM — tudo no celular.
+              Bento Grid redimensionável, Logo &amp; Capa com fotos do Unsplash,
+              Galeria, YouTube, Serviços e Link rastreável, tudo no celular.
             </p>
 
             {notice && (
@@ -286,7 +286,7 @@ export default async function Home({
                 3 Modelos × 8 Estilos
               </span>
               <h2 className="mt-1 font-display text-display-md tracking-[-0.03em]">
-                Edite Logo & Capa separado dos Cards — tudo guiado pelo modelo
+                Edite Logo &amp; Capa separado dos Cards, tudo guiado pelo modelo
               </h2>
               <p className="mt-1.5 text-small text-ink-muted">
                 Alterne entre <strong>Mosaico</strong>, <strong>Balcão</strong>{" "}
@@ -296,13 +296,13 @@ export default async function Home({
             </div>
 
             {/* 8 styles compact pills */}
-            <div className="grid grid-cols-4 gap-2">
+            <div className="flex flex-wrap gap-2">
               {STYLE_KEYS.map((key) => {
                 const st = STYLES[key];
                 return (
                   <div
                     key={key}
-                    className="flex items-center gap-1.5 rounded-lg border border-line bg-paper px-2.5 py-1.5"
+                    className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-paper px-3 py-1.5"
                   >
                     <span
                       aria-hidden
@@ -312,7 +312,7 @@ export default async function Home({
                         borderColor: st.palette.line,
                       }}
                     />
-                    <span className="truncate text-[11px] font-semibold text-ink">
+                    <span className="text-[11px] font-semibold whitespace-nowrap text-ink">
                       {st.label}
                     </span>
                   </div>
@@ -331,12 +331,6 @@ export default async function Home({
               >
                 <span>Testar nos meus links grátis</span>
                 <Icon name="arrow" size={16} />
-              </Link>
-              <Link
-                href="/entrar"
-                className={buttonClasses({ variant: "ghost", size: "md" })}
-              >
-                Já tenho conta
               </Link>
             </div>
           </div>
@@ -378,10 +372,10 @@ export default async function Home({
                 <p className="font-display text-display-md">R$ 0</p>
                 <ul className="flex flex-col gap-1.5 text-small text-ink-muted">
                   {[
-                    "Até 5 links (barra 2×1)",
+                    "Até 5 links (formato Faixa)",
                     "Fontes, cores e fundo gradiente",
                     "Logo & Capa + fotos do Unsplash",
-                    "WhatsApp, Pix, QR Code e UTM",
+                    "WhatsApp, Pix, QR Code e Link rastreável",
                   ].map((item) => (
                     <li key={item} className="flex items-center gap-2">
                       <Icon
@@ -426,7 +420,7 @@ export default async function Home({
                 </div>
                 <ul className="flex flex-col gap-1.5 text-small text-ink-muted">
                   {[
-                    "Links ilimitados + Bento 1×1 e 2×2",
+                    "Links ilimitados + cards Bloco e Destaque",
                     "Efeitos Glass (Transparência) e Glossy",
                     "Fundos com Doodles e Fotos",
                     "Sem marca no rodapé + cliques por link",

@@ -142,25 +142,25 @@ export function HeroShowcase() {
           {/* Compact Bento Grid */}
           <div className="mt-3.5 grid grid-cols-2 gap-2">
             <div
-              className="col-span-2 flex items-center justify-between rounded-xl px-3.5 py-2.5 text-caption font-bold"
+              className="col-span-2 flex items-center justify-between rounded-[10px] px-3.5 py-2.5 text-caption font-bold"
               style={{ backgroundColor: p.accent, color: p.onAccent }}
             >
-              <span>Vídeo novo + Mídia Kit (2×2)</span>
+              <span>Vídeo novo + Mídia Kit</span>
               <Icon name="arrow" size={15} />
             </div>
             <div
-              className="flex min-h-[72px] flex-col justify-between rounded-xl border p-2.5 text-caption font-semibold"
+              className="flex min-h-[72px] flex-col justify-between rounded-[10px] border p-2.5 text-caption font-semibold"
               style={{ backgroundColor: p.surface, borderColor: p.line }}
             >
               <Icon name="shop" size={15} />
-              <span>Looks & Cupons (1×1)</span>
+              <span>Looks &amp; Cupons</span>
             </div>
             <div
-              className="flex min-h-[72px] flex-col justify-between rounded-xl border p-2.5 text-caption font-semibold"
+              className="flex min-h-[72px] flex-col justify-between rounded-[10px] border p-2.5 text-caption font-semibold"
               style={{ backgroundColor: p.surface, borderColor: p.line }}
             >
               <Icon name="chat" size={15} />
-              <span>Publis WhatsApp (1×1)</span>
+              <span>Publis WhatsApp</span>
             </div>
           </div>
 
