@@ -2,6 +2,7 @@
 
 import { useActionState, useCallback, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { UnsplashPicker } from "@/components/app/UnsplashPicker";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { Alert, Avatar, Button, Icon, Input } from "@/components/ui";
 import { CityInput } from "@/components/ui/CityInput";
@@ -80,6 +81,8 @@ export function BusinessForm({
   initialCity,
   initialAvatarPath,
   initialAvatarUrl,
+  initialCoverPath = "",
+  initialCoverUrl = null,
 }: {
   userId: string;
   pageId: string;
@@ -89,6 +92,8 @@ export function BusinessForm({
   initialCity: string;
   initialAvatarPath: string;
   initialAvatarUrl: string | null;
+  initialCoverPath?: string;
+  initialCoverUrl?: string | null;
 }) {
   const [state, formAction] = useActionState(
     saveBusinessDataAction,
@@ -103,13 +108,34 @@ export function BusinessForm({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(
     initialAvatarUrl,
   );
+  const [coverPath, setCoverPath] = useState(initialCoverPath);
+  const [coverPreview, setCoverPreview] = useState<string | null>(
+    initialCoverUrl,
+  );
+  const [unsplashOpen, setUnsplashOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const draftValue = useMemo(
-    () => ({ name, whatsapp, city, avatarPath, avatarPreview }),
-    [name, whatsapp, city, avatarPath, avatarPreview],
+    () => ({
+      name,
+      whatsapp,
+      city,
+      avatarPath,
+      avatarPreview,
+      coverPath,
+      coverPreview,
+    }),
+    [
+      name,
+      whatsapp,
+      city,
+      avatarPath,
+      avatarPreview,
+      coverPath,
+      coverPreview,
+    ],
   );
   const restoreDraft = useCallback((d: typeof draftValue) => {
     if (typeof d.name === "string" && d.name) setName(d.name);
@@ -120,6 +146,10 @@ export function BusinessForm({
       setAvatarPath(d.avatarPath);
     if (typeof d.avatarPreview === "string" && d.avatarPreview)
       setAvatarPreview(d.avatarPreview);
+    if (typeof d.coverPath === "string" && d.coverPath)
+      setCoverPath(d.coverPath);
+    if (typeof d.coverPreview === "string" && d.coverPreview)
+      setCoverPreview(d.coverPreview);
   }, []);
   // Kept until the server accepts the step; once saved, the server values
   // match the draft and the hook drops it on its own.
@@ -172,8 +202,8 @@ export function BusinessForm({
   return (
     <OnboardingShell
       step={4}
-      title="Fale sobre o seu negócio"
-      subtitle="Só o nome é obrigatório agora. O resto você pode completar depois."
+      title="Personalize seu perfil"
+      subtitle="Só o nome é obrigatório agora. Adicione logo, capa do Unsplash e WhatsApp se quiser."
       backHref="/onboarding/3"
       slug={slug}
       footer={<SubmitButton disabled={uploading} />}
@@ -191,6 +221,7 @@ export function BusinessForm({
         )}
 
         <input type="hidden" name="avatar_path" value={avatarPath} />
+        <input type="hidden" name="cover_path" value={coverPath} />
 
         <div className="flex items-center gap-4 rounded-xl border border-line bg-surface p-4">
           <Avatar
@@ -202,7 +233,7 @@ export function BusinessForm({
           />
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <span className="text-small font-semibold">
-              Logo ou foto (opcional)
+              Foto de perfil ou logo (opcional)
             </span>
             <p className="text-caption text-ink-muted">
               PNG, JPG ou WEBP. Ajustamos automaticamente para 512 px.
@@ -226,7 +257,7 @@ export function BusinessForm({
                 {uploading
                   ? "Enviando…"
                   : avatarPreview
-                    ? "Trocar logo"
+                    ? "Trocar foto"
                     : "Escolher imagem"}
               </Button>
               {avatarPreview && !uploading && (
@@ -252,14 +283,57 @@ export function BusinessForm({
           </div>
         </div>
 
+        {/* Cover picker via Unsplash */}
+        <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <span className="block text-small font-semibold">
+                Imagem de capa (opcional)
+              </span>
+              <p className="text-caption text-ink-muted">
+                Destaca o topo dos modelos Balcão, Mosaico e Cartão.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setUnsplashOpen(true)}
+            >
+              {coverPreview ? "Trocar capa" : "Buscar no Unsplash"}
+            </Button>
+          </div>
+
+          {coverPreview && (
+            <div className="relative h-24 w-full overflow-hidden rounded-lg border border-line">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={coverPreview}
+                alt="Capa selecionada"
+                className="size-full object-cover"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCoverPath("");
+                  setCoverPreview(null);
+                }}
+                className="absolute top-2 right-2 rounded-pill bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm hover:bg-black"
+              >
+                Remover
+              </button>
+            </div>
+          )}
+        </div>
+
         <Input
-          label="Nome do negócio *"
+          label="Nome do perfil ou negócio *"
           name="business_name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={60}
           required
-          placeholder="Ex.: Studio Força"
+          placeholder="Ex.: @clara.cria ou Studio Força"
           help={`${name.trim().length}/60 caracteres`}
         />
 
@@ -283,6 +357,17 @@ export function BusinessForm({
           onChange={setCity}
         />
       </form>
+
+      <UnsplashPicker
+        open={unsplashOpen}
+        onClose={() => setUnsplashOpen(false)}
+        orientation="landscape"
+        title="Escolher capa gratuita no Unsplash"
+        onSelect={(photo) => {
+          setCoverPath(photo.regularUrl);
+          setCoverPreview(photo.regularUrl);
+        }}
+      />
     </OnboardingShell>
   );
 }

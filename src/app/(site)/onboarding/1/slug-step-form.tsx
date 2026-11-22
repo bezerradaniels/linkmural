@@ -143,7 +143,7 @@ export function SlugStepForm({ initialSlug = "" }: { initialSlug?: string }) {
     <OnboardingShell
       step={2}
       title="Escolha seu endereço"
-      subtitle="Esse será o link oficial do seu negócio. Você pode trocar depois."
+      subtitle="Esse será o link oficial da sua bio em Bento Grid. Você pode trocar depois."
       footer={<SubmitButton disabled={!isFree} />}
     >
       <form
@@ -170,7 +170,7 @@ export function SlugStepForm({ initialSlug = "" }: { initialSlug?: string }) {
           prefix="linkmural.com/"
           value={value}
           onChange={(e) => setValue(normalizeSlugInput(e.target.value))}
-          placeholder="seunegocio"
+          placeholder="seunome"
           autoCapitalize="none"
           autoCorrect="off"
           autoComplete="off"

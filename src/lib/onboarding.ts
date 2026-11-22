@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { mediaUrl, type PublicLink, type PublicPage } from "@/lib/public-page";
 import type { Plan } from "@/lib/plans";
+import { TEMPLATE_DEFAULTS } from "@/lib/styles";
+import { parseTheme } from "@/lib/theme";
 import type { Tables } from "@/utils/supabase/types";
 
 export type OnboardingPageRow = Tables<"pages"> & {
@@ -58,12 +60,20 @@ export function toPreviewPage(
       data: l.data,
     }));
 
+  const resolvedTemplate = overrides?.template ?? page.template;
+  const resolvedTheme = overrides?.template
+    ? {
+        ...parseTheme(page.theme),
+        ...TEMPLATE_DEFAULTS[resolvedTemplate].header,
+      }
+    : page.theme;
+
   return {
     id: page.id,
     slug: page.slug,
-    template: overrides?.template ?? page.template,
+    template: resolvedTemplate,
     style: overrides?.style ?? page.style,
-    theme: page.theme,
+    theme: resolvedTheme,
     business_name: page.business_name || page.slug,
     kind: page.kind,
     bio: page.bio,

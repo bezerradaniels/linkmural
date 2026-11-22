@@ -11,7 +11,7 @@ import { useLocalDraft } from "@/lib/use-local-draft";
 import { saveLinksAction, type StepActionState } from "../actions";
 
 type DefaultSlot = {
-  slotKey: "whatsapp" | "instagram" | "site";
+  slotKey: "whatsapp" | "instagram" | "tiktok" | "site";
   title: string;
   ctaPlaceholder: string;
   icon: string;
@@ -31,12 +31,19 @@ const DEFAULT_SLOTS: DefaultSlot[] = [
     title: "Instagram",
     ctaPlaceholder: "Ex.: Seguir no Instagram",
     icon: "si:instagram",
-    placeholder: "https://instagram.com/seunegocio",
+    placeholder: "https://instagram.com/seuperfil",
+  },
+  {
+    slotKey: "tiktok",
+    title: "TikTok",
+    ctaPlaceholder: "Ex.: Vídeos no TikTok",
+    icon: "si:tiktok",
+    placeholder: "https://tiktok.com/@seuperfil",
   },
   {
     slotKey: "site",
-    title: "Site",
-    ctaPlaceholder: "Ex.: Acessar nosso site",
+    title: "Site ou YouTube",
+    ctaPlaceholder: "Ex.: Meu canal / Loja oficial",
     icon: "lm:site",
     placeholder: "https://seusite.com.br",
   },
@@ -74,6 +81,13 @@ function matchesSlot(
       link.icon === "si:instagram" ||
       lowerTitle.includes("instagram") ||
       lowerUrl.includes("instagram.com")
+    );
+  }
+  if (slot.slotKey === "tiktok") {
+    return (
+      link.icon === "si:tiktok" ||
+      lowerTitle.includes("tiktok") ||
+      lowerUrl.includes("tiktok.com")
     );
   }
   return link.icon === "lm:site" || lowerTitle === "site";

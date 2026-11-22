@@ -16,9 +16,12 @@ import { finalizeSlug, isValidSlug } from "@/lib/slug";
 import {
   DEFAULT_STYLE,
   STYLE_KEYS,
+  TEMPLATE_DEFAULTS,
   type StyleKey,
   type TemplateKey,
 } from "@/lib/styles";
+import { parseTheme } from "@/lib/theme";
+import { isUnsplashCdnUrl } from "@/lib/unsplash";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export type StepActionState = {
@@ -177,7 +180,7 @@ const businessDataSchema = z.object({
   business_name: z
     .string()
     .trim()
-    .min(1, "Digite o nome do seu negócio.")
+    .min(1, "Digite o nome do seu perfil ou negócio.")
     .max(60, "Use no máximo 60 caracteres."),
   whatsapp: z.string().trim().max(30).optional().default(""),
   city: z
@@ -187,6 +190,7 @@ const businessDataSchema = z.object({
     .optional()
     .default(""),
   avatar_path: z.string().trim().max(300).optional().default(""),
+  cover_path: z.string().trim().max(600).optional().default(""),
 });
 
 export async function saveBusinessDataAction(
@@ -200,6 +204,7 @@ export async function saveBusinessDataAction(
     whatsapp: formData.get("whatsapp") ?? "",
     city: formData.get("city") ?? "",
     avatar_path: formData.get("avatar_path") ?? "",
+    cover_path: formData.get("cover_path") ?? "",
   });
 
   if (!parsed.success) {
@@ -223,6 +228,15 @@ export async function saveBusinessDataAction(
     return { error: "Caminho de imagem inválido." };
   }
 
+  const coverPath = parsed.data.cover_path || null;
+  if (
+    coverPath &&
+    !coverPath.startsWith(`${userId}/`) &&
+    !isUnsplashCdnUrl(coverPath)
+  ) {
+    return { error: "Imagem de capa inválida." };
+  }
+
   const { data: page } = await supabase
     .from("pages")
     .select("id, slug, onboarding_step")
@@ -241,6 +255,7 @@ export async function saveBusinessDataAction(
       whatsapp: normalizedWhatsapp,
       city: parsed.data.city || null,
       avatar_path: avatarPath,
+      cover_path: coverPath,
       onboarding_step: nextStep,
     })
     .eq("id", page.id);
@@ -459,7 +474,7 @@ export async function saveTemplateAction(formData: FormData) {
 
   const { data: page } = await supabase
     .from("pages")
-    .select("id, slug, onboarding_step")
+    .select("id, slug, onboarding_step, theme")
     .eq("owner_id", userId)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -467,10 +482,16 @@ export async function saveTemplateAction(formData: FormData) {
 
   if (!page) redirect("/onboarding/iniciar");
 
+  const currentTheme = parseTheme(page.theme);
+  const nextTheme = {
+    ...currentTheme,
+    ...TEMPLATE_DEFAULTS[template].header,
+  };
+
   const nextStep = Math.max(page.onboarding_step, 7);
   const { error } = await supabase
     .from("pages")
-    .update({ template, onboarding_step: nextStep })
+    .update({ template, theme: nextTheme, onboarding_step: nextStep })
     .eq("id", page.id);
 
   if (error) throw new Error(friendlyDbError(error.message));

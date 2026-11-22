@@ -9,22 +9,29 @@ import { saveTemplateAction } from "../actions";
 const TEMPLATE_META: {
   key: TemplateKey;
   label: string;
+  badge: string;
   description: string;
 }[] = [
   {
     key: "balcao",
     label: "Balcão",
-    description: "Lista vertical direta com ações rápidas no topo.",
+    badge: "Capa + Ações rápidas",
+    description:
+      "Ação principal em destaque, atalhos rápidos no topo e Bento Grid logo abaixo.",
   },
   {
     key: "mosaico",
     label: "Mosaico",
-    description: "Grade visual em blocos para destacar cada link.",
+    badge: "Capa Fade + Bento",
+    description:
+      "Capa ampla com degradê suave, avatar centralizado e foco visual no Bento Grid.",
   },
   {
     key: "cartao",
     label: "Cartão",
-    description: "Estilo cartão de visita com ações grandes e lista limpa.",
+    badge: "Cartão de visita digital",
+    description:
+      "Card de perfil elevado com capa integrada, ações diretas e Bento Grid.",
   },
 ];
 
@@ -104,10 +111,15 @@ export function TemplatePicker({
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <span className="block font-display text-body font-semibold text-ink">
-                    {item.label}
-                  </span>
-                  <span className="block text-small text-ink-muted">
+                  <div className="flex items-center gap-2">
+                    <span className="font-display text-body font-semibold text-ink">
+                      {item.label}
+                    </span>
+                    <span className="rounded-pill bg-lime/25 px-2.5 py-0.5 text-[11px] font-semibold text-ink">
+                      {item.badge}
+                    </span>
+                  </div>
+                  <span className="mt-0.5 block text-small text-ink-muted">
                     {item.description}
                   </span>
                 </div>

@@ -39,7 +39,7 @@ export function StylePicker({
     <OnboardingShell
       step={3}
       title="Escolha o estilo da sua página"
-      subtitle="Cores e tipografia prontas para destacar seu negócio. Você pode trocar quando quiser."
+      subtitle="Paleta e tipografia prontas para destacar sua vitrine em Bento Grid. Você pode trocar quando quiser."
       slug={slug}
       footer={
         <>
@@ -88,7 +88,7 @@ export function StylePicker({
               role="radio"
               aria-checked={isSelected}
               onClick={() => setSelected(key)}
-              className={`group relative flex min-h-[132px] cursor-pointer flex-col justify-between overflow-hidden rounded-lg border-2 p-3.5 text-left transition-[transform,box-shadow,border-color] duration-(--duration-fast) ease-out active:scale-[0.98] ${
+              className={`group relative flex min-h-[156px] cursor-pointer flex-col justify-between overflow-hidden rounded-xl border-2 p-3.5 text-left transition-[transform,box-shadow,border-color] duration-(--duration-fast) ease-out active:scale-[0.98] ${
                 isSelected
                   ? "border-ink shadow-md ring-2 ring-lime ring-offset-2 ring-offset-paper"
                   : "border-line hover:border-ink-muted"
@@ -99,19 +99,31 @@ export function StylePicker({
               }}
             >
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
                   <span
-                    className={`${font.className} block truncate text-[17px] leading-tight font-bold`}
-                    style={{ fontFamily: font.family }}
+                    aria-hidden
+                    className="grid size-7 shrink-0 place-items-center rounded-md text-[11px] font-bold"
+                    style={{
+                      backgroundColor: style.palette.accent,
+                      color: style.palette.onAccent,
+                    }}
                   >
-                    {style.label}
+                    {style.label.slice(0, 2).toUpperCase()}
                   </span>
-                  <span
-                    className="block truncate text-[11.5px]"
-                    style={{ color: style.palette.muted }}
-                  >
-                    {style.font}
-                  </span>
+                  <div className="min-w-0">
+                    <span
+                      className={`${font.className} block truncate text-[16px] leading-tight font-bold`}
+                      style={{ fontFamily: font.family }}
+                    >
+                      {style.label}
+                    </span>
+                    <span
+                      className="block truncate text-[11px]"
+                      style={{ color: style.palette.muted }}
+                    >
+                      {style.font}
+                    </span>
+                  </div>
                 </div>
 
                 {isSelected && (
@@ -121,9 +133,10 @@ export function StylePicker({
                 )}
               </div>
 
-              <div className="mt-3 flex flex-col gap-1.5">
+              {/* Mini Bento Grid preview (2x1 bar + two 1x1 squares) */}
+              <div className="mt-3 grid grid-cols-2 gap-1.5">
                 <span
-                  className="flex h-6 items-center justify-between rounded-sm px-2 text-[11px] font-semibold"
+                  className="col-span-2 flex h-6 items-center justify-between rounded-[7px] px-2 text-[10.5px] font-semibold"
                   style={{
                     backgroundColor: style.palette.accent,
                     color: style.palette.onAccent,
@@ -133,12 +146,27 @@ export function StylePicker({
                   <span aria-hidden>↗</span>
                 </span>
                 <span
-                  className="h-5 rounded-sm border"
+                  className="flex h-8 flex-col justify-between rounded-[7px] border px-2 py-1 text-[9.5px] font-semibold"
                   style={{
                     backgroundColor: style.palette.surface,
                     borderColor: style.palette.line,
+                    color: style.palette.ink,
                   }}
-                />
+                >
+                  <span style={{ color: style.palette.muted }}>1×1</span>
+                  <span className="truncate">TikTok</span>
+                </span>
+                <span
+                  className="flex h-8 flex-col justify-between rounded-[7px] border px-2 py-1 text-[9.5px] font-semibold"
+                  style={{
+                    backgroundColor: style.palette.surface,
+                    borderColor: style.palette.line,
+                    color: style.palette.ink,
+                  }}
+                >
+                  <span style={{ color: style.palette.muted }}>1×1</span>
+                  <span className="truncate">Vitrine</span>
+                </span>
               </div>
             </button>
           );

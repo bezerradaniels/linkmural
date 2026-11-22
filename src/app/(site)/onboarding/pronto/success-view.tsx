@@ -182,10 +182,10 @@ export function SuccessView({
         </div>
       </section>
 
-      {/* Instagram bio guide */}
+      {/* TikTok & Instagram bio guide */}
       <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-5">
         <h2 className="font-display text-body font-semibold">
-          Como colocar na bio do Instagram
+          Como colocar na bio do TikTok e Instagram
         </h2>
         <ol className="flex flex-col gap-2.5 text-small text-ink-muted">
           <li className="flex gap-2.5">
@@ -194,7 +194,7 @@ export function SuccessView({
             </span>
             <span>
               Toque em <strong className="text-ink">Copiar link</strong> acima e
-              abra seu perfil no Instagram.
+              abra seu perfil no TikTok ou Instagram.
             </span>
           </li>
           <li className="flex gap-2.5">
@@ -202,9 +202,9 @@ export function SuccessView({
               2
             </span>
             <span>
-              Vá em <strong className="text-ink">Editar perfil</strong> →{" "}
-              <strong className="text-ink">Links</strong> →{" "}
-              <strong className="text-ink">Adicionar link externo</strong>.
+              Toque em <strong className="text-ink">Editar perfil</strong> →{" "}
+              <strong className="text-ink">Site / Links</strong> →{" "}
+              <strong className="text-ink">Adicionar link</strong>.
             </span>
           </li>
           <li className="flex gap-2.5">
@@ -212,8 +212,9 @@ export function SuccessView({
               3
             </span>
             <span>
-              Cole o endereço e salve. Pronto: quem clicar vai direto para o seu
-              mural!
+              Cole o endereço e salve. No painel você também pode gerar links
+              com <strong className="text-ink">UTM</strong> para medir cliques de
+              cada rede!
             </span>
           </li>
         </ol>

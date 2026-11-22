@@ -21,6 +21,8 @@ export default async function OnboardingStep4Page() {
       initialCity={page.city ?? ""}
       initialAvatarPath={page.avatar_path ?? ""}
       initialAvatarUrl={mediaUrl(page.avatar_path)}
+      initialCoverPath={page.cover_path ?? ""}
+      initialCoverUrl={mediaUrl(page.cover_path)}
     />
   );
 }
