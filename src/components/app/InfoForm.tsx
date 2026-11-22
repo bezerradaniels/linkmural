@@ -12,6 +12,10 @@ import {
   changeSlugAction,
   saveInfoAction,
 } from "@/app/(site)/app/actions/info";
+import {
+  ImageCropModal,
+  type CroppedImageResult,
+} from "@/components/app/ImageCropModal";
 import { PhonePreview } from "@/components/app/PhonePreview";
 import {
   Alert,
@@ -47,42 +51,6 @@ import { createClient } from "@/utils/supabase/client";
 const MAX_LOGO_PX = 512;
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-
-async function resizeLogo(file: File): Promise<{
-  blob: Blob;
-  ext: "webp" | "jpg";
-  contentType: string;
-}> {
-  const bitmap = await createImageBitmap(file);
-  try {
-    const scale = Math.min(
-      1,
-      MAX_LOGO_PX / Math.max(bitmap.width, bitmap.height),
-    );
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("canvas_unavailable");
-    ctx.drawImage(bitmap, 0, 0, width, height);
-
-    const webp = await new Promise<Blob | null>((r) =>
-      canvas.toBlob(r, "image/webp", 0.86),
-    );
-    if (webp && webp.type === "image/webp") {
-      return { blob: webp, ext: "webp", contentType: "image/webp" };
-    }
-    const jpg = await new Promise<Blob | null>((r) =>
-      canvas.toBlob(r, "image/jpeg", 0.88),
-    );
-    if (!jpg) throw new Error("encode_failed");
-    return { blob: jpg, ext: "jpg", contentType: "image/jpeg" };
-  } finally {
-    bitmap.close();
-  }
-}
 
 export function InfoForm({
   userId,
@@ -140,6 +108,7 @@ export function InfoForm({
 
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -231,18 +200,24 @@ export function InfoForm({
     };
   }, [finalizedSlug, slugChanged]);
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadError(null);
     if (!ALLOWED_TYPES.has(file.type)) {
       setUploadError("Envie uma imagem PNG, JPG ou WEBP.");
+      if (fileRef.current) fileRef.current.value = "";
       return;
     }
+    setCropFile(file);
+    if (fileRef.current) fileRef.current.value = "";
+  }
 
+  async function handleCroppedLogoConfirm(result: CroppedImageResult) {
+    setCropFile(null);
     setUploading(true);
     try {
-      const { blob, ext, contentType } = await resizeLogo(file);
+      const { blob, ext, contentType } = result;
       if (blob.size > MAX_UPLOAD_BYTES) {
         setUploadError("A imagem ficou acima de 2 MB.");
         setUploading(false);
@@ -265,7 +240,6 @@ export function InfoForm({
       setUploadError("Não foi possível processar essa imagem.");
     } finally {
       setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -714,6 +688,15 @@ export function InfoForm({
       </div>
 
       <PhonePreview page={livePreview} pageUrl={pageUrl} />
+
+      <ImageCropModal
+        file={cropFile}
+        onClose={() => setCropFile(null)}
+        aspectRatio={1}
+        maxWidth={MAX_LOGO_PX}
+        title="Recortar logo ou foto de perfil"
+        onConfirm={handleCroppedLogoConfirm}
+      />
     </div>
   );
 }

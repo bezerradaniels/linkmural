@@ -2,6 +2,10 @@
 
 import { useActionState, useCallback, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import {
+  ImageCropModal,
+  type CroppedImageResult,
+} from "@/components/app/ImageCropModal";
 import { UnsplashPicker } from "@/components/app/UnsplashPicker";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { Alert, Avatar, Button, Icon, Input } from "@/components/ui";
@@ -12,47 +16,9 @@ import { createClient } from "@/utils/supabase/client";
 import { saveBusinessDataAction, type StepActionState } from "../actions";
 
 const MAX_LOGO_PX = 512;
+const MAX_COVER_PX = 1280;
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-
-/** Resizes an image in the browser to at most 512×512 before uploading to Storage. */
-async function resizeLogoToBlob(file: File): Promise<{
-  blob: Blob;
-  ext: "webp" | "jpg";
-  contentType: string;
-}> {
-  const bitmap = await createImageBitmap(file);
-  try {
-    const scale = Math.min(
-      1,
-      MAX_LOGO_PX / Math.max(bitmap.width, bitmap.height),
-    );
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("canvas_unavailable");
-    ctx.drawImage(bitmap, 0, 0, width, height);
-
-    const webpBlob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/webp", 0.86),
-    );
-    if (webpBlob && webpBlob.type === "image/webp") {
-      return { blob: webpBlob, ext: "webp", contentType: "image/webp" };
-    }
-
-    const jpgBlob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", 0.88),
-    );
-    if (!jpgBlob) throw new Error("encode_failed");
-    return { blob: jpgBlob, ext: "jpg", contentType: "image/jpeg" };
-  } finally {
-    bitmap.close();
-  }
-}
 
 function SubmitButton({ disabled }: { disabled?: boolean }) {
   const { pending } = useFormStatus();
@@ -114,8 +80,15 @@ export function BusinessForm({
   );
   const [unsplashOpen, setUnsplashOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
+  const [cropState, setCropState] = useState<{
+    file: File;
+    kind: "logo" | "cover";
+  } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const coverFileRef = useRef<HTMLInputElement>(null);
 
   const draftValue = useMemo(
     () => ({
@@ -155,47 +128,70 @@ export function BusinessForm({
   // match the draft and the hook drops it on its own.
   useLocalDraft(`onboarding-4:${pageId}`, draftValue, restoreDraft);
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleFileChange(
+    e: React.ChangeEvent<HTMLInputElement>,
+    kind: "logo" | "cover",
+  ) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploadError(null);
+    const setErr = kind === "logo" ? setUploadError : setCoverUploadError;
+    const ref = kind === "logo" ? fileRef : coverFileRef;
+    setErr(null);
     if (!ALLOWED_TYPES.has(file.type)) {
-      setUploadError("Envie uma imagem PNG, JPG ou WEBP.");
+      setErr("Envie uma imagem PNG, JPG ou WEBP.");
+      if (ref.current) ref.current.value = "";
       return;
     }
 
-    setUploading(true);
+    setCropState({ file, kind });
+    if (ref.current) ref.current.value = "";
+  }
+
+  async function handleCroppedConfirm(
+    kind: "logo" | "cover",
+    result: CroppedImageResult,
+  ) {
+    const setBusy = kind === "logo" ? setUploading : setUploadingCover;
+    const setErr = kind === "logo" ? setUploadError : setCoverUploadError;
+    setCropState(null);
+    setBusy(true);
     try {
-      const { blob, ext, contentType } = await resizeLogoToBlob(file);
+      const { blob, ext, contentType } = result;
       if (blob.size > MAX_UPLOAD_BYTES) {
-        setUploadError("A imagem ficou acima de 2 MB. Tente outra menor.");
-        setUploading(false);
+        setErr("A imagem ficou acima de 2 MB. Tente outra menor.");
+        setBusy(false);
         return;
       }
 
-      const path = `${userId}/${pageId}-logo-${Date.now()}.${ext}`;
+      const path = `${userId}/${pageId}-${kind}-${Date.now()}.${ext}`;
       const supabase = createClient();
-      // upsert must stay false: the media bucket only grants INSERT to owners
-      // (upsert also needs SELECT and UPDATE). File names are unique anyway.
       const { error } = await supabase.storage
         .from("media")
         .upload(path, blob, { contentType, upsert: false });
 
       if (error) {
-        setUploadError("Não conseguimos enviar o logo agora. Tente de novo.");
-        setUploading(false);
+        setErr(
+          kind === "logo"
+            ? "Não conseguimos enviar o logo agora. Tente de novo."
+            : "Não conseguimos enviar a capa agora. Tente de novo.",
+        );
+        setBusy(false);
         return;
       }
 
       const { data } = supabase.storage.from("media").getPublicUrl(path);
-      setAvatarPath(path);
-      setAvatarPreview(data.publicUrl);
+      if (kind === "logo") {
+        setAvatarPath(path);
+        setAvatarPreview(data.publicUrl);
+      } else {
+        setCoverPath(path);
+        setCoverPreview(data.publicUrl);
+      }
     } catch {
-      setUploadError("Não foi possível processar essa imagem. Tente outra.");
+      setErr("Não foi possível processar essa imagem. Tente outra.");
     } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
+      setBusy(false);
     }
   }
 
@@ -203,10 +199,10 @@ export function BusinessForm({
     <OnboardingShell
       step={4}
       title="Personalize seu perfil"
-      subtitle="Só o nome é obrigatório agora. Adicione logo, capa do Unsplash e WhatsApp se quiser."
+      subtitle="Só o nome é obrigatório agora. Adicione logo, capa e WhatsApp se quiser."
       backHref="/onboarding/3"
       slug={slug}
-      footer={<SubmitButton disabled={uploading} />}
+      footer={<SubmitButton disabled={uploading || uploadingCover} />}
     >
       <form
         id="onboarding-business-form"
@@ -236,7 +232,7 @@ export function BusinessForm({
               Foto de perfil ou logo (opcional)
             </span>
             <p className="text-caption text-ink-muted">
-              PNG, JPG ou WEBP. Ajustamos automaticamente para 512 px.
+              PNG, JPG ou WEBP com opção de recorte quadrado.
             </p>
             <div className="mt-1 flex flex-wrap gap-2">
               <input
@@ -245,7 +241,7 @@ export function BusinessForm({
                 accept="image/png,image/jpeg,image/webp"
                 className="sr-only"
                 id="logo-upload"
-                onChange={handleFileChange}
+                onChange={(e) => handleFileChange(e, "logo")}
               />
               <Button
                 type="button"
@@ -258,7 +254,7 @@ export function BusinessForm({
                   ? "Enviando…"
                   : avatarPreview
                     ? "Trocar foto"
-                    : "Escolher imagem"}
+                    : "Enviar arquivo"}
               </Button>
               {avatarPreview && !uploading && (
                 <Button
@@ -283,26 +279,56 @@ export function BusinessForm({
           </div>
         </div>
 
-        {/* Cover picker via Unsplash */}
+        {/* Cover picker: File upload with crop + Unsplash */}
         <div className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <span className="block text-small font-semibold">
                 Imagem de capa (opcional)
               </span>
               <p className="text-caption text-ink-muted">
-                Destaca o topo dos modelos Balcão, Mosaico e Cartão.
+                Envie uma foto sua (com recorte) ou busque no Unsplash.
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setUnsplashOpen(true)}
-            >
-              {coverPreview ? "Trocar capa" : "Buscar no Unsplash"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <input
+                ref={coverFileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="sr-only"
+                id="cover-upload"
+                onChange={(e) => handleFileChange(e, "cover")}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                loading={uploadingCover}
+                onClick={() => coverFileRef.current?.click()}
+              >
+                {uploadingCover
+                  ? "Enviando…"
+                  : coverPreview
+                    ? "Trocar arquivo"
+                    : "Enviar arquivo"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setUnsplashOpen(true)}
+              >
+                Buscar no Unsplash
+              </Button>
+            </div>
           </div>
+
+          {coverUploadError && (
+            <p className="flex items-center gap-1 text-caption text-negative">
+              <Icon name="warning" size={14} />
+              {coverUploadError}
+            </p>
+          )}
 
           {coverPreview && (
             <div className="relative h-24 w-full overflow-hidden rounded-lg border border-line">
@@ -366,6 +392,23 @@ export function BusinessForm({
         onSelect={(photo) => {
           setCoverPath(photo.regularUrl);
           setCoverPreview(photo.regularUrl);
+        }}
+      />
+
+      <ImageCropModal
+        file={cropState?.file ?? null}
+        onClose={() => setCropState(null)}
+        aspectRatio={cropState?.kind === "cover" ? 2.5 : 1}
+        maxWidth={cropState?.kind === "cover" ? MAX_COVER_PX : MAX_LOGO_PX}
+        title={
+          cropState?.kind === "cover"
+            ? "Recortar imagem de capa"
+            : "Recortar foto de perfil ou logo"
+        }
+        onConfirm={(res) => {
+          if (cropState) {
+            return handleCroppedConfirm(cropState.kind, res);
+          }
         }}
       />
     </OnboardingShell>

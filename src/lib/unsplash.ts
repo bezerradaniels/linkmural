@@ -37,6 +37,21 @@ export function isUnsplashCdnUrl(url: string | null | undefined): boolean {
   }
 }
 
+export function isAllowedBgImageUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  if (isUnsplashCdnUrl(url)) return true;
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname.endsWith(".supabase.co") &&
+      parsed.pathname.startsWith("/storage/v1/object/public/media/")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isValidUnsplashDownloadUrl(
   url: string | null | undefined,
 ): boolean {

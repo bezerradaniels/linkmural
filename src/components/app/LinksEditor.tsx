@@ -28,6 +28,10 @@ import {
   updatePageActionsAction,
 } from "@/app/(site)/app/actions/links";
 import { IconPicker } from "@/components/app/IconPicker";
+import {
+  ImageCropModal,
+  type CroppedImageResult,
+} from "@/components/app/ImageCropModal";
 import { LinkIconGlyph } from "@/components/app/LinkIconGlyph";
 import { PhonePreview } from "@/components/app/PhonePreview";
 import { UnsplashPicker } from "@/components/app/UnsplashPicker";
@@ -75,42 +79,6 @@ const SIZE_OPTIONS: { value: LinkSize; label: string }[] = [
 const MAX_GALLERY_PX = 1200;
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-
-async function resizeGalleryImage(file: File): Promise<{
-  blob: Blob;
-  ext: "webp" | "jpg";
-  contentType: string;
-}> {
-  const bitmap = await createImageBitmap(file);
-  try {
-    const scale = Math.min(
-      1,
-      MAX_GALLERY_PX / Math.max(bitmap.width, bitmap.height),
-    );
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("canvas_unavailable");
-    ctx.drawImage(bitmap, 0, 0, width, height);
-
-    const webp = await new Promise<Blob | null>((r) =>
-      canvas.toBlob(r, "image/webp", 0.85),
-    );
-    if (webp && webp.type === "image/webp") {
-      return { blob: webp, ext: "webp", contentType: "image/webp" };
-    }
-    const jpg = await new Promise<Blob | null>((r) =>
-      canvas.toBlob(r, "image/jpeg", 0.88),
-    );
-    if (!jpg) throw new Error("encode_failed");
-    return { blob: jpg, ext: "jpg", contentType: "image/jpeg" };
-  } finally {
-    bitmap.close();
-  }
-}
 
 function blockTypeBadge(kind: LinkRow["kind"]): string | null {
   if (kind === "gallery") return "Galeria · Studio";
@@ -352,6 +320,7 @@ export function LinksEditor({
   const [modalOpen, setModalOpen] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [unsplashOpen, setUnsplashOpen] = useState(false);
+  const [galleryCropFile, setGalleryCropFile] = useState<File | null>(null);
   const [utmModalOpen, setUtmModalOpen] = useState(false);
   const [draft, setDraft] = useState<ModalDraft>({
     blockKind: "link",
@@ -483,7 +452,7 @@ export function LinksEditor({
     }));
   }
 
-  async function handleUploadGalleryPhoto(
+  function handleUploadGalleryPhoto(
     e: React.ChangeEvent<HTMLInputElement>,
   ) {
     const file = e.target.files?.[0];
@@ -493,6 +462,7 @@ export function LinksEditor({
         ...p,
         error: "Máximo de 10 fotos por galeria.",
       }));
+      if (galleryFileRef.current) galleryFileRef.current.value = "";
       return;
     }
     if (!ALLOWED_TYPES.has(file.type)) {
@@ -500,12 +470,19 @@ export function LinksEditor({
         ...p,
         error: "Envie uma imagem PNG, JPG ou WEBP.",
       }));
+      if (galleryFileRef.current) galleryFileRef.current.value = "";
       return;
     }
 
+    setGalleryCropFile(file);
+    if (galleryFileRef.current) galleryFileRef.current.value = "";
+  }
+
+  async function handleCroppedGalleryConfirm(result: CroppedImageResult) {
+    setGalleryCropFile(null);
     setUploadingPhoto(true);
     try {
-      const { blob, ext, contentType } = await resizeGalleryImage(file);
+      const { blob, ext, contentType } = result;
       if (blob.size > MAX_UPLOAD_BYTES) {
         setDraft((p) => ({
           ...p,
@@ -544,7 +521,6 @@ export function LinksEditor({
       }));
     } finally {
       setUploadingPhoto(false);
-      if (galleryFileRef.current) galleryFileRef.current.value = "";
     }
   }
 
@@ -1599,6 +1575,15 @@ export function LinksEditor({
             </Button>
           </>
         }
+      />
+
+      <ImageCropModal
+        file={galleryCropFile}
+        onClose={() => setGalleryCropFile(null)}
+        aspectRatio={4 / 3}
+        maxWidth={MAX_GALLERY_PX}
+        title="Recortar foto da galeria"
+        onConfirm={handleCroppedGalleryConfirm}
       />
     </div>
   );

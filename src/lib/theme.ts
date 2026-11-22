@@ -8,7 +8,7 @@ import {
   mix,
 } from "./color";
 import { planInfo, type Plan } from "./plans";
-import { isUnsplashCdnUrl } from "./unsplash";
+import { isAllowedBgImageUrl } from "./unsplash";
 import {
   BG_DOODLES,
   BG_GRADIENTS,
@@ -64,7 +64,7 @@ export const themeSchema = z.object({
   bgGradient: z.enum(GRADIENT_KEYS).optional(), // all plans
   bgDoodle: z.enum(DOODLE_KEYS).optional(), // Pro+
   bgImage: z.enum(IMAGE_PRESET_KEYS).optional(), // Pro+
-  bgImageUrl: z.string().max(600).refine(isUnsplashCdnUrl).optional(), // Pro+ (Unsplash photo background)
+  bgImageUrl: z.string().max(600).refine(isAllowedBgImageUrl).optional(), // Pro+ (uploaded or Unsplash photo background)
   bgImageColor: z.string().refine(isHex).optional(), // Pro+ (dominant hex for contrast)
   coverHeight: z.enum(["compact", "regular", "tall"]).optional(), // all plans
   coverStyle: z.enum(["clean", "fade", "tint"]).optional(), // all plans

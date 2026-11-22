@@ -9,6 +9,10 @@ import {
 } from "react";
 import Link from "next/link";
 import { saveAppearanceAction } from "@/app/(site)/app/actions/appearance";
+import {
+  ImageCropModal,
+  type CroppedImageResult,
+} from "@/components/app/ImageCropModal";
 import { PhonePreview } from "@/components/app/PhonePreview";
 import { UnsplashPicker } from "@/components/app/UnsplashPicker";
 import {
@@ -68,44 +72,9 @@ type AppearanceSection = "cabecalho" | "cards" | "estilo";
 
 const MAX_LOGO_PX = 512;
 const MAX_COVER_PX = 1280;
+const MAX_BG_PX = 1080;
 const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
-
-async function resizeImage(
-  file: File,
-  maxPx: number,
-): Promise<{
-  blob: Blob;
-  ext: "webp" | "jpg";
-  contentType: string;
-}> {
-  const bitmap = await createImageBitmap(file);
-  try {
-    const scale = Math.min(1, maxPx / Math.max(bitmap.width, bitmap.height));
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("canvas_unavailable");
-    ctx.drawImage(bitmap, 0, 0, width, height);
-
-    const webp = await new Promise<Blob | null>((r) =>
-      canvas.toBlob(r, "image/webp", 0.86),
-    );
-    if (webp && webp.type === "image/webp") {
-      return { blob: webp, ext: "webp", contentType: "image/webp" };
-    }
-    const jpg = await new Promise<Blob | null>((r) =>
-      canvas.toBlob(r, "image/jpeg", 0.88),
-    );
-    if (!jpg) throw new Error("encode_failed");
-    return { blob: jpg, ext: "jpg", contentType: "image/jpeg" };
-  } finally {
-    bitmap.close();
-  }
-}
 
 export function AppearanceForm({
   userId,
@@ -156,7 +125,12 @@ export function AppearanceForm({
 
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingBg, setUploadingBg] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [cropState, setCropState] = useState<{
+    file: File;
+    kind: "logo" | "cover" | "background";
+  } | null>(null);
   const [unsplashTarget, setUnsplashTarget] = useState<
     "cover" | "background" | null
   >(null);
@@ -165,6 +139,7 @@ export function AppearanceForm({
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const bgInputRef = useRef<HTMLInputElement>(null);
 
   const tplDefaults = TEMPLATE_DEFAULTS[template];
 
@@ -210,27 +185,44 @@ export function AppearanceForm({
     restoreDraft,
   );
 
-  async function handleUploadMedia(
+  function handleUploadMedia(
     e: React.ChangeEvent<HTMLInputElement>,
-    kind: "logo" | "cover",
+    kind: "logo" | "cover" | "background",
   ) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadError(null);
+    const inputRef =
+      kind === "logo"
+        ? logoInputRef
+        : kind === "cover"
+          ? coverInputRef
+          : bgInputRef;
     if (!ALLOWED_TYPES.has(file.type)) {
       setUploadError("Envie uma imagem PNG, JPG ou WEBP.");
+      if (inputRef.current) inputRef.current.value = "";
       return;
     }
 
-    const setBusy = kind === "logo" ? setUploadingLogo : setUploadingCover;
-    const inputRef = kind === "logo" ? logoInputRef : coverInputRef;
+    setCropState({ file, kind });
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  async function handleCroppedConfirm(
+    kind: "logo" | "cover" | "background",
+    result: CroppedImageResult,
+  ) {
+    const setBusy =
+      kind === "logo"
+        ? setUploadingLogo
+        : kind === "cover"
+          ? setUploadingCover
+          : setUploadingBg;
+    setCropState(null);
     setBusy(true);
 
     try {
-      const { blob, ext, contentType } = await resizeImage(
-        file,
-        kind === "logo" ? MAX_LOGO_PX : MAX_COVER_PX,
-      );
+      const { blob, ext, contentType } = result;
       if (blob.size > MAX_UPLOAD_BYTES) {
         setUploadError("A imagem ficou acima de 2 MB.");
         setBusy(false);
@@ -245,7 +237,9 @@ export function AppearanceForm({
         setUploadError(
           kind === "logo"
             ? "Não conseguimos enviar o logo agora."
-            : "Não conseguimos enviar a capa agora.",
+            : kind === "cover"
+              ? "Não conseguimos enviar a capa agora."
+              : "Não conseguimos enviar a imagem de fundo agora.",
         );
         setBusy(false);
         return;
@@ -254,15 +248,21 @@ export function AppearanceForm({
       if (kind === "logo") {
         setAvatarPath(path);
         setAvatarPreview(data.publicUrl);
-      } else {
+      } else if (kind === "cover") {
         setCoverPath(path);
         setCoverPreview(data.publicUrl);
+      } else {
+        setTheme((p) => ({
+          ...p,
+          bgType: "image",
+          bgImageUrl: data.publicUrl,
+          bgImageColor: "#16181D",
+        }));
       }
     } catch {
       setUploadError("Não foi possível processar essa imagem.");
     } finally {
       setBusy(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
   }
 
@@ -1243,31 +1243,64 @@ export function AppearanceForm({
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={theme.bgImageUrl}
-                            alt="Fundo do Unsplash"
+                            alt="Fundo da página"
                             className="h-10 w-16 rounded border border-line object-cover"
                           />
                         )}
                         <div className="flex flex-col">
                           <span className="text-small font-semibold">
                             {theme.bgImageUrl
-                              ? "Foto do Unsplash selecionada"
-                              : "Ou escolha uma foto gratuita do Unsplash"}
+                              ? "Imagem de fundo personalizada"
+                              : "Envie sua própria foto ou escolha no Unsplash"}
                           </span>
                           <span className="text-caption text-ink-muted">
-                            Milhares de fotos profissionais de alta resolução.
+                            Upload com recorte ou fotos gratuitas do Unsplash.
                           </span>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setUnsplashTarget("background")}
-                      >
-                        {theme.bgImageUrl
-                          ? "Trocar foto do Unsplash"
-                          : "Buscar no Unsplash"}
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <input
+                          ref={bgInputRef}
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="sr-only"
+                          onChange={(e) => handleUploadMedia(e, "background")}
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          loading={uploadingBg}
+                          onClick={() => bgInputRef.current?.click()}
+                        >
+                          {uploadingBg ? "Enviando…" : "Enviar arquivo"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setUnsplashTarget("background")}
+                        >
+                          Buscar no Unsplash
+                        </Button>
+                        {theme.bgImageUrl && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              setTheme((p) => {
+                                const next = { ...p };
+                                delete next.bgImageUrl;
+                                delete next.bgImageColor;
+                                return next;
+                              })
+                            }
+                          >
+                            Remover
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1339,6 +1372,36 @@ export function AppearanceForm({
               bgImageUrl: photo.regularUrl,
               bgImageColor: photo.color,
             }));
+          }
+        }}
+      />
+      <ImageCropModal
+        file={cropState?.file ?? null}
+        onClose={() => setCropState(null)}
+        aspectRatio={
+          cropState?.kind === "cover"
+            ? 2.5
+            : cropState?.kind === "background"
+              ? 9 / 16
+              : 1
+        }
+        maxWidth={
+          cropState?.kind === "cover"
+            ? MAX_COVER_PX
+            : cropState?.kind === "background"
+              ? MAX_BG_PX
+              : MAX_LOGO_PX
+        }
+        title={
+          cropState?.kind === "cover"
+            ? "Recortar imagem de capa"
+            : cropState?.kind === "background"
+              ? "Recortar imagem de fundo"
+              : "Recortar logo ou foto de perfil"
+        }
+        onConfirm={(res) => {
+          if (cropState) {
+            return handleCroppedConfirm(cropState.kind, res);
           }
         }}
       />
