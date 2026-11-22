@@ -233,6 +233,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["link_kind"]
           page_id: string
           position: number
+          size: string
           subtitle: string | null
           title: string
           updated_at: string
@@ -248,6 +249,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["link_kind"]
           page_id: string
           position?: number
+          size?: string
           subtitle?: string | null
           title: string
           updated_at?: string
@@ -263,6 +265,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["link_kind"]
           page_id?: string
           position?: number
+          size?: string
           subtitle?: string | null
           title?: string
           updated_at?: string

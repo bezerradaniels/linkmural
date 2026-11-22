@@ -8,7 +8,7 @@ import { sendPagePublishedEmail } from "@/lib/email/page-published";
 import { detectLink, linkUrlSchema } from "@/lib/link-detect";
 import { friendlyDbError } from "@/lib/onboarding";
 import { pageActionsSchema } from "@/lib/panel-helpers";
-import { PLANS } from "@/lib/plans";
+import { PLANS, planInfo } from "@/lib/plans";
 import { checkSafeUrl } from "@/lib/safe-browsing";
 import type { Tables, TablesUpdate } from "@/utils/supabase/types";
 import { refreshPublicPage } from "./revalidate";
@@ -35,6 +35,8 @@ async function getOwnedPage(
   return data;
 }
 
+const linkSizeSchema = z.enum(["2x1", "1x1", "2x2"]);
+
 const linkInputSchema = z.object({
   title: z.string().trim().min(1, "Digite um título.").max(80),
   subtitle: z.string().trim().max(120).optional().default(""),
@@ -44,6 +46,7 @@ const linkInputSchema = z.object({
     .regex(/^(si|lm):[a-z0-9-]+$/)
     .optional(),
   featured: z.boolean().optional().default(false),
+  size: linkSizeSchema.optional().default("2x1"),
 });
 
 export async function createLinkAction(
@@ -89,6 +92,13 @@ export async function createLinkAction(
       .eq("featured", true);
   }
 
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", userId)
+    .maybeSingle();
+  const canResize = planInfo(prof?.plan).customTheme;
+
   const { data: created, error } = await supabase
     .from("links")
     .insert({
@@ -99,6 +109,7 @@ export async function createLinkAction(
       url: detected.url,
       icon: parsed.data.icon ?? detected.icon,
       featured: parsed.data.featured,
+      size: canResize ? parsed.data.size : "2x1",
       position: nextPosition,
       active: true,
     })
@@ -118,22 +129,21 @@ export async function createLinkAction(
 
   // One-time email when a Free user hits the 5-link cap (docs/HANDOFF.md §14).
   const freeLimit = PLANS.free.maxLinks ?? 5;
-  const [{ count: totalLinks }, { data: prof }] = await Promise.all([
-    supabase
+  if ((prof?.plan ?? "free") === "free") {
+    const { count: totalLinks } = await supabase
       .from("links")
       .select("id", { count: "exact", head: true })
-      .eq("page_id", page.id),
-    supabase.from("profiles").select("plan").eq("id", userId).maybeSingle(),
-  ]);
-  if ((prof?.plan ?? "free") === "free" && (totalLinks ?? 0) >= freeLimit) {
-    after(() =>
-      sendFreeLinkLimitEmail({
-        userId,
-        pageId: page.id,
-        to: email,
-        businessName: page.business_name || page.slug,
-      }),
-    );
+      .eq("page_id", page.id);
+    if ((totalLinks ?? 0) >= freeLimit) {
+      after(() =>
+        sendFreeLinkLimitEmail({
+          userId,
+          pageId: page.id,
+          to: email,
+          businessName: page.business_name || page.slug,
+        }),
+      );
+    }
   }
 
   return { ok: true, data: created };
@@ -150,6 +160,7 @@ const updateLinkSchema = z.object({
     .optional(),
   active: z.boolean().optional(),
   featured: z.boolean().optional(),
+  size: linkSizeSchema.optional(),
 });
 
 export async function updateLinkAction(
@@ -182,6 +193,20 @@ export async function updateLinkAction(
   }
   if (parsed.data.icon !== undefined) patch.icon = parsed.data.icon;
   if (parsed.data.active !== undefined) patch.active = parsed.data.active;
+  if (parsed.data.size !== undefined) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!planInfo(prof?.plan).customTheme && parsed.data.size !== "2x1") {
+      return {
+        ok: false,
+        error: "Redimensionar cards no grid é um recurso do plano Pro.",
+      };
+    }
+    patch.size = parsed.data.size;
+  }
   if (parsed.data.featured !== undefined) {
     if (parsed.data.featured) {
       await supabase

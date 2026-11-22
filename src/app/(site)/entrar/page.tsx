@@ -86,12 +86,12 @@ export default async function EntrarPage({
         </div>
 
         <p className="text-center text-small text-ink-muted">
-          Ainda não tem uma página?{" "}
+          Ainda não tem uma conta?{" "}
           <Link
-            href="/"
+            href="/cadastro"
             className="font-semibold text-ink underline underline-offset-2"
           >
-            Crie a sua grátis
+            Cadastre-se grátis
           </Link>
         </p>
 

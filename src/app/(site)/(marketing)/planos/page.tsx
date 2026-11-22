@@ -67,7 +67,7 @@ export default function PlanosPage() {
             Entrar
           </Link>
           <Link
-            href="/"
+            href="/cadastro"
             className={buttonClasses({ variant: "primary", size: "md" })}
           >
             Criar grátis
@@ -137,7 +137,7 @@ export default function PlanosPage() {
 
                   {key === "free" ? (
                     <Link
-                      href="/"
+                      href="/cadastro"
                       className={buttonClasses({
                         variant: "primary",
                         size: "md",

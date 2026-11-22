@@ -49,21 +49,32 @@ import { reorderById } from "@/lib/panel-helpers";
 import { planInfo, type Plan } from "@/lib/plans";
 import { parsePageActions, type PageActions } from "@/lib/public-actions";
 import type { PublicPage } from "@/lib/public-page";
+import type { LinkSize } from "@/lib/styles";
 import type { Tables } from "@/utils/supabase/types";
 
 type LinkRow = Tables<"links">;
 
+const SIZE_OPTIONS: { value: LinkSize; label: string }[] = [
+  { value: "2x1", label: "2×1" },
+  { value: "1x1", label: "1×1" },
+  { value: "2x2", label: "2×2" },
+];
+
 function SortableLinkRow({
   link,
+  canResize,
   onEdit,
   onToggleActive,
   onToggleFeatured,
+  onChangeSize,
   onRequestDelete,
 }: {
   link: LinkRow;
+  canResize: boolean;
   onEdit: (link: LinkRow) => void;
   onToggleActive: (link: LinkRow, active: boolean) => void;
   onToggleFeatured: (link: LinkRow) => void;
+  onChangeSize: (link: LinkRow, size: LinkSize) => void;
   onRequestDelete: (link: LinkRow) => void;
 }) {
   const {
@@ -119,7 +130,46 @@ function SortableLinkRow({
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-1 border-t border-line pt-2 sm:border-t-0 sm:pt-0">
+      <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-line pt-2 sm:border-t-0 sm:pt-0">
+        {/* Bento Grid card size selector (2x1 bar for Free; 2x1 / 1x1 / 2x2 for Pro+) */}
+        <div
+          role="group"
+          aria-label={`Tamanho do card ${link.title}`}
+          className="mr-auto inline-flex items-center rounded-pill border border-line bg-paper p-0.5 sm:mr-1"
+        >
+          {SIZE_OPTIONS.map((opt) => {
+            const currentSize: LinkSize =
+              canResize && (link.size === "1x1" || link.size === "2x2")
+                ? link.size
+                : "2x1";
+            const active = currentSize === opt.value;
+            const locked = !canResize && opt.value !== "2x1";
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                aria-pressed={active}
+                title={
+                  locked
+                    ? "Redimensionar no grid é exclusivo do plano Pro"
+                    : `Tamanho ${opt.label}`
+                }
+                onClick={() => onChangeSize(link, opt.value)}
+                className={`inline-flex h-8 cursor-pointer items-center gap-1 rounded-pill px-2.5 text-[11px] font-semibold transition-colors ${
+                  active
+                    ? "bg-ink text-paper"
+                    : locked
+                      ? "text-ink-muted/70 hover:text-ink"
+                      : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                {opt.label}
+                {locked && <Icon name="lock" size={10} />}
+              </button>
+            );
+          })}
+        </div>
+
         {link.kind !== "pix" && (
           <Button
             type="button"
@@ -456,6 +506,37 @@ export function LinksEditor({
     });
   }
 
+  function handleChangeSize(link: LinkRow, nextSize: LinkSize) {
+    if (!limits.customTheme && nextSize !== "2x1") {
+      toast({
+        message: "Cards 1×1 e 2×2 são do plano Pro.",
+        action: {
+          label: "Ver Pro",
+          onClick: () => {
+            window.location.href = "/app/plano";
+          },
+        },
+      });
+      return;
+    }
+    const prevSize = link.size;
+    if (prevSize === nextSize) return;
+    setLinks((prev) =>
+      prev.map((l) => (l.id === link.id ? { ...l, size: nextSize } : l)),
+    );
+    startSaving(async () => {
+      const res = await updateLinkAction({ id: link.id, size: nextSize });
+      if (res.ok) {
+        toast("Tamanho atualizado");
+      } else {
+        setLinks((prev) =>
+          prev.map((l) => (l.id === link.id ? { ...l, size: prevSize } : l)),
+        );
+        toast(res.error);
+      }
+    });
+  }
+
   function handleToggleAction(key: keyof PageActions, checked: boolean) {
     const next = { ...actions, [key]: checked };
     setActions(next);
@@ -646,9 +727,11 @@ export function LinksEditor({
                     <SortableLinkRow
                       key={link.id}
                       link={link}
+                      canResize={limits.customTheme}
                       onEdit={openEdit}
                       onToggleActive={handleToggleActive}
                       onToggleFeatured={handleToggleFeatured}
+                      onChangeSize={handleChangeSize}
                       onRequestDelete={setDeleteTarget}
                     />
                   ))}

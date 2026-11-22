@@ -6,6 +6,7 @@ import { brandColor, resolveIcon } from "@/lib/icons";
 import { linkHref, type PageModel } from "@/lib/public-actions";
 import type { PublicLink, PublicPage } from "@/lib/public-page";
 import { publicFont } from "@/lib/public-fonts";
+import { COVER_HEIGHTS } from "@/lib/styles";
 import type { ResolvedTheme } from "@/lib/theme";
 import { PixCopyButton, ReportButton, StatusPill, VisitBeacon } from "./client";
 
@@ -15,6 +16,100 @@ export type TemplateProps = {
   theme: ResolvedTheme;
   pageUrl: string;
 };
+
+function DoodleOverlay({
+  doodle,
+  preview,
+}: {
+  doodle: ResolvedTheme["bgDoodle"];
+  preview: boolean;
+}) {
+  const patternId = `lm-doodle-${doodle}`;
+  return (
+    <svg
+      aria-hidden
+      className={`pointer-events-none inset-0 size-full text-(--ink) opacity-[0.075] ${preview ? "absolute" : "fixed"}`}
+    >
+      <defs>
+        {doodle === "dots" && (
+          <pattern
+            id={patternId}
+            width="24"
+            height="24"
+            patternUnits="userSpaceOnUse"
+          >
+            <circle cx="4" cy="4" r="1.6" fill="currentColor" />
+            <circle cx="16" cy="16" r="1.6" fill="currentColor" />
+          </pattern>
+        )}
+        {doodle === "grid" && (
+          <pattern
+            id={patternId}
+            width="28"
+            height="28"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M 28 0 L 0 0 0 28"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+            />
+          </pattern>
+        )}
+        {doodle === "waves" && (
+          <pattern
+            id={patternId}
+            width="48"
+            height="24"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M 0 12 Q 12 2 24 12 T 48 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            />
+          </pattern>
+        )}
+        {doodle === "organic" && (
+          <pattern
+            id={patternId}
+            width="64"
+            height="64"
+            patternUnits="userSpaceOnUse"
+          >
+            <circle
+              cx="16"
+              cy="18"
+              r="8"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            />
+            <path
+              d="M 42 14 L 52 24 M 52 14 L 42 24"
+              stroke="currentColor"
+              strokeWidth="1.4"
+              strokeLinecap="round"
+            />
+            <rect
+              x="38"
+              y="42"
+              width="12"
+              height="12"
+              rx="4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.4"
+            />
+          </pattern>
+        )}
+      </defs>
+      <rect width="100%" height="100%" fill={`url(#${patternId})`} />
+    </svg>
+  );
+}
 
 /** Root: style variables, the style's font and the page background. */
 export function PageShell({
@@ -31,9 +126,16 @@ export function PageShell({
   const font = publicFont(theme.font);
   return (
     <div
-      className={`${font.className} ${preview ? "min-h-full" : "min-h-dvh"} bg-(--bg) text-(--ink) antialiased`}
-      style={{ ...(theme.vars as CSSProperties), fontFamily: font.family }}
+      className={`${font.className} relative ${preview ? "min-h-full" : "min-h-dvh"} overflow-x-hidden text-(--ink) antialiased`}
+      style={{
+        ...(theme.vars as CSSProperties),
+        fontFamily: font.family,
+        background: theme.bgCss,
+      }}
     >
+      {theme.bgType === "doodles" && (
+        <DoodleOverlay doodle={theme.bgDoodle} preview={preview} />
+      )}
       {!preview && (
         <VisitBeacon
           pageId={page.id}
@@ -42,7 +144,58 @@ export function PageShell({
           style={page.style}
         />
       )}
-      <div className="mx-auto w-full max-w-[460px]">{children}</div>
+      <div className="relative z-1 mx-auto w-full max-w-[460px]">{children}</div>
+    </div>
+  );
+}
+
+/** Cover image (or styled accent fallback) shared across all 3 templates. */
+export function CoverBanner({
+  page,
+  model,
+  theme,
+  fadeTarget = "bg",
+  className = "",
+  children,
+}: {
+  page: PublicPage;
+  model: PageModel;
+  theme: ResolvedTheme;
+  fadeTarget?: "bg" | "surface";
+  className?: string;
+  children?: ReactNode;
+}) {
+  const heightCls = COVER_HEIGHTS[theme.coverHeight].h;
+  const fadeFrom = fadeTarget === "surface" ? "from-(--surface)" : "from-(--bg)";
+  return (
+    <div
+      className={`relative overflow-hidden bg-(--accent) ${heightCls} ${className}`}
+      style={{
+        backgroundImage: page.coverUrl
+          ? undefined
+          : "radial-gradient(circle at 85% 20%, rgba(255,255,255,0.22), transparent 55%), linear-gradient(135deg, rgba(0,0,0,0.06), rgba(0,0,0,0.22))",
+      }}
+    >
+      {page.coverUrl && (
+        <img
+          src={page.coverUrl}
+          alt={`Capa de ${model.name}`}
+          className="absolute inset-0 size-full object-cover"
+        />
+      )}
+      {theme.coverStyle === "tint" && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-(--accent) opacity-40 mix-blend-multiply"
+        />
+      )}
+      {theme.coverStyle === "fade" && (
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t ${fadeFrom} to-transparent`}
+        />
+      )}
+      {children}
     </div>
   );
 }
@@ -154,17 +307,29 @@ export function LinkIcon({
   );
 }
 
-const card =
+function effectClasses(effect: ResolvedTheme["cardEffect"]): string {
+  if (effect === "glass") {
+    return "backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.07)]";
+  }
+  if (effect === "glossy") {
+    return "relative overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_8px_20px_rgba(0,0,0,0.1)] before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-1/2 before:bg-gradient-to-b before:from-white/25 before:to-transparent before:content-['']";
+  }
+  return "";
+}
+
+const cardBase =
   "flex items-center gap-3 rounded-(--r) border border-(--card-border) bg-(--card-bg) px-(--card-px) py-(--card-py) text-(--card-ink) no-underline " +
   "transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99]";
 
 const iconBox =
   "grid size-(--card-icon) shrink-0 place-items-center rounded-(--card-icon-r) bg-(--card-icon-bg) text-(--card-icon-ink)";
 
-function CardText({ link }: { link: PublicLink }) {
+function CardText({ link, lines = 1 }: { link: PublicLink; lines?: 1 | 2 }) {
   return (
     <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
-      <span className="truncate text-(length:--card-title) leading-tight font-semibold">
+      <span
+        className={`${lines === 2 ? "line-clamp-2" : "truncate"} text-(length:--card-title) leading-tight font-semibold`}
+      >
         {link.title}
       </span>
       {link.subtitle && (
@@ -176,8 +341,12 @@ function CardText({ link }: { link: PublicLink }) {
   );
 }
 
-/** One link in the vertical list (Balcão, Cartão). Pix links copy the key. */
-export function LinkCard({
+/**
+ * Bento-aware link card:
+ * - Free plan always renders as standard 2x1 bar (logo/CTA/arrow).
+ * - Pro+ plan renders 2x1 (full bar), 1x1 (square bento tile) or 2x2 (large bento card).
+ */
+export function BentoLinkCard({
   link,
   page,
   theme,
@@ -186,6 +355,115 @@ export function LinkCard({
   page: PublicPage;
   theme: ResolvedTheme;
 }) {
+  const rawSize = link.size;
+  const resolvedSize =
+    theme.allowBentoResize && (rawSize === "1x1" || rawSize === "2x2")
+      ? rawSize
+      : "2x1";
+  const fx = effectClasses(theme.cardEffect);
+
+  if (resolvedSize === "1x1") {
+    const tileCls = `col-span-1 flex min-h-[126px] flex-col justify-between rounded-(--r) border border-(--card-border) bg-(--card-bg) p-(--card-px) text-(--card-ink) no-underline transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99] ${fx}`;
+    const inner = (
+      <>
+        <div className="flex w-full items-start justify-between gap-2">
+          <span className={iconBox}>
+            <LinkIcon link={link} theme={theme} />
+          </span>
+          <Icon
+            name={link.kind === "pix" ? "copy" : "arrow"}
+            size={15}
+            strokeWidth={2}
+            className="mt-1 shrink-0 opacity-55"
+          />
+        </div>
+        <CardText link={link} lines={2} />
+      </>
+    );
+
+    if (link.kind === "pix") {
+      return (
+        <PixCopyButton
+          pixKey={link.url}
+          linkId={link.id}
+          pageId={page.id}
+          slug={page.slug}
+          className={`${tileCls} w-full cursor-pointer items-start`}
+        >
+          {inner}
+        </PixCopyButton>
+      );
+    }
+    return (
+      <a
+        href={linkHref(link)}
+        rel="nofollow noopener"
+        data-lm-link-title={link.title}
+        data-lm-link-kind={link.kind}
+        className={tileCls}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  if (resolvedSize === "2x2") {
+    const bigCls = `col-span-2 flex min-h-[152px] flex-col justify-between gap-4 rounded-(--r-big) border border-(--card-border) bg-(--card-bg) p-5 text-(--card-ink) no-underline transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99] ${fx}`;
+    const inner = (
+      <>
+        <div className="flex w-full items-center justify-between gap-2">
+          <span className={iconBox}>
+            <LinkIcon link={link} theme={theme} />
+          </span>
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-(--soft) text-(--ink)">
+            <Icon
+              name={link.kind === "pix" ? "copy" : "arrow"}
+              size={16}
+              strokeWidth={2}
+            />
+          </span>
+        </div>
+        <div className="flex flex-col gap-0.5 text-left">
+          <span className="text-[19px] leading-tight font-bold">
+            {link.title}
+          </span>
+          {link.subtitle && (
+            <span className="text-[13px] leading-snug text-(--card-muted)">
+              {link.subtitle}
+            </span>
+          )}
+        </div>
+      </>
+    );
+
+    if (link.kind === "pix") {
+      return (
+        <PixCopyButton
+          pixKey={link.url}
+          linkId={link.id}
+          pageId={page.id}
+          slug={page.slug}
+          className={`${bigCls} w-full cursor-pointer items-start`}
+        >
+          {inner}
+        </PixCopyButton>
+      );
+    }
+    return (
+      <a
+        href={linkHref(link)}
+        rel="nofollow noopener"
+        data-lm-link-title={link.title}
+        data-lm-link-kind={link.kind}
+        className={bigCls}
+      >
+        {inner}
+      </a>
+    );
+  }
+
+  // Default 2x1 bar: logo/icon + CTA + arrow
+  const barCls = `col-span-2 ${cardBase} ${fx}`;
   const inner = (
     <>
       <span className={iconBox}>
@@ -201,7 +479,7 @@ export function LinkCard({
         linkId={link.id}
         pageId={page.id}
         slug={page.slug}
-        className={`${card} w-full cursor-pointer`}
+        className={`${barCls} w-full cursor-pointer`}
       >
         {inner}
       </PixCopyButton>
@@ -213,7 +491,7 @@ export function LinkCard({
       rel="nofollow noopener"
       data-lm-link-title={link.title}
       data-lm-link-kind={link.kind}
-      className={`${card} group`}
+      className={`${barCls} group`}
     >
       {inner}
       <Icon
@@ -226,7 +504,20 @@ export function LinkCard({
   );
 }
 
-/** Bento tile (Mosaico). */
+/** One link in the vertical list (kept for backwards compatibility). */
+export function LinkCard({
+  link,
+  page,
+  theme,
+}: {
+  link: PublicLink;
+  page: PublicPage;
+  theme: ResolvedTheme;
+}) {
+  return <BentoLinkCard link={link} page={page} theme={theme} />;
+}
+
+/** Bento tile (kept for backwards compatibility). */
 export function LinkTile({
   link,
   page,
@@ -236,41 +527,7 @@ export function LinkTile({
   page: PublicPage;
   theme: ResolvedTheme;
 }) {
-  const tile =
-    "flex h-(--card-tile) flex-col justify-between rounded-(--r) border border-(--card-border) bg-(--card-bg) p-(--card-px) text-(--card-ink) no-underline " +
-    "transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99]";
-  const inner = (
-    <>
-      <span className={iconBox}>
-        <LinkIcon link={link} theme={theme} />
-      </span>
-      <CardText link={link} />
-    </>
-  );
-  if (link.kind === "pix") {
-    return (
-      <PixCopyButton
-        pixKey={link.url}
-        linkId={link.id}
-        pageId={page.id}
-        slug={page.slug}
-        className={`${tile} w-full cursor-pointer items-start`}
-      >
-        {inner}
-      </PixCopyButton>
-    );
-  }
-  return (
-    <a
-      href={linkHref(link)}
-      rel="nofollow noopener"
-      data-lm-link-title={link.title}
-      data-lm-link-kind={link.kind}
-      className={tile}
-    >
-      {inner}
-    </a>
-  );
+  return <BentoLinkCard link={{ ...link, size: "1x1" }} page={page} theme={theme} />;
 }
 
 export function SectionHeader({ count }: { count: number }) {

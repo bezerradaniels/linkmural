@@ -53,18 +53,14 @@ test.describe("Onboarding end-to-end", () => {
     let userId: string | null = null;
 
     try {
-      // 1. Landing: pick and reserve a free slug
+      // 1. Landing → /cadastro
       await page.goto("/");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-
-      const slugInput = page.getByLabel("Escolha seu endereço");
-      await slugInput.fill(slug);
-      await expect(page.getByText("Endereço livre!")).toBeVisible({
-        timeout: 10_000,
-      });
-
-      await page.getByRole("button", { name: "Criar minha página" }).click();
-      await expect(page).toHaveURL(/\/onboarding\/2$/);
+      await page
+        .getByRole("link", { name: "Criar minha página grátis" })
+        .first()
+        .click();
+      await expect(page).toHaveURL(/\/cadastro$/);
 
       // 2. Account: create temporary user via Supabase Admin API and sign in with magic link token
       const { data: created, error: createErr } =
@@ -88,6 +84,14 @@ test.describe("Onboarding end-to-end", () => {
       await page.goto(
         `/auth/callback?token_hash=${encodeURIComponent(tokenHash!)}&type=magiclink&next=${encodeURIComponent("/onboarding/iniciar")}`,
       );
+
+      // 2b. Step 1 · Escolha do endereço (já autenticado)
+      await expect(page).toHaveURL(/\/onboarding\/1$/, { timeout: 15_000 });
+      await page.getByLabel("Seu endereço").fill(slug);
+      await expect(page.getByText("Endereço livre!")).toBeVisible({
+        timeout: 10_000,
+      });
+      await page.getByRole("button", { name: "Continuar" }).click();
 
       // 3. Step 3 · Estilo
       await expect(page).toHaveURL(/\/onboarding\/3$/, { timeout: 15_000 });

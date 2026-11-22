@@ -18,7 +18,7 @@ export function PublicPageView({
   now?: Date;
   preview?: boolean;
 }) {
-  const theme = resolveTheme(page.style, page.theme, page.plan);
+  const theme = resolveTheme(page.style, page.theme, page.plan, page.template);
   const model = buildModel(page, now);
   const Template = TEMPLATES[page.template] ?? Balcao;
   return (

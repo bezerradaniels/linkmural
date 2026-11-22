@@ -68,29 +68,79 @@ describe("resolveTheme and plans", () => {
     palette: "custom",
     accent: "#FF0000",
     background: "#000000",
+    bgType: "doodles",
+    bgDoodle: "waves",
+    cardEffect: "glass",
     cardSize: "large",
     cardFill: "outline",
     radius: 8,
     iconColor: "style",
   };
 
-  it("ignores Pro+ fields on Free but keeps the icon color", () => {
+  it("keeps font, custom colors and gradient on Free, while ignoring Pro+ effects and card controls", () => {
     const t = resolveTheme("calm", paidTheme, "free");
-    expect(t.font).toBe("Plus Jakarta Sans");
-    expect(t.palette).toEqual(STYLES.calm.palette);
+    expect(t.font).toBe("Inter");
+    expect(t.palette.bg).toBe("#000000");
+    expect(t.bgType).toBe("solid"); // doodles downgraded to solid on Free
+    expect(t.cardEffect).toBe("none");
     expect(t.cardSize).toBe("regular");
     expect(t.cardFill).toBe("solid");
     expect(t.radius).toBe(20);
     expect(t.iconColor).toBe("style");
+    expect(t.allowBentoResize).toBe(false);
+
+    const grad = resolveTheme(
+      "calm",
+      { bgType: "gradient", bgGradient: "sunset" },
+      "free",
+    );
+    expect(grad.bgType).toBe("gradient");
+    expect(grad.bgGradient).toBe("sunset");
   });
 
-  it("applies Pro+ fields on paid plans", () => {
+  it("applies all Pro+ fields on paid plans", () => {
     const t = resolveTheme("calm", paidTheme, "pro");
     expect(t.font).toBe("Inter");
     expect(t.palette.bg).toBe("#000000");
+    expect(t.bgType).toBe("doodles");
+    expect(t.bgDoodle).toBe("waves");
+    expect(t.cardEffect).toBe("glass");
     expect(t.cardSize).toBe("large");
     expect(t.cardFill).toBe("outline");
     expect(t.vars["--r"]).toBe("8px");
+    expect(t.allowBentoResize).toBe(true);
+  });
+
+  it("applies template-specific header and card defaults when not overridden", () => {
+    const mosaico = resolveTheme("calm", {}, "pro", "mosaico");
+    expect(mosaico.coverHeight).toBe("tall");
+    expect(mosaico.coverStyle).toBe("fade");
+    expect(mosaico.logoShape).toBe("circle");
+    expect(mosaico.headerAlign).toBe("center");
+    expect(mosaico.radius).toBe(22);
+
+    const cartao = resolveTheme("calm", {}, "pro", "cartao");
+    expect(cartao.coverHeight).toBe("compact");
+    expect(cartao.logoShape).toBe("rounded");
+    expect(cartao.headerAlign).toBe("left");
+    expect(cartao.cardSize).toBe("compact");
+    expect(cartao.radius).toBe(16);
+
+    const overridden = resolveTheme(
+      "calm",
+      {
+        headerAlign: "center",
+        logoShape: "square",
+        coverHeight: "tall",
+        coverStyle: "tint",
+      },
+      "free",
+      "balcao",
+    );
+    expect(overridden.headerAlign).toBe("center");
+    expect(overridden.logoShape).toBe("square");
+    expect(overridden.coverHeight).toBe("tall");
+    expect(overridden.coverStyle).toBe("tint");
   });
 
   it("falls back to Classic for an unknown style", () => {

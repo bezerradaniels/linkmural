@@ -34,11 +34,12 @@ export default async function OnboardingStartPage() {
     redirect(`/onboarding/${step}`);
   }
 
-  // 2. Otherwise, check the 30-minute hold cookie in slug_holds.
+  // 2. Otherwise, check if there is a legacy 30-minute hold cookie in slug_holds.
+  // In the signup-first flow, new users go straight to /onboarding/1 to pick their slug.
   const cookieStore = await cookies();
   const hold = parseHoldCookie(cookieStore.get(SLUG_HOLD_COOKIE)?.value);
   if (!hold) {
-    redirect("/?aviso=escolha_endereco");
+    redirect("/onboarding/1");
   }
 
   const admin = createAdminClient();
@@ -51,7 +52,7 @@ export default async function OnboardingStartPage() {
     .maybeSingle();
 
   if (!holdRow) {
-    redirect(`/?aviso=reserva_expirada&slug=${encodeURIComponent(hold.slug)}`);
+    redirect(`/onboarding/1?slug=${encodeURIComponent(hold.slug)}`);
   }
 
   // 3. Create the page with the reserved slug (onboarding_step = 3).

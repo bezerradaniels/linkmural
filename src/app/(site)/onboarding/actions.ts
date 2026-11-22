@@ -2,6 +2,7 @@
 
 import { after } from "next/server";
 import { revalidateTag, updateTag } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
@@ -11,16 +12,111 @@ import { friendlyDbError } from "@/lib/onboarding";
 import { recordOnboardingEvent } from "@/lib/onboarding-events";
 import { pageTag } from "@/lib/public-page";
 import { checkSafeUrl } from "@/lib/safe-browsing";
+import { finalizeSlug, isValidSlug } from "@/lib/slug";
 import {
   DEFAULT_STYLE,
   STYLE_KEYS,
   type StyleKey,
   type TemplateKey,
 } from "@/lib/styles";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export type StepActionState = {
   error?: string;
 };
+
+// ---------------------------------------------------------------------------
+// Step 1 · Escolha do endereço (usuário já autenticado)
+// ---------------------------------------------------------------------------
+
+export async function createPageWithSlugAction(
+  _prev: StepActionState,
+  formData: FormData,
+): Promise<StepActionState> {
+  const { supabase, userId } = await requireUser("/onboarding/1");
+
+  const { data: existingPage } = await supabase
+    .from("pages")
+    .select("id, published, onboarding_step")
+    .eq("owner_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingPage) {
+    if (existingPage.published || existingPage.onboarding_step >= 8) {
+      redirect("/app");
+    }
+    const step = Math.min(7, Math.max(3, existingPage.onboarding_step));
+    redirect(`/onboarding/${step}`);
+  }
+
+  const slug = finalizeSlug(String(formData.get("slug") ?? ""));
+  if (!isValidSlug(slug)) {
+    return {
+      error:
+        "Use de 3 a 30 letras minúsculas, números ou hífen (sem hífen duplo ou nas pontas).",
+    };
+  }
+
+  const admin = createAdminClient();
+  const nowIso = new Date().toISOString();
+  const [reservedRes, holdRes] = await Promise.all([
+    admin.from("reserved_slugs").select("slug").eq("slug", slug).maybeSingle(),
+    admin
+      .from("slug_holds")
+      .select("slug")
+      .eq("slug", slug)
+      .gt("expires_at", nowIso)
+      .maybeSingle(),
+  ]);
+
+  if (reservedRes.data) {
+    return { error: "Esse endereço é reservado. Use o nome do seu negócio." };
+  }
+  if (holdRes.data) {
+    return { error: "Esse endereço acabou de ser reservado. Escolha outro." };
+  }
+
+  const { data: created, error } = await supabase
+    .from("pages")
+    .insert({
+      owner_id: userId,
+      slug,
+      style: DEFAULT_STYLE,
+      template: "balcao",
+      onboarding_step: 3,
+      published: false,
+    })
+    .select("id, slug")
+    .single();
+
+  if (error || !created) {
+    if (error?.code === "23505") {
+      return { error: "Esse endereço já está em uso. Escolha outro." };
+    }
+    return { error: friendlyDbError(error?.message) };
+  }
+
+  const refSlug = (await cookies()).get("lm_ref")?.value;
+
+  recordOnboardingEvent({
+    event: "slug_escolhido",
+    userId,
+    pageId: created.id,
+    slug: created.slug,
+    metadata: refSlug ? { ref: refSlug } : {},
+  });
+  recordOnboardingEvent({
+    event: "conta_criada",
+    userId,
+    pageId: created.id,
+    slug: created.slug,
+    metadata: refSlug ? { ref: refSlug } : {},
+  });
+
+  redirect("/onboarding/3");
+}
 
 // ---------------------------------------------------------------------------
 // Step 3 · Estilo

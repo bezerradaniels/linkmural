@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { HeroShowcase } from "@/components/landing/HeroShowcase";
-import { SlugClaimForm } from "@/components/landing/SlugClaimForm";
-import { Badge, buttonClasses, Icon } from "@/components/ui";
+import { Alert, Badge, buttonClasses, Icon } from "@/components/ui";
 import type { IconName } from "@/components/ui/icons";
 import { PLANS, formatBrl, monthlyEquivalent } from "@/lib/plans";
 import { siteUrl } from "@/lib/redirect";
-import { finalizeSlug } from "@/lib/slug";
 import { isBillingEnabled } from "@/lib/stripe";
 import { STYLE_KEYS, STYLES } from "@/lib/styles";
 
@@ -144,14 +142,14 @@ const STEPS = [
   {
     num: "1",
     time: "30 segundos",
-    title: "Garanta seu endereço",
-    desc: "Digite linkmural.com/seunegocio acima e reserve o nome da sua empresa na hora.",
+    title: "Crie sua conta grátis",
+    desc: "Entre com Google ou e-mail em 1 toque — sem senha e sem cartão de crédito.",
   },
   {
     num: "2",
     time: "2 minutos",
-    title: "Escolha o visual e cole seus links",
-    desc: "Selecione entre 3 modelos e 8 estilos, coloque seu WhatsApp, horários, Pix e redes sociais.",
+    title: "Escolha seu endereço e visual",
+    desc: "Defina linkmural.com/seunegocio, escolha entre 3 modelos e 8 estilos e adicione seus links.",
   },
   {
     num: "3",
@@ -195,12 +193,10 @@ const FAQS = [
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ aviso?: string; slug?: string; ref?: string }>;
+  searchParams: Promise<{ aviso?: string }>;
 }) {
   const params = await searchParams;
   const notice = params.aviso ? NOTICES[params.aviso] : undefined;
-  const initialSlug = params.slug ? finalizeSlug(params.slug) : "";
-  const referralSlug = params.ref ? finalizeSlug(params.ref) : undefined;
   const billingEnabled = isBillingEnabled();
 
   const proYearlyMonthly = monthlyEquivalent(PLANS.pro.price.yearly);
@@ -250,12 +246,12 @@ export default async function Home({
             >
               Entrar
             </Link>
-            <a
-              href="#criar"
+            <Link
+              href="/cadastro"
               className={buttonClasses({ variant: "primary", size: "md" })}
             >
               Criar grátis
-            </a>
+            </Link>
           </div>
         </div>
       </header>
@@ -286,13 +282,36 @@ export default async function Home({
               </p>
             </div>
 
-            <div className="rounded-xl border border-ink/15 bg-surface p-5 shadow-md sm:p-6">
-              <SlugClaimForm
-                initialSlug={initialSlug}
-                referralSlug={referralSlug}
-                notice={notice}
-              />
-              <p className="mt-3 text-center text-caption text-ink-muted">
+            {notice && (
+              <Alert tone="warning" title={notice.title}>
+                {notice.message}
+              </Alert>
+            )}
+
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Link
+                  href="/cadastro"
+                  className={buttonClasses({
+                    variant: "primary",
+                    size: "lg",
+                    className: "w-full sm:w-auto sm:px-7",
+                  })}
+                >
+                  Criar minha página grátis
+                </Link>
+                <Link
+                  href="/planos"
+                  className={buttonClasses({
+                    variant: "outline",
+                    size: "lg",
+                    className: "w-full sm:w-auto",
+                  })}
+                >
+                  Ver planos
+                </Link>
+              </div>
+              <p className="text-caption text-ink-muted">
                 Leva menos de 3 minutos · Sem cartão de crédito · Edite quando
                 quiser
               </p>
@@ -510,12 +529,12 @@ export default async function Home({
                 No ar em 3 passos rápidos
               </h2>
             </div>
-            <a
-              href="#criar"
+            <Link
+              href="/cadastro"
               className="text-small font-semibold text-ink underline underline-offset-4 hover:opacity-80"
             >
-              Escolher meu endereço agora →
-            </a>
+              Criar minha conta grátis →
+            </Link>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -592,8 +611,8 @@ export default async function Home({
                   ))}
                 </ul>
               </div>
-              <a
-                href="#criar"
+              <Link
+                href="/cadastro"
                 className={buttonClasses({
                   variant: "primary",
                   size: "lg",
@@ -601,7 +620,7 @@ export default async function Home({
                 })}
               >
                 Criar minha página grátis
-              </a>
+              </Link>
             </div>
 
             {/* Pro card */}
@@ -710,12 +729,12 @@ export default async function Home({
               Comece grátis direto pelo celular.
             </p>
             <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
-              <a
-                href="#criar"
+              <Link
+                href="/cadastro"
                 className={buttonClasses({ variant: "primary", size: "lg" })}
               >
-                Garantir meu endereço grátis
-              </a>
+                Criar minha página grátis
+              </Link>
               <Link
                 href="/planos"
                 className="inline-flex min-h-12 items-center justify-center rounded-pill border border-paper/25 px-5 text-small font-semibold text-paper transition-colors hover:border-paper/60"
