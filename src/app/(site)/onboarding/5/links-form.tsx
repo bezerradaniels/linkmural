@@ -1,6 +1,12 @@
 "use client";
 
-import { useActionState, useCallback, useState, useTransition } from "react";
+import {
+  useActionState,
+  useCallback,
+  useMemo,
+  useState,
+  useTransition,
+} from "react";
 import { useFormStatus } from "react-dom";
 import { IconPicker } from "@/components/app/IconPicker";
 import { LinkIconGlyph } from "@/components/app/LinkIconGlyph";
@@ -272,8 +278,19 @@ export function LinksForm({
     setDrafts((prev) => prev.filter((item) => item.clientKey !== clientKey));
   }
 
-  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const serializedLinks = useMemo(() => {
     const filled = drafts.filter((d) => d.url.trim().length > 0);
+    return JSON.stringify(
+      filled.map((item) => ({
+        id: item.id,
+        title: item.title.trim() || "Link",
+        url: item.url.trim(),
+        icon: item.icon,
+      })),
+    );
+  }, [drafts]);
+
+  function handleFormSubmit(e: React.FormEvent<HTMLFormElement>) {
     let hasInvalid = false;
 
     const validated = drafts.map((item) => {
@@ -292,19 +309,6 @@ export function LinksForm({
       return;
     }
 
-    const payloadInput = e.currentTarget.elements.namedItem(
-      "links",
-    ) as HTMLInputElement | null;
-    if (payloadInput) {
-      payloadInput.value = JSON.stringify(
-        filled.map((item) => ({
-          id: item.id,
-          title: item.title.trim() || "Link",
-          url: item.url.trim(),
-          icon: item.icon,
-        })),
-      );
-    }
     clearDraft();
   }
 
@@ -353,7 +357,7 @@ export function LinksForm({
         className="flex flex-col gap-3"
         noValidate
       >
-        <input type="hidden" name="links" defaultValue="[]" />
+        <input type="hidden" name="links" value={serializedLinks} />
 
         {drafts.map((item) => (
           <div
