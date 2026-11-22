@@ -150,7 +150,7 @@ export function SlugStepForm({ initialSlug = "" }: { initialSlug?: string }) {
         id="onboarding-slug-form"
         action={(fd) => {
           trackGaEvent("endereco_reservado", {
-            origem: "landing",
+            origem: "onboarding",
             com_indicacao: "nao",
           });
           formAction(fd);

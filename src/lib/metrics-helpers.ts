@@ -31,6 +31,17 @@ export type ActionBreakdown = {
   qr: number;
 };
 
+export type MetricUtmEvent = {
+  utm_source: string | null;
+  occurred_at: string;
+};
+
+export type UtmSourceSummary = {
+  source: string;
+  views: number;
+  sharePct: number;
+};
+
 /**
  * Aggregates non-view click events within `[sinceMs, Infinity)` by link,
  * sorted by clicks descending (then link position ascending).
@@ -86,4 +97,31 @@ export function summarizeActionEvents(
     else if (ev.event === "qr") out.qr += 1;
   }
   return out;
+}
+
+/**
+ * Aggregates view events with `utm_source` within `[sinceMs, Infinity)`,
+ * sorted by views descending (then source alphabetically).
+ */
+export function summarizeUtmSources(
+  events: MetricUtmEvent[],
+  sinceMs: number,
+): UtmSourceSummary[] {
+  const counts = new Map<string, number>();
+  let total = 0;
+
+  for (const ev of events) {
+    if (!ev.utm_source) continue;
+    if (Date.parse(ev.occurred_at) < sinceMs) continue;
+    counts.set(ev.utm_source, (counts.get(ev.utm_source) ?? 0) + 1);
+    total += 1;
+  }
+
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([source, views]) => ({
+      source,
+      views,
+      sharePct: total > 0 ? Math.round((views / total) * 100) : 0,
+    }));
 }

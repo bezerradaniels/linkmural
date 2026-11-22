@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { UtmBuilderModal } from "@/components/app/UtmBuilderModal";
 import {
   Badge,
+  Button,
   buttonClasses,
   EmptyState,
   Icon,
@@ -12,8 +14,10 @@ import {
 import {
   summarizeActionEvents,
   summarizeLinkClicks,
+  summarizeUtmSources,
   type MetricClickEvent,
   type MetricLinkInput,
+  type MetricUtmEvent,
 } from "@/lib/metrics-helpers";
 import {
   calcDeltaPercent,
@@ -38,18 +42,23 @@ function shortDate(isoDay: string): string {
 export function MetricsView({
   daily,
   clickEvents,
+  utmEvents = [],
   links,
   referenceMs,
   plan,
+  pageUrl,
 }: {
   daily: DailyPoint[];
   clickEvents: MetricClickEvent[];
+  utmEvents?: MetricUtmEvent[];
   links: MetricLinkInput[];
   referenceMs: number;
   plan: Plan;
+  pageUrl?: string;
 }) {
   const isPro = plan !== "free";
   const [period, setPeriod] = useState<PeriodOption>("7");
+  const [utmOpen, setUtmOpen] = useState(false);
   const days = Number(period);
 
   const stats = useMemo(() => {
@@ -79,6 +88,8 @@ export function MetricsView({
     const actions = isPro
       ? summarizeActionEvents(clickEvents, curStart)
       : { whatsapp: 0, contact: 0, qr: 0 };
+    const utmSources = summarizeUtmSources(utmEvents, curStart);
+    const maxUtmViews = Math.max(1, ...utmSources.map((u) => u.views));
 
     return {
       series: currentSlice,
@@ -94,8 +105,10 @@ export function MetricsView({
       maxLinkClicks,
       hasAnyLinkClick: perLink.some((l) => l.clicks > 0),
       actions,
+      utmSources,
+      maxUtmViews,
     };
-  }, [daily, clickEvents, links, days, referenceMs, isPro]);
+  }, [daily, clickEvents, utmEvents, links, days, referenceMs, isPro]);
 
   const periodOptions: { value: PeriodOption; label: string }[] = isPro
     ? [
@@ -343,6 +356,84 @@ export function MetricsView({
             </div>
           )}
         </section>
+      )}
+
+      {/* UTM Origins (within Linkmural) */}
+      <section className="flex flex-col gap-4 rounded-xl border border-line bg-surface p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-title tracking-[-0.02em]">
+              Origem das visitas (UTM)
+            </h2>
+            <p className="text-caption text-ink-muted">
+              Canais com <code className="text-ink">utm_source</code> que mais
+              trouxeram visitas nos últimos {days} dias.
+            </p>
+          </div>
+          {pageUrl && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setUtmOpen(true)}
+            >
+              <Icon name="link" size={14} />
+              Gerar link com UTM
+            </Button>
+          )}
+        </div>
+
+        {stats.utmSources.length === 0 ? (
+          <EmptyState
+            icon="link"
+            title="Nenhuma visita com UTM ainda"
+            text="Gere links da sua página com utm_source (Instagram, WhatsApp, anúncios ou QR Code) para saber exatamente de onde vêm seus clientes."
+          />
+        ) : (
+          <div className="flex flex-col divide-y divide-line">
+            {stats.utmSources.map((item) => {
+              const barWidth = Math.max(
+                6,
+                Math.round((item.views / stats.maxUtmViews) * 100),
+              );
+              return (
+                <div
+                  key={item.source}
+                  className="flex flex-col gap-1.5 py-3 first:pt-0 last:pb-0"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="truncate text-small font-medium">
+                      {item.source}
+                    </span>
+                    <div className="flex shrink-0 items-baseline gap-2">
+                      <span className="text-small font-semibold tabular-nums">
+                        {formatMetricNumber(item.views)}
+                      </span>
+                      <span className="w-10 text-right text-caption text-ink-muted tabular-nums">
+                        {item.sharePct}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-paper">
+                    <div
+                      className="h-full rounded-full bg-ink transition-all"
+                      style={{ width: `${barWidth}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {pageUrl && (
+        <UtmBuilderModal
+          open={utmOpen}
+          onClose={() => setUtmOpen(false)}
+          mode="page"
+          initialUrl={pageUrl}
+        />
       )}
     </div>
   );

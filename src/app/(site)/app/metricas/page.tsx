@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { MetricsView } from "@/components/app/MetricsView";
-import type { MetricLinkInput } from "@/lib/metrics-helpers";
+import type { MetricLinkInput, MetricUtmEvent } from "@/lib/metrics-helpers";
 import { getPanelContext } from "@/lib/panel-data";
+import { siteUrl } from "@/lib/redirect";
 import { createClient } from "@/utils/supabase/server";
 
 export const metadata: Metadata = {
@@ -32,7 +33,7 @@ export default async function MetricasPage() {
   const windowDays = plan === "free" ? 60 : 180;
   const { nowMs, from, toToday, sinceIso } = getDateWindow(windowDays);
 
-  const [dailyRes, eventsRes] = await Promise.all([
+  const [dailyRes, eventsRes, utmRes] = await Promise.all([
     supabase.rpc("page_stats_daily", {
       p_page: page.id,
       p_from: from,
@@ -43,6 +44,13 @@ export default async function MetricasPage() {
       .select("link_id, event, occurred_at")
       .eq("page_id", page.id)
       .neq("event", "view")
+      .gte("occurred_at", sinceIso),
+    supabase
+      .from("click_events")
+      .select("utm_source, occurred_at")
+      .eq("page_id", page.id)
+      .eq("event", "view")
+      .not("utm_source", "is", null)
       .gte("occurred_at", sinceIso),
   ]);
 
@@ -56,6 +64,11 @@ export default async function MetricasPage() {
     link_id: e.link_id,
     event: e.event,
     occurred_at: e.occurred_at,
+  }));
+
+  const utmEvents: MetricUtmEvent[] = (utmRes.data ?? []).map((u) => ({
+    utm_source: u.utm_source,
+    occurred_at: u.occurred_at,
   }));
 
   const links: MetricLinkInput[] = (page.links ?? []).map((l) => ({
@@ -72,9 +85,11 @@ export default async function MetricasPage() {
     <MetricsView
       daily={daily}
       clickEvents={clickEvents}
+      utmEvents={utmEvents}
       links={links}
       referenceMs={nowMs}
       plan={plan}
+      pageUrl={`${siteUrl()}/${page.slug}`}
     />
   );
 }

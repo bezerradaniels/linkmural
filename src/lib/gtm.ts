@@ -12,7 +12,7 @@ export const GA_MEASUREMENT_ID = "G-JQDPFEB2Z9";
 export type GaEventMap = {
   // Aquisição e marketing
   endereco_reservado: {
-    origem: "landing";
+    origem: "landing" | "onboarding";
     com_indicacao: "sim" | "nao";
   };
   login_iniciado: {
@@ -40,14 +40,26 @@ export type GaEventMap = {
   link_adicionado: {
     icone: string;
     destaque: "sim" | "nao";
+    tipo_link?: string;
   };
   link_removido: {
+    tipo_link: string;
+  };
+  card_redimensionado: {
+    tamanho: "2x1" | "1x1" | "2x2";
     tipo_link: string;
   };
   aparencia_salva: {
     modelo: string;
     estilo: string;
     plano: string;
+  };
+  unsplash_foto_selecionada: {
+    orientacao: "landscape" | "portrait" | "squarish";
+  };
+  utm_gerado: {
+    modo: "link" | "page";
+    utm_source: string;
   };
   link_pagina_copiado: {
     origem: "onboarding" | "painel";

@@ -57,7 +57,7 @@ test.describe("Onboarding end-to-end", () => {
       await page.goto("/");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await page
-        .getByRole("link", { name: "Criar minha página grátis" })
+        .getByRole("link", { name: /Cadastre-se grátis|Criar minha página grátis/i })
         .first()
         .click();
       await expect(page).toHaveURL(/\/cadastro$/);

@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { publishDraftPageAction } from "@/app/(site)/app/actions/links";
+import { UtmBuilderModal } from "@/components/app/UtmBuilderModal";
 import {
   Badge,
   Button,
@@ -42,6 +43,7 @@ export function PageQuickBar({
   const toast = useToast();
   const router = useRouter();
   const [qrOpen, setQrOpen] = useState(false);
+  const [utmOpen, setUtmOpen] = useState(false);
   const [publishing, startPublish] = useTransition();
 
   async function handleCopy() {
@@ -91,6 +93,14 @@ export function PageQuickBar({
           <p className="truncate font-display text-body font-semibold text-ink">
             linkmural.com/{slug}
           </p>
+          <button
+            type="button"
+            onClick={() => setUtmOpen(true)}
+            className="inline-flex items-center gap-1.5 self-start cursor-pointer text-caption font-medium text-ink-muted underline underline-offset-2 hover:text-ink"
+          >
+            <Icon name="link" size={13} />
+            Gerar link com UTM (rastrear origem das visitas)
+          </button>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -176,6 +186,12 @@ export function PageQuickBar({
           </div>
         </div>
       </Dialog>
+      <UtmBuilderModal
+        open={utmOpen}
+        onClose={() => setUtmOpen(false)}
+        mode="page"
+        initialUrl={pageUrl}
+      />
     </>
   );
 }

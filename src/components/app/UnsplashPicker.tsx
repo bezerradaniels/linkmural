@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { Button, Dialog, Icon, Input, Spinner } from "@/components/ui";
+import { trackGaEvent } from "@/lib/gtm";
 import {
   CURATED_UNSPLASH_PHOTOS,
   UNSPLASH_HOME_URL,
@@ -62,6 +63,7 @@ export function UnsplashPicker({
         body: JSON.stringify({ downloadLocation: photo.downloadLocation }),
       }).catch(() => {});
     }
+    trackGaEvent("unsplash_foto_selecionada", { orientacao: orientation });
     onSelect(photo);
     onClose();
   }

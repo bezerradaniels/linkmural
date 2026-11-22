@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   summarizeActionEvents,
   summarizeLinkClicks,
+  summarizeUtmSources,
   type MetricClickEvent,
   type MetricLinkInput,
+  type MetricUtmEvent,
 } from "./metrics-helpers";
 
 const LINKS: MetricLinkInput[] = [
@@ -76,5 +78,27 @@ describe("summarizeActionEvents", () => {
       contact: 1,
       qr: 1,
     });
+  });
+});
+
+describe("summarizeUtmSources", () => {
+  const UTM_EVENTS: MetricUtmEvent[] = [
+    { utm_source: "instagram", occurred_at: new Date(BASE - DAY).toISOString() },
+    { utm_source: "instagram", occurred_at: new Date(BASE - 2 * DAY).toISOString() },
+    { utm_source: "instagram", occurred_at: new Date(BASE - 3 * DAY).toISOString() },
+    { utm_source: "whatsapp", occurred_at: new Date(BASE - DAY).toISOString() },
+    { utm_source: null, occurred_at: new Date(BASE - DAY).toISOString() },
+    { utm_source: "tiktok", occurred_at: new Date(BASE - 10 * DAY).toISOString() },
+  ];
+
+  it("groups and sorts utm_source counts descending within the window", () => {
+    expect(summarizeUtmSources(UTM_EVENTS, BASE - 7 * DAY)).toEqual([
+      { source: "instagram", views: 3, sharePct: 75 },
+      { source: "whatsapp", views: 1, sharePct: 25 },
+    ]);
+  });
+
+  it("returns empty list when there are no UTM events", () => {
+    expect(summarizeUtmSources([], BASE - 7 * DAY)).toEqual([]);
   });
 });

@@ -31,6 +31,7 @@ import { IconPicker } from "@/components/app/IconPicker";
 import { LinkIconGlyph } from "@/components/app/LinkIconGlyph";
 import { PhonePreview } from "@/components/app/PhonePreview";
 import { UnsplashPicker } from "@/components/app/UnsplashPicker";
+import { UtmBuilderModal } from "@/components/app/UtmBuilderModal";
 import {
   Alert,
   Badge,
@@ -58,6 +59,7 @@ import {
   type GalleryImage,
 } from "@/lib/rich-blocks";
 import type { LinkSize } from "@/lib/styles";
+import { hasUtmParams } from "@/lib/utm";
 import { createClient } from "@/utils/supabase/client";
 import type { Tables } from "@/utils/supabase/types";
 
@@ -350,6 +352,7 @@ export function LinksEditor({
   const [modalOpen, setModalOpen] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [unsplashOpen, setUnsplashOpen] = useState(false);
+  const [utmModalOpen, setUtmModalOpen] = useState(false);
   const [draft, setDraft] = useState<ModalDraft>({
     blockKind: "link",
     title: "",
@@ -687,6 +690,7 @@ export function LinksEditor({
         trackGaEvent("link_adicionado", {
           icone: draft.icon,
           destaque: draft.featured ? "sim" : "nao",
+          tipo_link: draft.blockKind,
         });
         setModalOpen(false);
         toast(
@@ -840,6 +844,10 @@ export function LinksEditor({
     startSaving(async () => {
       const res = await updateLinkAction({ id: link.id, size: nextSize });
       if (res.ok) {
+        trackGaEvent("card_redimensionado", {
+          tamanho: nextSize,
+          tipo_link: link.kind,
+        });
         toast("Tamanho atualizado");
       } else {
         setLinks((prev) =>
@@ -1238,30 +1246,51 @@ export function LinksEditor({
 
           {/* URL Field (for Link, YouTube, Service) */}
           {draft.blockKind !== "gallery" && (
-            <Input
-              label={
-                draft.blockKind === "youtube"
-                  ? "Link do vídeo no YouTube"
-                  : draft.blockKind === "service"
-                    ? "Link de ação (WhatsApp, agendamento ou checkout)"
-                    : "Endereço (URL ou chave Pix)"
-              }
-              type="url"
-              inputMode="url"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder={
-                draft.blockKind === "youtube"
-                  ? "https://www.youtube.com/watch?v=..."
-                  : draft.blockKind === "service"
-                    ? "https://wa.me/5511999999999"
-                    : "https://instagram.com/seunegocio"
-              }
-              value={draft.url}
-              onChange={(e) => handleUrlChange(e.target.value)}
-              required
-            />
+            <div className="flex flex-col gap-1.5">
+              <Input
+                label={
+                  draft.blockKind === "youtube"
+                    ? "Link do vídeo no YouTube"
+                    : draft.blockKind === "service"
+                      ? "Link de ação (WhatsApp, agendamento ou checkout)"
+                      : "Endereço (URL ou chave Pix)"
+                }
+                type="url"
+                inputMode="url"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder={
+                  draft.blockKind === "youtube"
+                    ? "https://www.youtube.com/watch?v=..."
+                    : draft.blockKind === "service"
+                      ? "https://wa.me/5511999999999"
+                      : "https://instagram.com/seunegocio"
+                }
+                value={draft.url}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                required
+              />
+              {(draft.blockKind === "link" ||
+                draft.blockKind === "service") && (
+                <button
+                  type="button"
+                  onClick={() => setUtmModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 self-start cursor-pointer text-caption font-medium text-ink-muted underline underline-offset-2 hover:text-ink"
+                >
+                  <Icon
+                    name={hasUtmParams(draft.url) ? "check" : "link"}
+                    size={13}
+                    className={
+                      hasUtmParams(draft.url) ? "text-positive" : undefined
+                    }
+                  />
+                  {hasUtmParams(draft.url)
+                    ? "UTM configurado · Editar parâmetros UTM"
+                    : "Adicionar UTM (para Analytics e rastreamento)"}
+                </button>
+              )}
+            </div>
           )}
 
           <div className="flex items-end gap-2.5">
@@ -1521,6 +1550,32 @@ export function LinksEditor({
             newImageCaption: "",
             error: undefined,
           }));
+        }}
+      />
+
+      <UtmBuilderModal
+        open={utmModalOpen}
+        onClose={() => setUtmModalOpen(false)}
+        mode="link"
+        initialUrl={draft.url}
+        defaultContent={draft.title}
+        onApply={(nextUrl) => {
+          const detected = detectLink(nextUrl);
+          setDraft((prev) => ({
+            ...prev,
+            url: nextUrl,
+            icon:
+              prev.blockKind === "link" && detected ? detected.icon : prev.icon,
+            title:
+              prev.blockKind === "link" &&
+              detected &&
+              !prev.titleEdited &&
+              !prev.title.trim()
+                ? detected.title
+                : prev.title,
+            error: undefined,
+          }));
+          toast(hasUtmParams(nextUrl) ? "Link com UTM gerado" : "UTMs removidos");
         }}
       />
 
