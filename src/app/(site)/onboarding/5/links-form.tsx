@@ -13,6 +13,7 @@ import { saveLinksAction, type StepActionState } from "../actions";
 type DefaultSlot = {
   slotKey: "whatsapp" | "instagram" | "site";
   title: string;
+  ctaPlaceholder: string;
   icon: string;
   placeholder: string;
 };
@@ -20,19 +21,22 @@ type DefaultSlot = {
 const DEFAULT_SLOTS: DefaultSlot[] = [
   {
     slotKey: "whatsapp",
-    title: "WhatsApp",
+    title: "Chamar no WhatsApp",
+    ctaPlaceholder: "Ex.: Chamar no WhatsApp",
     icon: "si:whatsapp",
     placeholder: "https://wa.me/5511999999999",
   },
   {
     slotKey: "instagram",
     title: "Instagram",
+    ctaPlaceholder: "Ex.: Seguir no Instagram",
     icon: "si:instagram",
     placeholder: "https://instagram.com/seunegocio",
   },
   {
     slotKey: "site",
     title: "Site",
+    ctaPlaceholder: "Ex.: Acessar nosso site",
     icon: "lm:site",
     placeholder: "https://seusite.com.br",
   },
@@ -42,6 +46,7 @@ type LinkDraft = {
   clientKey: string;
   id?: string;
   title: string;
+  ctaPlaceholder: string;
   titleEdited: boolean;
   url: string;
   icon: string;
@@ -90,6 +95,7 @@ function buildInitialDrafts(
         clientKey: existing.id,
         id: existing.id,
         title: existing.title,
+        ctaPlaceholder: slot.ctaPlaceholder,
         titleEdited: true,
         url: existing.url,
         icon: existing.icon || slot.icon,
@@ -100,6 +106,7 @@ function buildInitialDrafts(
       drafts.push({
         clientKey: `default-${slot.slotKey}`,
         title: slot.title,
+        ctaPlaceholder: slot.ctaPlaceholder,
         titleEdited: false,
         url: "",
         icon: slot.icon,
@@ -116,6 +123,7 @@ function buildInitialDrafts(
       clientKey: link.id,
       id: link.id,
       title: link.title,
+      ctaPlaceholder: "Texto do botão (ex.: Agendar horário)",
       titleEdited: true,
       url: link.url,
       icon: link.icon || "lm:link",
@@ -188,6 +196,20 @@ export function LinksForm({
     restoreDraft,
   );
 
+  function updateTitle(clientKey: string, nextTitle: string) {
+    setDrafts((prev) =>
+      prev.map((item) =>
+        item.clientKey === clientKey
+          ? {
+              ...item,
+              title: nextTitle,
+              titleEdited: nextTitle.trim().length > 0,
+            }
+          : item,
+      ),
+    );
+  }
+
   function updateUrl(clientKey: string, nextUrl: string) {
     setDrafts((prev) =>
       prev.map((item) => {
@@ -222,7 +244,8 @@ export function LinksForm({
       ...prev,
       {
         clientKey: `extra-${Date.now()}`,
-        title: "Link",
+        title: "",
+        ctaPlaceholder: "Texto do botão (ex.: Ver cardápio, Agendar)",
         titleEdited: false,
         url: "",
         icon: "lm:link",
@@ -289,7 +312,7 @@ export function LinksForm({
     <OnboardingShell
       step={5}
       title="Adicione seus primeiros links"
-      subtitle="Cole os endereços abaixo. Reconhecemos o ícone automaticamente."
+      subtitle="Defina o texto do botão que aparece na página e cole o endereço."
       backHref="/onboarding/4"
       slug={slug}
       footer={<SubmitButton onSkip={handleSkip} skipping={skipping} />}
@@ -319,31 +342,29 @@ export function LinksForm({
         <input type="hidden" name="links" defaultValue="[]" />
 
         {drafts.map((item) => (
-          <div key={item.clientKey} className="flex flex-col gap-1.5">
+          <div
+            key={item.clientKey}
+            className="flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-3.5"
+          >
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                aria-label={`Trocar ícone de ${item.title}`}
-                title={item.title}
+                aria-label={`Trocar ícone de ${item.title || "link"}`}
+                title="Trocar ícone"
                 onClick={() => setPickerTargetKey(item.clientKey)}
-                className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-line-strong bg-surface text-ink transition-colors hover:border-ink"
+                className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border border-line-strong bg-paper text-ink transition-colors hover:border-ink"
               >
                 <LinkIconGlyph iconRef={item.icon} size={20} />
               </button>
 
               <input
-                type="url"
-                inputMode="url"
-                aria-label={item.title}
-                aria-invalid={item.error ? true : undefined}
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder={item.placeholder}
-                value={item.url}
-                onChange={(e) => updateUrl(item.clientKey, e.target.value)}
-                onBlur={() => validateUrl(item.clientKey)}
-                className="h-11 min-w-0 flex-1 rounded-md border border-line-strong bg-surface px-3.5 text-[15px] text-ink transition-[border-color,box-shadow] duration-(--duration-fast) ease-out placeholder:text-ink-muted hover:border-ink-muted focus:border-ink focus:shadow-[0_0_0_3px_var(--lime)] focus:outline-none aria-invalid:border-negative"
+                type="text"
+                aria-label={`Texto do botão (${item.ctaPlaceholder})`}
+                placeholder={item.ctaPlaceholder}
+                maxLength={80}
+                value={item.title}
+                onChange={(e) => updateTitle(item.clientKey, e.target.value)}
+                className="h-11 min-w-0 flex-1 rounded-md border border-line-strong bg-surface px-3.5 text-[15px] font-semibold text-ink transition-[border-color,box-shadow] duration-(--duration-fast) ease-out placeholder:font-normal placeholder:text-ink-muted hover:border-ink-muted focus:border-ink focus:shadow-[0_0_0_3px_var(--lime)] focus:outline-none"
               />
 
               {!item.isDefault && (
@@ -352,7 +373,7 @@ export function LinksForm({
                   variant="ghost"
                   size="md"
                   iconOnly
-                  aria-label={`Remover ${item.title}`}
+                  aria-label={`Remover ${item.title || "link"}`}
                   onClick={() => removeDraft(item.clientKey)}
                 >
                   <Icon name="close" size={16} />
@@ -360,8 +381,23 @@ export function LinksForm({
               )}
             </div>
 
+            <input
+              type="url"
+              inputMode="url"
+              aria-label={`Endereço de ${item.title || "link"}`}
+              aria-invalid={item.error ? true : undefined}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={item.placeholder}
+              value={item.url}
+              onChange={(e) => updateUrl(item.clientKey, e.target.value)}
+              onBlur={() => validateUrl(item.clientKey)}
+              className="h-10 w-full rounded-md border border-line bg-paper/70 px-3.5 text-[14px] text-ink transition-[border-color,box-shadow] duration-(--duration-fast) ease-out placeholder:text-ink-muted hover:border-ink-muted focus:border-ink focus:bg-surface focus:shadow-[0_0_0_3px_var(--lime)] focus:outline-none aria-invalid:border-negative"
+            />
+
             {item.error && (
-              <p className="flex items-center gap-1.5 pl-13 text-[12.5px] leading-[18px] text-negative">
+              <p className="flex items-center gap-1.5 text-[12.5px] leading-[18px] text-negative">
                 <Icon name="warning" size={14} />
                 {item.error}
               </p>
