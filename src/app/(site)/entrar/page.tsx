@@ -27,8 +27,12 @@ export default async function EntrarPage({
   const next = safeNext(params.next);
 
   const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
-  if (data?.claims?.sub) redirect(next);
+  // Verify the session against Auth server (not just local JWT claims) so a
+  // deleted or revoked account never gets stuck redirecting away from /entrar.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) redirect(next);
 
   const error = params.erro ? ERRORS[params.erro] : undefined;
   // Coming from "Assinar o Pro" on the price page.
