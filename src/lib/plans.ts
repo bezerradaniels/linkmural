@@ -57,9 +57,13 @@ export const PLANS: Record<Plan, PlanInfo> = {
     businessFeatures: false,
   },
   business: {
-    label: "Negócios",
-    onSale: false,
-    price: { monthly: 4900, yearly: 49000 },
+    label: "Studio",
+    onSale: true,
+    // 50% off the regular price (R$ 39,80 and R$ 298,00) for 12 months:
+    // 3980 × 0,5 = 1990 and 29800 × 0,5 = 14900.
+    price: { monthly: 1990, yearly: 14900 },
+    listPrice: { monthly: 3980, yearly: 29800 },
+    promo: { percentOff: 50, months: 12 },
     maxPages: 3,
     maxLinks: null,
     customTheme: true,

@@ -8,11 +8,12 @@ import {
 } from "./plans";
 
 describe("plans", () => {
-  it("sells only Grátis and Pro for now", () => {
-    expect(SALE_PLANS).toEqual(["free", "pro"]);
+  it("sells Grátis, Pro and Studio", () => {
+    expect(SALE_PLANS).toEqual(["free", "pro", "business"]);
+    expect(PLANS.business.label).toBe("Studio");
   });
 
-  it("Pro launch price is exactly 50% off the regular price", () => {
+  it("Pro and Studio launch prices are exactly 50% off the regular price", () => {
     const { price, listPrice, promo } = PLANS.pro;
     expect(promo).toEqual({ percentOff: 50, months: 12 });
     expect(listPrice).toEqual({ monthly: 998, yearly: 6000 });
@@ -23,6 +24,11 @@ describe("plans", () => {
       Math.round((listPrice!.yearly * (100 - promo!.percentOff)) / 100),
     ).toBe(price.yearly);
     expect(price).toEqual({ monthly: 499, yearly: 3000 });
+
+    const studio = PLANS.business;
+    expect(studio.promo).toEqual({ percentOff: 50, months: 12 });
+    expect(studio.listPrice).toEqual({ monthly: 3980, yearly: 29800 });
+    expect(studio.price).toEqual({ monthly: 1990, yearly: 14900 });
   });
 
   it("the price after the promotion is never more than double", () => {

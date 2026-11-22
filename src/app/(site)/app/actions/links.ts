@@ -9,8 +9,14 @@ import { detectLink, linkUrlSchema } from "@/lib/link-detect";
 import { friendlyDbError } from "@/lib/onboarding";
 import { pageActionsSchema } from "@/lib/panel-helpers";
 import { PLANS, planInfo } from "@/lib/plans";
+import {
+  extractYoutubeId,
+  galleryDataSchema,
+  isRichBlockKind,
+  serviceDataSchema,
+} from "@/lib/rich-blocks";
 import { checkSafeUrl } from "@/lib/safe-browsing";
-import type { Tables, TablesUpdate } from "@/utils/supabase/types";
+import type { Json, Tables, TablesUpdate } from "@/utils/supabase/types";
 import { refreshPublicPage } from "./revalidate";
 
 export type ActionResult<T = undefined> =
@@ -36,17 +42,20 @@ async function getOwnedPage(
 }
 
 const linkSizeSchema = z.enum(["2x1", "1x1", "2x2"]);
+const blockKindSchema = z.enum(["link", "gallery", "youtube", "service"]);
 
 const linkInputSchema = z.object({
+  blockKind: blockKindSchema.optional().default("link"),
   title: z.string().trim().min(1, "Digite um título.").max(80),
   subtitle: z.string().trim().max(120).optional().default(""),
-  url: linkUrlSchema,
+  url: z.string().trim().max(2048).optional().default(""),
   icon: z
     .string()
     .regex(/^(si|lm):[a-z0-9-]+$/)
     .optional(),
   featured: z.boolean().optional().default(false),
   size: linkSizeSchema.optional().default("2x1"),
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function createLinkAction(
@@ -64,14 +73,109 @@ export async function createLinkAction(
   const page = await getOwnedPage(supabase, userId);
   if (!page) return { ok: false, error: "Página não encontrada." };
 
-  const detected = detectLink(parsed.data.url);
-  if (!detected) {
-    return { ok: false, error: "Esse endereço não parece válido." };
+  const { data: prof } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", userId)
+    .maybeSingle();
+  const planLimits = planInfo(prof?.plan);
+  const canResize = planLimits.customTheme;
+  const blockKind = parsed.data.blockKind;
+
+  if (isRichBlockKind(blockKind) && !planLimits.businessFeatures) {
+    return {
+      ok: false,
+      error:
+        "Galeria, Vídeo do YouTube e Card de Serviços são exclusivos do plano Studio.",
+    };
   }
 
-  const safety = await checkSafeUrl(detected.url);
-  if (!safety.safe) {
-    return { ok: false, error: safety.reason };
+  let resolvedKind: Tables<"links">["kind"] = "link";
+  let resolvedUrl = parsed.data.url;
+  let resolvedIcon = parsed.data.icon ?? "lm:link";
+  let resolvedSize = canResize ? parsed.data.size : "2x1";
+  let resolvedData: Json = {};
+
+  if (blockKind === "gallery") {
+    const gParsed = galleryDataSchema.safeParse(parsed.data.data);
+    if (!gParsed.success) {
+      return {
+        ok: false,
+        error:
+          gParsed.error.issues[0]?.message ??
+          "Adicione pelo menos 1 foto na galeria.",
+      };
+    }
+    resolvedKind = "gallery";
+    resolvedUrl = "https://linkmural.com/#galeria";
+    resolvedIcon = parsed.data.icon ?? "lm:grid";
+    resolvedSize = parsed.data.size === "1x1" ? "1x1" : "2x2";
+    resolvedData = gParsed.data as unknown as Json;
+  } else if (blockKind === "youtube") {
+    const videoId = extractYoutubeId(parsed.data.url);
+    if (!videoId) {
+      return {
+        ok: false,
+        error:
+          "Cole um endereço válido do YouTube (ex.: youtube.com/watch?v=... ou youtu.be/...).",
+      };
+    }
+    resolvedKind = "youtube";
+    resolvedUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    resolvedIcon = "si:youtube";
+    resolvedSize = parsed.data.size === "1x1" ? "1x1" : "2x2";
+    resolvedData = { videoId };
+  } else if (blockKind === "service") {
+    const sParsed = serviceDataSchema.safeParse(parsed.data.data ?? {});
+    if (!sParsed.success) {
+      return {
+        ok: false,
+        error:
+          sParsed.error.issues[0]?.message ??
+          "Confira os dados do card de serviço.",
+      };
+    }
+    const urlCheck = linkUrlSchema.safeParse(parsed.data.url);
+    if (!urlCheck.success) {
+      return {
+        ok: false,
+        error:
+          urlCheck.error.issues[0]?.message ??
+          "Informe o link de contato ou agendamento do serviço.",
+      };
+    }
+    const detected = detectLink(parsed.data.url);
+    if (!detected) {
+      return { ok: false, error: "Esse endereço não parece válido." };
+    }
+    const safety = await checkSafeUrl(detected.url);
+    if (!safety.safe) {
+      return { ok: false, error: safety.reason };
+    }
+    resolvedKind = "service";
+    resolvedUrl = detected.url;
+    resolvedIcon = parsed.data.icon ?? "lm:star";
+    resolvedSize = parsed.data.size === "1x1" ? "1x1" : "2x2";
+    resolvedData = sParsed.data as unknown as Json;
+  } else {
+    const urlCheck = linkUrlSchema.safeParse(parsed.data.url);
+    if (!urlCheck.success) {
+      return {
+        ok: false,
+        error: urlCheck.error.issues[0]?.message ?? "Endereço inválido.",
+      };
+    }
+    const detected = detectLink(parsed.data.url);
+    if (!detected) {
+      return { ok: false, error: "Esse endereço não parece válido." };
+    }
+    const safety = await checkSafeUrl(detected.url);
+    if (!safety.safe) {
+      return { ok: false, error: safety.reason };
+    }
+    resolvedKind = detected.kind;
+    resolvedUrl = detected.url;
+    resolvedIcon = parsed.data.icon ?? detected.icon;
   }
 
   const { data: last } = await supabase
@@ -83,8 +187,10 @@ export async function createLinkAction(
     .maybeSingle();
 
   const nextPosition = (last?.position ?? -1) + 1;
+  const allowFeatured =
+    parsed.data.featured && !isRichBlockKind(resolvedKind);
 
-  if (parsed.data.featured) {
+  if (allowFeatured) {
     await supabase
       .from("links")
       .update({ featured: false })
@@ -92,24 +198,18 @@ export async function createLinkAction(
       .eq("featured", true);
   }
 
-  const { data: prof } = await supabase
-    .from("profiles")
-    .select("plan")
-    .eq("id", userId)
-    .maybeSingle();
-  const canResize = planInfo(prof?.plan).customTheme;
-
   const { data: created, error } = await supabase
     .from("links")
     .insert({
       page_id: page.id,
-      kind: detected.kind,
+      kind: resolvedKind,
       title: parsed.data.title,
       subtitle: parsed.data.subtitle || null,
-      url: detected.url,
-      icon: parsed.data.icon ?? detected.icon,
-      featured: parsed.data.featured,
-      size: canResize ? parsed.data.size : "2x1",
+      url: resolvedUrl,
+      icon: resolvedIcon,
+      featured: allowFeatured,
+      size: resolvedSize,
+      data: resolvedData,
       position: nextPosition,
       active: true,
     })
@@ -151,9 +251,10 @@ export async function createLinkAction(
 
 const updateLinkSchema = z.object({
   id: z.string().uuid(),
+  blockKind: blockKindSchema.optional(),
   title: z.string().trim().min(1, "Digite um título.").max(80).optional(),
   subtitle: z.string().trim().max(120).nullable().optional(),
-  url: linkUrlSchema.optional(),
+  url: z.string().trim().max(2048).optional(),
   icon: z
     .string()
     .regex(/^(si|lm):[a-z0-9-]+$/)
@@ -161,6 +262,7 @@ const updateLinkSchema = z.object({
   active: z.boolean().optional(),
   featured: z.boolean().optional(),
   size: linkSizeSchema.optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function updateLinkAction(
@@ -183,7 +285,64 @@ export async function updateLinkAction(
   if (parsed.data.subtitle !== undefined) {
     patch.subtitle = parsed.data.subtitle?.trim() || null;
   }
-  if (parsed.data.url !== undefined) {
+
+  const blockKind = parsed.data.blockKind;
+  if (blockKind && isRichBlockKind(blockKind)) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!planInfo(prof?.plan).businessFeatures) {
+      return {
+        ok: false,
+        error: "Este bloco é exclusivo do plano Studio.",
+      };
+    }
+
+    if (blockKind === "gallery" && parsed.data.data !== undefined) {
+      const gParsed = galleryDataSchema.safeParse(parsed.data.data);
+      if (!gParsed.success) {
+        return {
+          ok: false,
+          error:
+            gParsed.error.issues[0]?.message ??
+            "Adicione pelo menos 1 foto na galeria.",
+        };
+      }
+      patch.kind = "gallery";
+      patch.data = gParsed.data as unknown as Json;
+    } else if (blockKind === "youtube" && parsed.data.url !== undefined) {
+      const videoId = extractYoutubeId(parsed.data.url);
+      if (!videoId) {
+        return { ok: false, error: "Cole um link válido do YouTube." };
+      }
+      patch.kind = "youtube";
+      patch.url = `https://www.youtube.com/watch?v=${videoId}`;
+      patch.data = { videoId };
+    } else if (blockKind === "service") {
+      if (parsed.data.data !== undefined) {
+        const sParsed = serviceDataSchema.safeParse(parsed.data.data);
+        if (!sParsed.success) {
+          return {
+            ok: false,
+            error:
+              sParsed.error.issues[0]?.message ??
+              "Confira os dados do serviço.",
+          };
+        }
+        patch.data = sParsed.data as unknown as Json;
+      }
+      if (parsed.data.url !== undefined) {
+        const detected = detectLink(parsed.data.url);
+        if (!detected) return { ok: false, error: "Endereço inválido." };
+        const safety = await checkSafeUrl(detected.url);
+        if (!safety.safe) return { ok: false, error: safety.reason };
+        patch.url = detected.url;
+      }
+      patch.kind = "service";
+    }
+  } else if (parsed.data.url !== undefined) {
     const detected = detectLink(parsed.data.url);
     if (!detected) return { ok: false, error: "Endereço inválido." };
     const safety = await checkSafeUrl(detected.url);
@@ -261,13 +420,23 @@ export async function deleteLinkAction(
 }
 
 const restoreLinkSchema = z.object({
-  // Accepted for compatibility but ignored: the kind is re-derived from the URL.
   kind: z
-    .enum(["link", "whatsapp", "contact", "pix", "email", "phone", "map"])
+    .enum([
+      "link",
+      "whatsapp",
+      "contact",
+      "pix",
+      "email",
+      "phone",
+      "map",
+      "gallery",
+      "youtube",
+      "service",
+    ])
     .optional(),
   title: z.string().trim().min(1).max(80),
   subtitle: z.string().trim().max(120).nullable(),
-  url: linkUrlSchema,
+  url: z.string().trim().max(2048),
   icon: z
     .string()
     .regex(/^(si|lm):[a-z0-9-]+$/)
@@ -275,6 +444,8 @@ const restoreLinkSchema = z.object({
   featured: z.boolean(),
   position: z.number().int().min(0).max(1000),
   active: z.boolean(),
+  size: linkSizeSchema.optional(),
+  data: z.unknown().optional(),
 });
 
 /**
@@ -287,23 +458,38 @@ export async function restoreLinkAction(
   const parsed = restoreLinkSchema.safeParse(link);
   if (!parsed.success)
     return { ok: false, error: "Não foi possível desfazer." };
-  const detected = detectLink(parsed.data.url);
-  if (!detected) return { ok: false, error: "Não foi possível desfazer." };
 
   const { supabase, userId } = await requireUser("/app/pagina");
   const page = await getOwnedPage(supabase, userId);
   if (!page) return { ok: false, error: "Página não encontrada." };
 
+  const rawKind = parsed.data.kind;
+  let resolvedKind: Tables<"links">["kind"] = "link";
+  let resolvedUrl = parsed.data.url;
+  let resolvedIcon = parsed.data.icon ?? "lm:link";
+
+  if (isRichBlockKind(rawKind)) {
+    resolvedKind = rawKind;
+  } else {
+    const detected = detectLink(parsed.data.url);
+    if (!detected) return { ok: false, error: "Não foi possível desfazer." };
+    resolvedKind = detected.kind;
+    resolvedUrl = detected.url;
+    resolvedIcon = parsed.data.icon ?? detected.icon;
+  }
+
   const { data: restored, error } = await supabase
     .from("links")
     .insert({
       page_id: page.id,
-      kind: detected.kind,
+      kind: resolvedKind,
       title: parsed.data.title,
       subtitle: parsed.data.subtitle || null,
-      url: detected.url,
-      icon: parsed.data.icon ?? detected.icon,
+      url: resolvedUrl,
+      icon: resolvedIcon,
       featured: false,
+      size: parsed.data.size ?? (isRichBlockKind(resolvedKind) ? "2x2" : "2x1"),
+      data: (parsed.data.data ?? {}) as Json,
       position: parsed.data.position,
       active: parsed.data.active,
     })
@@ -316,7 +502,11 @@ export async function restoreLinkAction(
 
   // Restore the pin only after the link is back, so a failed insert never
   // leaves the page without its featured link.
-  if (parsed.data.featured && detected.kind !== "pix") {
+  if (
+    parsed.data.featured &&
+    resolvedKind !== "pix" &&
+    !isRichBlockKind(resolvedKind)
+  ) {
     await supabase
       .from("links")
       .update({ featured: false })

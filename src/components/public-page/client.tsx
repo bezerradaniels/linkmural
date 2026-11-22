@@ -374,6 +374,125 @@ export function PixCopyButton({
   );
 }
 
+/** Interactive photo carousel for the Studio plan Gallery block. */
+export function GalleryCarousel({
+  images,
+  title,
+  subtitle,
+  pageId,
+  linkId,
+  slug,
+  className = "",
+}: {
+  images: { url: string; caption?: string }[];
+  title: string;
+  subtitle?: string | null;
+  pageId: string;
+  linkId: string;
+  slug: string;
+  className?: string;
+}) {
+  const [index, setIndex] = useState(0);
+  const trackedRef = useRef(false);
+  const safeImages = images.length > 0 ? images : [];
+  const current = safeImages[index] ?? safeImages[0];
+
+  function recordInteraction() {
+    if (trackedRef.current) return;
+    trackedRef.current = true;
+    beacon({ pageId, event: "click", linkId });
+    trackGaEvent("link_publico_clicado", {
+      slug,
+      titulo_link: title,
+      tipo_link: "gallery",
+    });
+  }
+
+  function goTo(nextIdx: number) {
+    if (safeImages.length === 0) return;
+    recordInteraction();
+    setIndex((nextIdx + safeImages.length) % safeImages.length);
+  }
+
+  return (
+    <div className={className}>
+      <div className="flex items-center justify-between gap-2 px-4 pt-3.5 pb-2">
+        <div className="min-w-0 flex-1">
+          <p className="m-0 truncate text-(length:--card-title) leading-tight font-semibold">
+            {title}
+          </p>
+          {subtitle && (
+            <p className="m-0 truncate text-(length:--card-sub) text-(--card-muted)">
+              {subtitle}
+            </p>
+          )}
+        </div>
+        {safeImages.length > 1 && (
+          <span className="shrink-0 rounded-full bg-(--soft) px-2.5 py-0.5 text-[11px] font-semibold">
+            {index + 1}/{safeImages.length}
+          </span>
+        )}
+      </div>
+
+      {current ? (
+        <div className="relative mx-3 mb-3 overflow-hidden rounded-[calc(var(--r)-4px)] bg-(--soft)">
+          <div className="relative aspect-[16/10] w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element -- dynamic gallery photos */}
+            <img
+              src={current.url}
+              alt={current.caption || `${title} — foto ${index + 1}`}
+              className="size-full object-cover transition-opacity duration-200"
+            />
+            {current.caption && (
+              <div className=" inset-x-0 bottom-0 absolute bg-gradient-to-t from-black/75 via-black/35 to-transparent px-3.5 pt-6 pb-2.5 text-[12px] font-medium text-white">
+                {current.caption}
+              </div>
+            )}
+          </div>
+
+          {safeImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                aria-label="Foto anterior"
+                onClick={() => goTo(index - 1)}
+                className="absolute top-1/2 left-2.5 grid size-8 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-black/55 text-white backdrop-blur-xs transition-transform active:scale-95"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                aria-label="Próxima foto"
+                onClick={() => goTo(index + 1)}
+                className="absolute top-1/2 right-2.5 grid size-8 -translate-y-1/2 cursor-pointer place-items-center rounded-full border-0 bg-black/55 text-white backdrop-blur-xs transition-transform active:scale-95"
+              >
+                ›
+              </button>
+              <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
+                {safeImages.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    aria-label={`Ver foto ${i + 1}`}
+                    onClick={() => goTo(i)}
+                    className={`h-1.5 cursor-pointer rounded-full border-0 transition-all ${
+                      i === index ? "w-4 bg-white" : "w-1.5 bg-white/55"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="mx-3 mb-3 grid h-36 place-items-center rounded-lg bg-(--soft) text-[13px] text-(--card-muted)">
+          Galeria sem fotos
+        </div>
+      )}
+    </div>
+  );
+}
+
 const REASONS = [
   { value: "golpe", label: "Golpe ou fraude" },
   { value: "spam", label: "Spam" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   closestCenter,
@@ -49,16 +49,85 @@ import { reorderById } from "@/lib/panel-helpers";
 import { planInfo, type Plan } from "@/lib/plans";
 import { parsePageActions, type PageActions } from "@/lib/public-actions";
 import type { PublicPage } from "@/lib/public-page";
+import {
+  extractYoutubeId,
+  isRichBlockKind,
+  parseGalleryData,
+  parseServiceData,
+  type GalleryImage,
+} from "@/lib/rich-blocks";
 import type { LinkSize } from "@/lib/styles";
+import { createClient } from "@/utils/supabase/client";
 import type { Tables } from "@/utils/supabase/types";
 
 type LinkRow = Tables<"links">;
+type BlockModalType = "link" | "gallery" | "youtube" | "service";
 
 const SIZE_OPTIONS: { value: LinkSize; label: string }[] = [
   { value: "2x1", label: "2×1" },
   { value: "1x1", label: "1×1" },
   { value: "2x2", label: "2×2" },
 ];
+
+const MAX_GALLERY_PX = 1200;
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
+const ALLOWED_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+
+async function resizeGalleryImage(file: File): Promise<{
+  blob: Blob;
+  ext: "webp" | "jpg";
+  contentType: string;
+}> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(
+      1,
+      MAX_GALLERY_PX / Math.max(bitmap.width, bitmap.height),
+    );
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("canvas_unavailable");
+    ctx.drawImage(bitmap, 0, 0, width, height);
+
+    const webp = await new Promise<Blob | null>((r) =>
+      canvas.toBlob(r, "image/webp", 0.85),
+    );
+    if (webp && webp.type === "image/webp") {
+      return { blob: webp, ext: "webp", contentType: "image/webp" };
+    }
+    const jpg = await new Promise<Blob | null>((r) =>
+      canvas.toBlob(r, "image/jpeg", 0.88),
+    );
+    if (!jpg) throw new Error("encode_failed");
+    return { blob: jpg, ext: "jpg", contentType: "image/jpeg" };
+  } finally {
+    bitmap.close();
+  }
+}
+
+function blockTypeBadge(kind: LinkRow["kind"]): string | null {
+  if (kind === "gallery") return "Galeria · Studio";
+  if (kind === "youtube") return "YouTube · Studio";
+  if (kind === "service") return "Serviço · Studio";
+  return null;
+}
+
+function blockSummaryLine(link: LinkRow): string {
+  if (link.kind === "gallery") {
+    const g = parseGalleryData(link.data);
+    return `${g.images.length} ${g.images.length === 1 ? "foto no carrossel" : "fotos no carrossel"}`;
+  }
+  if (link.kind === "service") {
+    const s = parseServiceData(link.data);
+    const parts = [s.price, s.duration, s.ctaLabel].filter(Boolean);
+    return parts.length > 0 ? parts.join(" · ") : link.url;
+  }
+  return link.url;
+}
 
 function SortableLinkRow({
   link,
@@ -92,6 +161,9 @@ function SortableLinkRow({
     zIndex: isDragging ? 20 : undefined,
   };
 
+  const richBadge = blockTypeBadge(link.kind);
+  const isRich = isRichBlockKind(link.kind);
+
   return (
     <div
       ref={setNodeRef}
@@ -120,18 +192,21 @@ function SortableLinkRow({
         </span>
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <p className="truncate text-small font-semibold text-ink">
               {link.title}
             </p>
+            {richBadge && <Badge variant="pro">{richBadge}</Badge>}
             {link.featured && <Badge variant="pro">Destaque</Badge>}
           </div>
-          <p className="truncate text-caption text-ink-muted">{link.url}</p>
+          <p className="truncate text-caption text-ink-muted">
+            {blockSummaryLine(link)}
+          </p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-1.5 border-t border-line pt-2 sm:border-t-0 sm:pt-0">
-        {/* Bento Grid card size selector (2x1 bar for Free; 2x1 / 1x1 / 2x2 for Pro+) */}
+        {/* Bento Grid card size selector */}
         <div
           role="group"
           aria-label={`Tamanho do card ${link.title}`}
@@ -170,7 +245,7 @@ function SortableLinkRow({
           })}
         </div>
 
-        {link.kind !== "pix" && (
+        {link.kind !== "pix" && !isRich && (
           <Button
             type="button"
             variant={link.featured ? "secondary" : "ghost"}
@@ -224,22 +299,35 @@ function SortableLinkRow({
 
 type ModalDraft = {
   id?: string;
+  blockKind: BlockModalType;
   title: string;
   titleEdited: boolean;
   subtitle: string;
   url: string;
   icon: string;
   featured: boolean;
+  size: LinkSize;
+  // Gallery fields
+  images: GalleryImage[];
+  newImageUrl: string;
+  newImageCaption: string;
+  // Service fields
+  price: string;
+  duration: string;
+  ctaLabel: string;
+  badge: string;
   error?: string;
 };
 
 export function LinksEditor({
+  userId,
   initialLinks,
   previewBase,
   pageUrl,
   plan,
   downgraded = false,
 }: {
+  userId: string;
   initialLinks: LinkRow[];
   previewBase: PublicPage;
   pageUrl: string;
@@ -254,17 +342,28 @@ export function LinksEditor({
   );
   const [limitError, setLimitError] = useState<string | null>(null);
   const [saving, startSaving] = useTransition();
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const galleryFileRef = useRef<HTMLInputElement>(null);
 
   // Add/Edit dialog state
   const [modalOpen, setModalOpen] = useState(false);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [draft, setDraft] = useState<ModalDraft>({
+    blockKind: "link",
     title: "",
     titleEdited: false,
     subtitle: "",
     url: "",
     icon: "lm:link",
     featured: false,
+    size: "2x1",
+    images: [],
+    newImageUrl: "",
+    newImageCaption: "",
+    price: "",
+    duration: "",
+    ctaLabel: "Agendar no WhatsApp",
+    badge: "",
   });
 
   // Delete confirmation dialog state
@@ -280,33 +379,95 @@ export function LinksEditor({
     }),
   );
 
-  function openCreate() {
+  function openCreateBlock(kind: BlockModalType = "link") {
+    if (kind !== "link" && !limits.businessFeatures) {
+      toast({
+        message:
+          "Galeria, Vídeo do YouTube e Card de Serviços são do plano Studio.",
+        action: {
+          label: "Ver Studio",
+          onClick: () => {
+            window.location.href = "/app/plano";
+          },
+        },
+      });
+      return;
+    }
+
     setLimitError(null);
+    const defaultWa = previewBase.whatsapp
+      ? `https://wa.me/${previewBase.whatsapp.replace(/\D/g, "")}`
+      : "";
     setDraft({
-      title: "",
-      titleEdited: false,
+      blockKind: kind,
+      title:
+        kind === "gallery"
+          ? "Galeria de fotos"
+          : kind === "youtube"
+            ? "Vídeo em destaque"
+            : "",
+      titleEdited: kind === "gallery" || kind === "youtube",
       subtitle: "",
-      url: "",
-      icon: "lm:link",
+      url: kind === "service" ? defaultWa : "",
+      icon:
+        kind === "gallery"
+          ? "lm:grid"
+          : kind === "youtube"
+            ? "si:youtube"
+            : kind === "service"
+              ? "lm:star"
+              : "lm:link",
       featured: false,
+      size: kind === "link" ? "2x1" : "2x2",
+      images: [],
+      newImageUrl: "",
+      newImageCaption: "",
+      price: "",
+      duration: "",
+      ctaLabel: "Agendar no WhatsApp",
+      badge: "",
     });
     setModalOpen(true);
   }
 
   function openEdit(link: LinkRow) {
+    const blockKind: BlockModalType = isRichBlockKind(link.kind)
+      ? link.kind
+      : "link";
+    const gallery =
+      link.kind === "gallery" ? parseGalleryData(link.data) : { images: [] };
+    const svc =
+      link.kind === "service"
+        ? parseServiceData(link.data)
+        : { price: "", duration: "", ctaLabel: "Solicitar", badge: "" };
+
     setDraft({
       id: link.id,
+      blockKind,
       title: link.title,
       titleEdited: true,
       subtitle: link.subtitle ?? "",
-      url: link.url,
+      url: link.kind === "gallery" ? "" : link.url,
       icon: link.icon ?? "lm:link",
       featured: link.featured,
+      size:
+        link.size === "1x1" || link.size === "2x2" ? link.size : "2x1",
+      images: gallery.images,
+      newImageUrl: "",
+      newImageCaption: "",
+      price: svc.price ?? "",
+      duration: svc.duration ?? "",
+      ctaLabel: svc.ctaLabel ?? "Solicitar",
+      badge: svc.badge ?? "",
     });
     setModalOpen(true);
   }
 
   function handleUrlChange(nextUrl: string) {
+    if (draft.blockKind !== "link") {
+      setDraft((prev) => ({ ...prev, url: nextUrl, error: undefined }));
+      return;
+    }
     const detected = detectLink(nextUrl);
     setDraft((prev) => ({
       ...prev,
@@ -317,31 +478,165 @@ export function LinksEditor({
     }));
   }
 
-  function handleSaveModal(e: React.FormEvent) {
-    e.preventDefault();
-    const urlCheck = linkUrlSchema.safeParse(draft.url);
-    if (!urlCheck.success) {
+  async function handleUploadGalleryPhoto(
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (draft.images.length >= 10) {
       setDraft((p) => ({
         ...p,
-        error: urlCheck.error.issues[0]?.message ?? "Endereço inválido.",
+        error: "Máximo de 10 fotos por galeria.",
       }));
       return;
     }
+    if (!ALLOWED_TYPES.has(file.type)) {
+      setDraft((p) => ({
+        ...p,
+        error: "Envie uma imagem PNG, JPG ou WEBP.",
+      }));
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const { blob, ext, contentType } = await resizeGalleryImage(file);
+      if (blob.size > MAX_UPLOAD_BYTES) {
+        setDraft((p) => ({
+          ...p,
+          error: "A imagem ficou acima de 2 MB.",
+        }));
+        setUploadingPhoto(false);
+        return;
+      }
+      const path = `${userId}/${previewBase.id}-gallery-${Date.now()}.${ext}`;
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from("media")
+        .upload(path, blob, { contentType, upsert: true });
+      if (error) {
+        setDraft((p) => ({
+          ...p,
+          error: "Não conseguimos enviar a foto agora.",
+        }));
+        setUploadingPhoto(false);
+        return;
+      }
+      const { data } = supabase.storage.from("media").getPublicUrl(path);
+      setDraft((p) => ({
+        ...p,
+        images: [
+          ...p.images,
+          { url: data.publicUrl, caption: p.newImageCaption.trim() },
+        ],
+        newImageCaption: "",
+        error: undefined,
+      }));
+    } catch {
+      setDraft((p) => ({
+        ...p,
+        error: "Não foi possível processar essa imagem.",
+      }));
+    } finally {
+      setUploadingPhoto(false);
+      if (galleryFileRef.current) galleryFileRef.current.value = "";
+    }
+  }
+
+  function handleAddImageUrl() {
+    const rawUrl = draft.newImageUrl.trim();
+    if (!rawUrl) return;
+    if (draft.images.length >= 10) {
+      setDraft((p) => ({ ...p, error: "Máximo de 10 fotos por galeria." }));
+      return;
+    }
+    try {
+      const u = new URL(
+        /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`,
+      );
+      setDraft((p) => ({
+        ...p,
+        images: [
+          ...p.images,
+          { url: u.toString(), caption: p.newImageCaption.trim() },
+        ],
+        newImageUrl: "",
+        newImageCaption: "",
+        error: undefined,
+      }));
+    } catch {
+      setDraft((p) => ({ ...p, error: "Informe uma URL de imagem válida." }));
+    }
+  }
+
+  function handleSaveModal(e: React.FormEvent) {
+    e.preventDefault();
     const title = draft.title.trim();
     if (!title) {
-      setDraft((p) => ({ ...p, error: "Digite um título para o link." }));
+      setDraft((p) => ({ ...p, error: "Digite um título." }));
       return;
+    }
+
+    let payloadData: Record<string, unknown> | undefined;
+    if (draft.blockKind === "gallery") {
+      if (draft.images.length === 0) {
+        setDraft((p) => ({
+          ...p,
+          error: "Adicione pelo menos 1 foto na galeria.",
+        }));
+        return;
+      }
+      payloadData = { images: draft.images };
+    } else if (draft.blockKind === "youtube") {
+      const videoId = extractYoutubeId(draft.url);
+      if (!videoId) {
+        setDraft((p) => ({
+          ...p,
+          error:
+            "Cole um link válido do YouTube (ex.: youtube.com/watch?v=... ou youtu.be/...).",
+        }));
+        return;
+      }
+      payloadData = { videoId };
+    } else if (draft.blockKind === "service") {
+      const urlCheck = linkUrlSchema.safeParse(draft.url);
+      if (!urlCheck.success) {
+        setDraft((p) => ({
+          ...p,
+          error:
+            urlCheck.error.issues[0]?.message ??
+            "Informe o link de contato ou agendamento do serviço.",
+        }));
+        return;
+      }
+      payloadData = {
+        price: draft.price.trim(),
+        duration: draft.duration.trim(),
+        ctaLabel: draft.ctaLabel.trim() || "Solicitar",
+        badge: draft.badge.trim(),
+      };
+    } else {
+      const urlCheck = linkUrlSchema.safeParse(draft.url);
+      if (!urlCheck.success) {
+        setDraft((p) => ({
+          ...p,
+          error: urlCheck.error.issues[0]?.message ?? "Endereço inválido.",
+        }));
+        return;
+      }
     }
 
     startSaving(async () => {
       if (draft.id) {
         const res = await updateLinkAction({
           id: draft.id,
+          blockKind: draft.blockKind,
           title,
           subtitle: draft.subtitle.trim() || null,
-          url: draft.url,
+          url: draft.blockKind === "gallery" ? undefined : draft.url,
           icon: draft.icon,
           featured: draft.featured,
+          data: payloadData,
         });
         if (!res.ok) {
           setDraft((p) => ({ ...p, error: res.error }));
@@ -360,11 +655,14 @@ export function LinksEditor({
         toast("Salvo");
       } else {
         const res = await createLinkAction({
+          blockKind: draft.blockKind,
           title,
           subtitle: draft.subtitle.trim(),
           url: draft.url,
           icon: draft.icon,
           featured: draft.featured,
+          size: draft.size,
+          data: payloadData,
         });
         if (!res.ok) {
           if (res.code === "plan_limit_links") {
@@ -389,7 +687,15 @@ export function LinksEditor({
           destaque: draft.featured ? "sim" : "nao",
         });
         setModalOpen(false);
-        toast("Link adicionado");
+        toast(
+          draft.blockKind === "gallery"
+            ? "Galeria adicionada"
+            : draft.blockKind === "youtube"
+              ? "Vídeo adicionado"
+              : draft.blockKind === "service"
+                ? "Card de serviço adicionado"
+                : "Link adicionado",
+        );
       }
     });
   }
@@ -450,7 +756,7 @@ export function LinksEditor({
       if (res.ok) {
         trackGaEvent("link_removido", { tipo_link: target.kind });
         toast({
-          message: "Link excluído",
+          message: "Bloco excluído",
           action: {
             label: "Desfazer",
             onClick: () => {
@@ -464,6 +770,11 @@ export function LinksEditor({
                   featured: target.featured,
                   position: target.position,
                   active: target.active,
+                  size:
+                    target.size === "1x1" || target.size === "2x2"
+                      ? target.size
+                      : "2x1",
+                  data: target.data,
                 });
                 if (restored.ok && restored.data) {
                   setLinks((prev) =>
@@ -471,7 +782,7 @@ export function LinksEditor({
                       (a, b) => a.position - b.position,
                     ),
                   );
-                  toast("Link restaurado");
+                  toast("Bloco restaurado");
                 }
               });
             },
@@ -551,7 +862,10 @@ export function LinksEditor({
     });
   }
 
-  const featuredLink = links.find((l) => l.featured && l.active) ?? null;
+  const featuredLink =
+    links.find(
+      (l) => l.featured && l.active && !isRichBlockKind(l.kind),
+    ) ?? null;
 
   const livePreviewPage: PublicPage = {
     ...previewBase,
@@ -568,8 +882,27 @@ export function LinksEditor({
         icon: l.icon,
         featured: l.featured,
         position: l.position,
+        size: l.size,
+        data: l.data,
       })),
   };
+
+  const modalTitle =
+    draft.blockKind === "gallery"
+      ? draft.id
+        ? "Editar galeria (carrossel)"
+        : "Nova galeria (carrossel)"
+      : draft.blockKind === "youtube"
+        ? draft.id
+          ? "Editar vídeo do YouTube"
+          : "Novo vídeo do YouTube"
+        : draft.blockKind === "service"
+          ? draft.id
+            ? "Editar card de serviço"
+            : "Novo card de serviço"
+          : draft.id
+            ? "Editar link"
+            : "Novo link";
 
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:gap-8">
@@ -580,14 +913,90 @@ export function LinksEditor({
               Página e links
             </h1>
             <p className="text-small text-ink-muted">
-              Adicione, destaque e arraste para ordenar. Tudo salva na hora.
+              Adicione links e blocos ricos, redimensione no Bento Grid e
+              arraste para ordenar.
             </p>
           </div>
-          <Button size="md" onClick={openCreate}>
+          <Button size="md" onClick={() => openCreateBlock("link")}>
             <Icon name="plus" size={18} />
             Adicionar link
           </Button>
         </div>
+
+        {/* Studio Rich Blocks Toolbar */}
+        <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-small font-semibold">
+                Blocos ricos no Bento Grid
+              </span>
+              <Badge variant="pro">
+                {!limits.businessFeatures && <Icon name="lock" size={11} />}
+                Studio
+              </Badge>
+            </div>
+            {!limits.businessFeatures && (
+              <Link
+                href="/app/plano"
+                className="text-caption font-semibold text-ink underline underline-offset-2"
+              >
+                Conhecer o plano Studio →
+              </Link>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+            {(
+              [
+                {
+                  kind: "gallery" as const,
+                  title: "Galeria (Carrossel)",
+                  desc: "Fotos deslizáveis de produtos ou portfólio",
+                  icon: "lm:grid",
+                },
+                {
+                  kind: "youtube" as const,
+                  title: "Vídeo do YouTube",
+                  desc: "Player 16:9 embutido direto na página",
+                  icon: "si:youtube",
+                },
+                {
+                  kind: "service" as const,
+                  title: "Card de Serviço",
+                  desc: "Título, descrição, preço, duração e CTA",
+                  icon: "lm:star",
+                },
+              ]
+            ).map((b) => (
+              <button
+                key={b.kind}
+                type="button"
+                onClick={() => openCreateBlock(b.kind)}
+                className="flex cursor-pointer items-center gap-3 rounded-lg border border-line bg-paper p-3 text-left transition-colors hover:border-ink"
+              >
+                <span className="grid size-10 shrink-0 place-items-center rounded-md bg-surface text-ink shadow-2xs">
+                  <LinkIconGlyph iconRef={b.icon} size={18} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-small font-semibold text-ink">
+                      + {b.title}
+                    </span>
+                    {!limits.businessFeatures && (
+                      <Icon
+                        name="lock"
+                        size={12}
+                        className="shrink-0 text-ink-muted"
+                      />
+                    )}
+                  </div>
+                  <p className="truncate text-[11px] text-ink-muted">
+                    {b.desc}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* Free plan link counter */}
         {limits.maxLinks !== null && (
@@ -691,12 +1100,14 @@ export function LinksEditor({
           </div>
         </section>
 
-        {/* Sortable links list */}
+        {/* Sortable links & blocks list */}
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-small font-semibold">Seus links</h2>
+            <h2 className="text-small font-semibold">
+              Seus cards e blocos ({links.length})
+            </h2>
             <span className="text-caption text-ink-muted">
-              Segure e arraste para reordenar
+              Segure e arraste para misturar e reordenar
             </span>
           </div>
 
@@ -704,9 +1115,9 @@ export function LinksEditor({
             <EmptyState
               icon="link"
               title="Nenhum link ainda"
-              text="Adicione seu Instagram, WhatsApp, cardápio, agenda ou site."
+              text="Adicione seu Instagram, WhatsApp, galeria de fotos, vídeo ou card de serviço."
               action={
-                <Button size="md" onClick={openCreate}>
+                <Button size="md" onClick={() => openCreateBlock("link")}>
                   <Icon name="plus" size={16} />
                   Adicionar primeiro link
                 </Button>
@@ -744,22 +1155,27 @@ export function LinksEditor({
 
       <PhonePreview page={livePreviewPage} pageUrl={pageUrl} />
 
-      {/* Add / Edit Link Dialog */}
+      {/* Add / Edit Link or Rich Block Dialog */}
       <Dialog
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={draft.id ? "Editar link" : "Novo link"}
+        title={modalTitle}
         actions={
           <>
             <Button
               variant="ghost"
               onClick={() => setModalOpen(false)}
-              disabled={saving}
+              disabled={saving || uploadingPhoto}
             >
               Cancelar
             </Button>
-            <Button type="submit" form="link-modal-form" loading={saving}>
-              {saving ? "Salvando…" : "Salvar link"}
+            <Button
+              type="submit"
+              form="link-modal-form"
+              loading={saving}
+              disabled={uploadingPhoto}
+            >
+              {saving ? "Salvando…" : "Salvar no grid"}
             </Button>
           </>
         }
@@ -776,33 +1192,98 @@ export function LinksEditor({
             </Alert>
           )}
 
-          <Input
-            label="Endereço (URL ou chave Pix)"
-            type="url"
-            inputMode="url"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            placeholder="https://instagram.com/seunegocio"
-            value={draft.url}
-            onChange={(e) => handleUrlChange(e.target.value)}
-            required
-          />
+          {/* Block Type Switcher when creating new */}
+          {!draft.id && limits.businessFeatures && (
+            <div className="grid grid-cols-4 gap-1.5 rounded-lg border border-line bg-paper p-1">
+              {(
+                [
+                  { id: "link", label: "Link" },
+                  { id: "gallery", label: "Galeria" },
+                  { id: "youtube", label: "YouTube" },
+                  { id: "service", label: "Serviço" },
+                ] as { id: BlockModalType; label: string }[]
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() =>
+                    setDraft((p) => ({
+                      ...p,
+                      blockKind: t.id,
+                      icon:
+                        t.id === "gallery"
+                          ? "lm:grid"
+                          : t.id === "youtube"
+                            ? "si:youtube"
+                            : t.id === "service"
+                              ? "lm:star"
+                              : "lm:link",
+                      size: t.id === "link" ? "2x1" : "2x2",
+                      error: undefined,
+                    }))
+                  }
+                  className={`h-8 cursor-pointer rounded-md text-caption font-semibold ${
+                    draft.blockKind === t.id
+                      ? "bg-ink text-paper"
+                      : "text-ink-muted hover:text-ink"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* URL Field (for Link, YouTube, Service) */}
+          {draft.blockKind !== "gallery" && (
+            <Input
+              label={
+                draft.blockKind === "youtube"
+                  ? "Link do vídeo no YouTube"
+                  : draft.blockKind === "service"
+                    ? "Link de ação (WhatsApp, agendamento ou checkout)"
+                    : "Endereço (URL ou chave Pix)"
+              }
+              type="url"
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={
+                draft.blockKind === "youtube"
+                  ? "https://www.youtube.com/watch?v=..."
+                  : draft.blockKind === "service"
+                    ? "https://wa.me/5511999999999"
+                    : "https://instagram.com/seunegocio"
+              }
+              value={draft.url}
+              onChange={(e) => handleUrlChange(e.target.value)}
+              required
+            />
+          )}
 
           <div className="flex items-end gap-2.5">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-small font-semibold">Ícone</span>
-              <button
-                type="button"
-                aria-label="Escolher ícone"
-                onClick={() => setIconPickerOpen(true)}
-                className="grid size-11 cursor-pointer place-items-center rounded-md border border-line-strong bg-surface hover:border-ink"
-              >
-                <LinkIconGlyph iconRef={draft.icon} size={20} />
-              </button>
-            </div>
+            {draft.blockKind !== "youtube" && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-small font-semibold">Ícone</span>
+                <button
+                  type="button"
+                  aria-label="Escolher ícone"
+                  onClick={() => setIconPickerOpen(true)}
+                  className="grid size-11 cursor-pointer place-items-center rounded-md border border-line-strong bg-surface hover:border-ink"
+                >
+                  <LinkIconGlyph iconRef={draft.icon} size={20} />
+                </button>
+              </div>
+            )}
             <Input
-              label="Título"
+              label={
+                draft.blockKind === "service"
+                  ? "Nome do serviço"
+                  : draft.blockKind === "gallery"
+                    ? "Título da galeria"
+                    : "Título (CTA)"
+              }
               value={draft.title}
               maxLength={80}
               onChange={(e) =>
@@ -813,29 +1294,186 @@ export function LinksEditor({
                   error: undefined,
                 }))
               }
-              placeholder="Ex.: Instagram"
+              placeholder={
+                draft.blockKind === "service"
+                  ? "Ex.: Consultoria Individual"
+                  : draft.blockKind === "gallery"
+                    ? "Ex.: Nosso Portfólio"
+                    : "Ex.: Chamar no WhatsApp"
+              }
               className="flex-1"
               required
             />
           </div>
 
           <Input
-            label="Subtítulo (opcional)"
+            label={
+              draft.blockKind === "service"
+                ? "Descrição do serviço (opcional)"
+                : "Subtítulo (opcional)"
+            }
             value={draft.subtitle}
             maxLength={120}
             onChange={(e) =>
               setDraft((p) => ({ ...p, subtitle: e.target.value }))
             }
-            placeholder="Ex.: @seunegocio"
-          />
-
-          <Checkbox
-            label="Destacar como botão principal (com alfinete)"
-            checked={draft.featured}
-            onChange={(e) =>
-              setDraft((p) => ({ ...p, featured: e.target.checked }))
+            placeholder={
+              draft.blockKind === "service"
+                ? "Ex.: Atendimento completo de 1h com diagnóstico e plano."
+                : "Ex.: Resposta rápida"
             }
           />
+
+          {/* GALLERY SPECIFIC FIELDS */}
+          {draft.blockKind === "gallery" && (
+            <div className="flex flex-col gap-3 rounded-lg border border-line bg-paper p-3.5">
+              <div className="flex items-center justify-between">
+                <span className="text-small font-semibold">
+                  Fotos do carrossel ({draft.images.length}/10)
+                </span>
+                <input
+                  ref={galleryFileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="sr-only"
+                  onChange={handleUploadGalleryPhoto}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  loading={uploadingPhoto}
+                  onClick={() => galleryFileRef.current?.click()}
+                >
+                  + Enviar foto
+                </Button>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  label="Legenda da próxima foto (opcional)"
+                  value={draft.newImageCaption}
+                  maxLength={80}
+                  onChange={(e) =>
+                    setDraft((p) => ({
+                      ...p,
+                      newImageCaption: e.target.value,
+                    }))
+                  }
+                  placeholder="Ex.: Antes e depois"
+                  className="flex-1"
+                />
+              </div>
+
+              <div className="flex items-end gap-2">
+                <Input
+                  label="Ou adicione por URL de imagem"
+                  value={draft.newImageUrl}
+                  onChange={(e) =>
+                    setDraft((p) => ({ ...p, newImageUrl: e.target.value }))
+                  }
+                  placeholder="https://..."
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  onClick={handleAddImageUrl}
+                >
+                  Adicionar
+                </Button>
+              </div>
+
+              {draft.images.length > 0 && (
+                <div className="mt-1 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {draft.images.map((img, idx) => (
+                    <div
+                      key={`${img.url}-${idx}`}
+                      className="group relative overflow-hidden rounded-md border border-line bg-surface"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={img.url}
+                        alt={img.caption || `Foto ${idx + 1}`}
+                        className="h-20 w-full object-cover"
+                      />
+                      {img.caption && (
+                        <p className="truncate px-1.5 py-1 text-[10px] text-ink-muted">
+                          {img.caption}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        aria-label={`Remover foto ${idx + 1}`}
+                        onClick={() =>
+                          setDraft((p) => ({
+                            ...p,
+                            images: p.images.filter((_, i) => i !== idx),
+                          }))
+                        }
+                        className="absolute top-1 right-1 grid size-6 cursor-pointer place-items-center rounded-full bg-black/70 text-white"
+                      >
+                        <Icon name="close" size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SERVICE SPECIFIC FIELDS */}
+          {draft.blockKind === "service" && (
+            <div className="grid grid-cols-1 gap-3 rounded-lg border border-line bg-paper p-3.5 sm:grid-cols-2">
+              <Input
+                label="Preço (opcional)"
+                value={draft.price}
+                maxLength={32}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, price: e.target.value }))
+                }
+                placeholder="Ex.: R$ 150"
+              />
+              <Input
+                label="Duração / Detalhe (opcional)"
+                value={draft.duration}
+                maxLength={32}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, duration: e.target.value }))
+                }
+                placeholder="Ex.: 60 min"
+              />
+              <Input
+                label="Texto do botão CTA"
+                value={draft.ctaLabel}
+                maxLength={40}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, ctaLabel: e.target.value }))
+                }
+                placeholder="Ex.: Agendar no WhatsApp"
+              />
+              <Input
+                label="Selo de destaque (opcional)"
+                value={draft.badge}
+                maxLength={28}
+                onChange={(e) =>
+                  setDraft((p) => ({ ...p, badge: e.target.value }))
+                }
+                placeholder="Ex.: Mais pedido"
+              />
+            </div>
+          )}
+
+          {draft.blockKind === "link" && (
+            <Checkbox
+              label="Destacar como botão principal (com alfinete)"
+              checked={draft.featured}
+              onChange={(e) =>
+                setDraft((p) => ({ ...p, featured: e.target.checked }))
+              }
+            />
+          )}
         </form>
       </Dialog>
 
@@ -850,7 +1488,7 @@ export function LinksEditor({
       <Dialog
         open={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
-        title="Excluir este link?"
+        title="Excluir este item?"
         description={
           deleteTarget
             ? `“${deleteTarget.title}” será removido da sua página.`
@@ -862,7 +1500,7 @@ export function LinksEditor({
               Cancelar
             </Button>
             <Button variant="danger" onClick={handleConfirmDelete}>
-              Excluir link
+              Excluir
             </Button>
           </>
         }

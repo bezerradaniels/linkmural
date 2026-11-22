@@ -23,6 +23,7 @@ export type PublicLink = Pick<
   | "position"
 > & {
   size?: string | null;
+  data?: unknown;
 };
 
 export type PublicPage = Pick<
@@ -77,7 +78,7 @@ export function mediaUrl(path: string | null | undefined) {
 }
 
 const PAGE_FIELDS =
-  "id, slug, template, style, theme, business_name, kind, bio, city, address, whatsapp, phone, actions, email, hours, status_text, show_branding, avatar_path, cover_path, links(id, kind, title, subtitle, url, icon, featured, position, size)";
+  "id, slug, template, style, theme, business_name, kind, bio, city, address, whatsapp, phone, actions, email, hours, status_text, show_branding, avatar_path, cover_path, links(id, kind, title, subtitle, url, icon, featured, position, size, data)";
 
 async function loadPublicPage(slug: string): Promise<PublicPage | null> {
   const supabase = anonClient();

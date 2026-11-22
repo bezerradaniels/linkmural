@@ -24,22 +24,24 @@ export const metadata: Metadata = {
 const PLAN_FEATURES: Record<Plan, string[]> = {
   free: [
     "1 página publicada",
-    "Até 5 links",
-    "WhatsApp, Salvar contato e QR code",
-    "Todos os 3 modelos e 8 estilos",
+    "Até 5 links (barra 2×1)",
+    "Fonte, cores e fundo sólido ou gradiente",
+    "Todos os 3 modelos com Logo e Capa",
     "Total de cliques e gráfico de 7 ou 30 dias",
   ],
   pro: [
     "Links ilimitados",
-    "Fonte, paleta, tamanho e cantos personalizados",
+    "Bento Grid com cards 2×1, 1×1 e 2×2",
+    "Transparência (Glass), Glossy, Doodles e Imagem",
     "Remover “Feito com linkmural” do rodapé",
     "Métricas por link e qualquer período",
   ],
   business: [
     "Tudo do Pro + até 3 páginas",
-    "Domínio próprio (links.suaempresa.com.br)",
-    "Origem dos visitantes e exportação CSV",
-    "Recursos de negócio (horários, catálogo e pixel)",
+    "Galeria de fotos em carrossel no Bento Grid",
+    "Vídeo do YouTube embutido na página",
+    "Cards de Serviços com preço, duração e CTA",
+    "Domínio próprio e métricas completas + CSV",
   ],
 };
 
@@ -93,17 +95,20 @@ export default async function PlanoPage({
     ? new Date(subscription.current_period_end)
     : null;
   const summary = subscription
-    ? summarizeSubscription({
-        interval:
-          subscription.billing_interval === "year" ||
-          subscription.billing_interval === "month"
-            ? subscription.billing_interval
-            : null,
-        createdAt: new Date(subscription.created_at),
-        periodEnd,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        now: new Date(),
-      })
+    ? summarizeSubscription(
+        {
+          interval:
+            subscription.billing_interval === "year" ||
+            subscription.billing_interval === "month"
+              ? subscription.billing_interval
+              : null,
+          createdAt: new Date(subscription.created_at),
+          periodEnd,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          now: new Date(),
+        },
+        PLANS[paidPlan],
+      )
     : null;
 
   return (
@@ -242,7 +247,7 @@ export default async function PlanoPage({
           <BillingToggle />
 
           {/* Plans grid */}
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {SALE_PLANS.map((key) => {
               const info = PLANS[key];
               const isCurrent = plan === key;
@@ -263,6 +268,8 @@ export default async function PlanoPage({
                         <Badge variant="neutral">Plano atual</Badge>
                       ) : key === "pro" ? (
                         <Badge variant="pro">Popular</Badge>
+                      ) : key === "business" ? (
+                        <Badge variant="pro">Completo</Badge>
                       ) : null}
                     </div>
 
@@ -291,10 +298,10 @@ export default async function PlanoPage({
                       Seu plano atual
                     </Button>
                   ) : billingEnabled ? (
-                    <SubscribeButton />
+                    <SubscribeButton plan={key} />
                   ) : (
                     <WaitlistButton
-                      plan="pro"
+                      plan={key}
                       label="Entrar na lista de espera"
                       source="painel"
                       defaultEmail={email ?? ""}

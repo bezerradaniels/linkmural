@@ -226,6 +226,7 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          data: Json
           featured: boolean
           flagged_at: string | null
           icon: string | null
@@ -242,6 +243,7 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          data?: Json
           featured?: boolean
           flagged_at?: string | null
           icon?: string | null
@@ -258,6 +260,7 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          data?: Json
           featured?: boolean
           flagged_at?: string | null
           icon?: string | null
@@ -648,6 +651,9 @@ export type Database = {
         | "email"
         | "phone"
         | "map"
+        | "gallery"
+        | "youtube"
+        | "service"
       page_style:
         | "sport"
         | "calm"
@@ -803,6 +809,9 @@ export const Constants = {
         "email",
         "phone",
         "map",
+        "gallery",
+        "youtube",
+        "service",
       ],
       page_style: [
         "sport",

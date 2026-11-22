@@ -24,7 +24,7 @@ export function WaitlistButton({
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const planName = plan === "pro" ? "Pro" : "Negócios";
+  const planName = plan === "pro" ? "Pro" : "Studio";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

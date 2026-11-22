@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 
 const formSchema = z.object({
   interval: z.enum(["month", "year"]).default("year"),
+  plan: z.enum(["pro", "business"]).default("pro"),
 });
 
 function back(code?: string) {
@@ -47,9 +48,10 @@ export async function POST(request: Request) {
   const form = await request.formData().catch(() => null);
   const parsed = formSchema.safeParse({
     interval: form?.get("interval") ?? undefined,
+    plan: form?.get("plan") ?? undefined,
   });
   if (!parsed.success) return back("checkout");
-  const { interval } = parsed.data;
+  const { interval, plan } = parsed.data;
 
   try {
     const admin = createAdminClient();
@@ -61,15 +63,22 @@ export async function POST(request: Request) {
     if (profile?.suspended_at) return back("suspensa");
     if (profile && profile.plan !== "free") return back("ja_assinante");
 
+    const lookupKey =
+      plan === "business"
+        ? interval === "year"
+          ? "business_yearly"
+          : "business_monthly"
+        : PRICE_LOOKUP_KEYS[interval];
+
     const stripe = getStripe();
     const prices = await stripe.prices.list({
-      lookup_keys: [PRICE_LOOKUP_KEYS[interval]],
+      lookup_keys: [lookupKey],
       active: true,
       limit: 1,
     });
     const price = prices.data[0];
     if (!price) {
-      console.error("[checkout] price not found:", PRICE_LOOKUP_KEYS[interval]);
+      console.error("[checkout] price not found:", lookupKey);
       return back("checkout");
     }
 
@@ -82,8 +91,8 @@ export async function POST(request: Request) {
       line_items: [{ price: price.id, quantity: 1 }],
       // Stripe allows either a coupon or promotion codes in one session; the
       // launch discount is applied for the customer.
-      discounts: PLANS.pro.promo ? [{ coupon: launchCouponId() }] : undefined,
-      subscription_data: { metadata: { user_id: userId } },
+      discounts: PLANS[plan].promo ? [{ coupon: launchCouponId() }] : undefined,
+      subscription_data: { metadata: { user_id: userId, plan } },
       locale: "pt-BR",
       success_url: `${base}/app/plano?ok=1`,
       cancel_url: `${base}/app/plano?cancelado=1`,

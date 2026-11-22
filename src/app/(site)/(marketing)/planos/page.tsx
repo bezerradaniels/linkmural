@@ -24,22 +24,24 @@ export const metadata: Metadata = {
 const FEATURES: Record<Plan, string[]> = {
   free: [
     "1 página publicada",
-    "Até 5 links",
-    "WhatsApp, Salvar contato e QR code",
-    "Todos os 3 modelos e 8 estilos",
+    "Até 5 links (formato barra 2×1)",
+    "Fonte, cores e fundo sólido ou gradiente",
+    "Todos os 3 modelos com Logo e Capa",
     "Cliques e visitas com gráfico de 7 ou 30 dias",
   ],
   pro: [
     "Links ilimitados",
-    "Fonte, paleta, tamanho e cantos personalizados",
+    "Bento Grid com cards 2×1, 1×1 e 2×2",
+    "Transparência (Glass), Glossy, Doodles e Imagem",
     "Remover “Feito com linkmural” do rodapé",
     "Métricas por link e por período",
   ],
   business: [
     "Tudo do Pro + até 3 páginas",
-    "Domínio próprio (links.suaempresa.com.br)",
-    "Origem dos visitantes e exportação CSV",
-    "Horários para agendar, catálogo e pixel",
+    "Galeria de fotos em carrossel no Bento Grid",
+    "Vídeo do YouTube embutido na página",
+    "Cards de Serviços com preço, duração e CTA",
+    "Domínio próprio e métricas completas + CSV",
   ],
 };
 
@@ -95,14 +97,14 @@ export default function PlanosPage() {
             <BillingToggle />
           </div>
 
-          <section className="mx-auto grid w-full max-w-3xl grid-cols-1 gap-5 md:grid-cols-2">
+          <section className="mx-auto grid w-full max-w-5xl grid-cols-1 gap-5 md:grid-cols-3">
             {SALE_PLANS.map((key) => {
               const info = PLANS[key];
               return (
                 <div
                   key={key}
                   className={`flex flex-col justify-between gap-6 rounded-xl border bg-surface p-6 ${
-                    key === "free" ? "border-ink shadow-sm" : "border-line"
+                    key === "pro" ? "border-ink shadow-sm" : "border-line"
                   }`}
                 >
                   <div className="flex flex-col gap-4">
@@ -113,7 +115,9 @@ export default function PlanosPage() {
                           Disponível hoje
                         </Badge>
                       ) : billingEnabled ? (
-                        <Badge variant="pro">Disponível</Badge>
+                        <Badge variant="pro">
+                          {key === "business" ? "Criadores & Negócios" : "Popular"}
+                        </Badge>
                       ) : (
                         <Badge variant="pro">Em breve</Badge>
                       )}
@@ -147,10 +151,10 @@ export default function PlanosPage() {
                       Criar minha página grátis
                     </Link>
                   ) : billingEnabled ? (
-                    <SubscribeLink />
+                    <SubscribeLink plan={key} />
                   ) : (
                     <WaitlistButton
-                      plan="pro"
+                      plan={key}
                       label="Quero ser avisado"
                       source="planos"
                       variant="secondary"

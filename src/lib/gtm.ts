@@ -88,14 +88,14 @@ export type GaEventMap = {
 
   // Cobrança e Stripe
   clique_assinar_pro: {
-    plano: "pro";
+    plano: "pro" | "business";
     periodicidade: "month" | "year";
     origem: "planos";
   };
   begin_checkout: {
     currency: "BRL";
     value: number;
-    plano: "pro";
+    plano: "pro" | "business";
     periodicidade: "month" | "year";
   };
   purchase: {

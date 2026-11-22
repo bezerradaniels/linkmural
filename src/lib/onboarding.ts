@@ -54,6 +54,8 @@ export function toPreviewPage(
       icon: l.icon,
       featured: l.featured,
       position: l.position,
+      size: l.size,
+      data: l.data,
     }));
 
   return {

@@ -75,7 +75,14 @@ export function buildModel(
   const name = page.business_name.trim() || page.slug;
   const actions = parsePageActions(page.actions);
   const featured =
-    page.links.find((l) => l.featured && l.kind !== "pix") ?? null;
+    page.links.find(
+      (l) =>
+        l.featured &&
+        l.kind !== "pix" &&
+        l.kind !== "gallery" &&
+        l.kind !== "youtube" &&
+        l.kind !== "service",
+    ) ?? null;
   const waLink = page.links.find((l) => l.kind === "whatsapp") ?? null;
   const waDigits = phoneDigits(page.whatsapp);
   const callDigits = phoneDigits(page.phone) ?? waDigits;

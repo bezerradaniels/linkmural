@@ -6,9 +6,20 @@ import { brandColor, resolveIcon } from "@/lib/icons";
 import { linkHref, type PageModel } from "@/lib/public-actions";
 import type { PublicLink, PublicPage } from "@/lib/public-page";
 import { publicFont } from "@/lib/public-fonts";
+import {
+  parseGalleryData,
+  parseServiceData,
+  parseYoutubeVideoId,
+} from "@/lib/rich-blocks";
 import { COVER_HEIGHTS } from "@/lib/styles";
 import type { ResolvedTheme } from "@/lib/theme";
-import { PixCopyButton, ReportButton, StatusPill, VisitBeacon } from "./client";
+import {
+  GalleryCarousel,
+  PixCopyButton,
+  ReportButton,
+  StatusPill,
+  VisitBeacon,
+} from "./client";
 
 export type TemplateProps = {
   page: PublicPage;
@@ -361,6 +372,116 @@ export function BentoLinkCard({
       ? rawSize
       : "2x1";
   const fx = effectClasses(theme.cardEffect);
+
+  // Studio rich blocks: Gallery (Carrossel), YouTube Video, and Service Card
+  if (link.kind === "gallery") {
+    const gallery = parseGalleryData(link.data);
+    const spanCls = resolvedSize === "1x1" ? "col-span-1" : "col-span-2";
+    return (
+      <GalleryCarousel
+        images={gallery.images}
+        title={link.title}
+        subtitle={link.subtitle}
+        pageId={page.id}
+        linkId={link.id}
+        slug={page.slug}
+        className={`${spanCls} flex flex-col overflow-hidden rounded-(--r-big) border border-(--card-border) bg-(--card-bg) text-(--card-ink) ${fx}`}
+      />
+    );
+  }
+
+  if (link.kind === "youtube") {
+    const videoId = parseYoutubeVideoId(link.data, link.url);
+    const spanCls = resolvedSize === "1x1" ? "col-span-1" : "col-span-2";
+    if (videoId && resolvedSize !== "1x1") {
+      return (
+        <div
+          className={`${spanCls} flex flex-col overflow-hidden rounded-(--r-big) border border-(--card-border) bg-(--card-bg) text-(--card-ink) ${fx}`}
+        >
+          <div className="relative aspect-video w-full bg-black">
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/${videoId}?rel=0`}
+              title={link.title}
+              loading="lazy"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="absolute inset-0 size-full border-0"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <CardText link={link} lines={1} />
+            <a
+              href={linkHref(link)}
+              rel="nofollow noopener"
+              data-lm-link-title={link.title}
+              data-lm-link-kind="youtube"
+              className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-(--soft) px-3 text-[12px] font-semibold text-(--ink) no-underline"
+            >
+              YouTube
+              <Icon name="arrow" size={13} strokeWidth={2} />
+            </a>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  if (link.kind === "service") {
+    const svc = parseServiceData(link.data);
+    const spanCls = resolvedSize === "1x1" ? "col-span-1" : "col-span-2";
+    return (
+      <a
+        href={linkHref(link)}
+        rel="nofollow noopener"
+        data-lm-link-title={link.title}
+        data-lm-link-kind="service"
+        className={`${spanCls} flex flex-col justify-between gap-3.5 rounded-(--r-big) border border-(--card-border) bg-(--card-bg) p-4 text-(--card-ink) no-underline transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99] ${fx}`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className={iconBox}>
+              <LinkIcon link={link} theme={theme} />
+            </span>
+            {svc.badge && (
+              <span className="rounded-full bg-(--accent) px-2.5 py-0.5 text-[11px] font-bold text-(--on-accent)">
+                {svc.badge}
+              </span>
+            )}
+          </div>
+          {(svc.price || svc.duration) && (
+            <div className="flex flex-col items-end text-right">
+              {svc.price && (
+                <span className="rounded-md bg-(--soft) px-2.5 py-1 text-[14px] leading-none font-bold">
+                  {svc.price}
+                </span>
+              )}
+              {svc.duration && (
+                <span className="mt-1 text-[11px] text-(--card-muted)">
+                  {svc.duration}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-1 text-left">
+          <span className="text-(length:--card-title) leading-tight font-bold">
+            {link.title}
+          </span>
+          {link.subtitle && (
+            <span className="line-clamp-2 text-(length:--card-sub) leading-snug text-(--card-muted)">
+              {link.subtitle}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between rounded-full bg-(--accent) px-3.5 py-2 text-[13px] font-bold text-(--on-accent)">
+          <span className="truncate">{svc.ctaLabel || "Solicitar"}</span>
+          <Icon name="arrow" size={15} strokeWidth={2} />
+        </div>
+      </a>
+    );
+  }
 
   if (resolvedSize === "1x1") {
     const tileCls = `col-span-1 flex min-h-[126px] flex-col justify-between rounded-(--r) border border-(--card-border) bg-(--card-bg) p-(--card-px) text-(--card-ink) no-underline transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99] ${fx}`;

@@ -9,11 +9,12 @@ export const metadata: Metadata = {
 };
 
 export default async function PaginaPage() {
-  const { page, plan, downgraded } = await getPanelContext();
+  const { userId, page, plan, downgraded } = await getPanelContext();
   const pageUrl = `${siteUrl()}/${page.slug}`;
 
   return (
     <LinksEditor
+      userId={userId}
       initialLinks={page.links}
       previewBase={toPreviewPage(page, undefined, plan)}
       pageUrl={pageUrl}
