@@ -130,13 +130,18 @@ export default async function Home({
         />
 
         {/* Top Bar */}
-        <header className="relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-5 pt-5 pb-3 sm:px-8 sm:pt-7">
-          <Link href="/" aria-label="linkmural, página inicial">
+        <header className="relative z-20 mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 pt-5 pb-3 sm:gap-4 sm:px-8 sm:pt-7">
+          <Link
+            href="/"
+            aria-label="linkmural, página inicial"
+            className="shrink-0"
+          >
             <Image
               src="/brand/linkmural-logo-negativo.svg"
               alt="Linkmural"
               width={152}
               height={24}
+              className="h-[21px] w-auto sm:h-6"
               priority
             />
           </Link>
@@ -162,16 +167,16 @@ export default async function Home({
             </a>
           </nav>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
             <Link
               href="/entrar"
-              className="inline-flex h-10 items-center justify-center rounded-pill px-3.5 text-small font-medium text-white/85 no-underline transition-colors hover:bg-white/10 hover:text-white"
+              className="inline-flex h-9 shrink-0 items-center justify-center rounded-pill px-2.5 text-small font-medium whitespace-nowrap text-white/85 no-underline transition-colors hover:bg-white/10 hover:text-white sm:h-10 sm:px-3.5"
             >
               Entrar
             </Link>
             <Link
               href="/cadastro"
-              className="inline-flex h-10 items-center justify-center rounded-pill border border-white/30 bg-white/10 px-4 text-small font-semibold text-white no-underline backdrop-blur-md transition-colors hover:border-lime hover:bg-lime hover:text-on-lime"
+              className="inline-flex h-9 shrink-0 items-center justify-center rounded-pill border border-white/30 bg-white/10 px-3.5 text-small font-semibold whitespace-nowrap text-white no-underline backdrop-blur-md transition-colors hover:border-lime hover:bg-lime hover:text-on-lime sm:h-10 sm:px-4"
             >
               Cadastre-se
             </Link>
@@ -179,8 +184,8 @@ export default async function Home({
         </header>
 
         {/* Hero Copy */}
-        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-end px-5 pt-52 pb-12 sm:px-8 sm:pt-60 sm:pb-16 lg:justify-center lg:py-16">
-          <div className="flex max-w-xl flex-col gap-4">
+        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-1 flex-col justify-end px-5 pt-36 pb-[max(2.25rem,env(safe-area-inset-bottom))] sm:px-8 sm:pt-56 sm:pb-16 lg:justify-center lg:py-16">
+          <div className="flex max-w-xl flex-col gap-3.5 sm:gap-4">
             <span className="inline-flex items-center gap-2 self-start rounded-pill border border-white/20 bg-white/10 px-3.5 py-1.5 text-caption font-medium text-white/90 backdrop-blur-md">
               <span className="size-2 rounded-full bg-lime" />
               Para criadores e negócios · Grátis, sem cartão
