@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { buttonClasses } from "@/components/ui/Button";
-import { braveold, inter } from "@/lib/fonts";
+import { inter, stackSansHeadline } from "@/lib/fonts";
 
 export default function NotFound() {
   return (
     <main
-      className={`${inter.variable} ${braveold.variable} flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center font-sans`}
+      className={`${inter.variable} ${stackSansHeadline.variable} flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center font-sans`}
     >
       <Link href="/" aria-label="linkmural, página inicial">
         <Image src="/brand/linkmural-logo.svg" alt="" width={176} height={26} />

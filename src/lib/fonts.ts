@@ -1,31 +1,14 @@
-import { Inter } from "next/font/google";
-import localFont from "next/font/local";
+import { Inter, Stack_Sans_Headline } from "next/font/google";
 
-/** Panel fonts. The public page loads only its style's font (Phase 1). */
+/** Panel and marketing fonts. Public pages load only their style's font. */
 export const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
 });
 
-export const braveold = localFont({
-  src: [
-    {
-      path: "../fonts/braveold-regular.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "../fonts/braveold-medium.woff2",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../fonts/braveold-bold.woff2",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-braveold",
+export const stackSansHeadline = Stack_Sans_Headline({
+  subsets: ["latin"],
+  variable: "--font-stack-sans-headline",
   display: "swap",
 });
