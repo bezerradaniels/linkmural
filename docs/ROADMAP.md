@@ -111,6 +111,42 @@ Decisão de 21/11: por enquanto só **Grátis** e **Pro** (R$ 4,99/mês ou R$ 30
 - [x] Avisar o cliente antes da renovação com aumento de preço (alerta na tela Plano nos 30 dias anteriores + e-mail automático até 15 dias antes via `send-lifecycle-emails` / `email_logs`), já que o valor dobra no mês 12.
 - [ ] Fluxo completo em modo de teste, troca para as chaves de produção do Stripe e checklist final.
 
+## Fase 9 · Diferenciação & IA (pós-lançamento)
+Ideias para tornar o Linkmural mais relevante que o Linktree mantendo o produto simples e focado em conversão (sem criar novos menus nem "mini-sistemas", aprofundando o que já existe e mantendo a página pública leve com Lighthouse mobile ≥ 90).
+
+**Curto prazo · Conversão do Pro**
+- [ ] **Botão "Melhorar texto" com IA (Pro e Studio):** ícone discreto nos campos de bio, títulos/subtítulos de links e cards de serviço para gerar copy orientada a clique, com cota mensal por plano.
+- [ ] **WhatsApp pré-preenchido por serviço:** nos cards de Serviço (`service`), abrir o WhatsApp com mensagem pronta incluindo o nome do serviço escolhido.
+- [ ] **Kit "Balcão & Stories" em 1 clique:** gerar automaticamente plaquinha pronta para imprimir (A5/A6) e card vertical para Stories a partir do QR Code (`/qr`) usando as cores e fonte do tema da página.
+
+**Médio prazo · Diferenciação do Linktree**
+- [ ] **Importação do Linktree / Montar página com 1 frase (Onboarding + IA):** colar a URL do Linktree atual ou descrever o negócio em 1 linha para importar links e montar o Bento Grid pronto (tamanhos, destaque e copy sugerida).
+- [ ] **Pix Copia e Cola oficial (BR Code):** evoluir a detecção de chave Pix para gerar QR Code + payload oficial do Banco Central (chave, nome, cidade e valor opcional nos cards de serviço), sem taxas nem gateway.
+- [ ] **Consultor de métricas com IA + resumo por e-mail (Pro e Studio):** card em `/app/metricas` e e-mail automático via Resend (mensal no Pro, semanal no Studio) com 2 ou 3 recomendações práticas baseadas nos cliques do período, com cache no banco.
+
+**Plano Studio · Ticket maior**
+- [ ] **Selo de Prova Social do Google:** selo discreto no cabeçalho ou card exibindo nota e quantidade de avaliações no Google + botão direto para avaliar.
+- [ ] **Links inteligentes por horário e agendamento:** usar o `hours` existente para exibir link/aviso alternativo quando o negócio estiver fechado e agendar data de início/fim para links promocionais.
+- [ ] **Assistente de triagem com IA na página pública (Studio):** botão sob demanda (carrega JS só ao clicar, preservando o Lighthouse) treinado com os dados já cadastrados (horários, endereço, serviços e FAQ opcional), respondendo dúvidas básicas e encaminhando o visitante para o WhatsApp com a mensagem pré-preenchida; com cota mensal de mensagens e rate limit.
+
+## Fase 10 · Blog & Aquisição Orgânica (SEO/AEO)
+Canal editorial para capturar tráfego de topo e meio de funil no Brasil (arquitetura Hub & Spoke) e direcionar autoridade e cliques para `/para/[nicho]`, `/comparar/[slug]`, `/ferramentas/*` e `/cadastro`, sem adicionar CMS pesado.
+
+**Base técnica**
+- [ ] **Reserva de slug:** garantir `blog` em `reserved_slugs` no Supabase.
+- [ ] **Estrutura de conteúdo no repositório:** artigos em Markdown/MDX (`content/blog/*.mdx` ou módulo tipado) com frontmatter (`title`, `description`, `slug`, `category`, `publishedAt`, `updatedAt`, `aeoQuestion`, `aeoAnswer`, `faqs`, `relatedNiches`, `relatedComparisons`).
+- [ ] **Rotas e layout:** `/blog` (listagem com filtro por pilar/categoria) e `/blog/[slug]` em `src/app/(site)/(marketing)/blog/`, usando `MarketingChrome`, índice de seções e artigos relacionados.
+- [ ] **SEO, AEO e OG automáticos:** incluir `/blog` e `/blog/[slug]` em `src/app/sitemap.ts` e em `buildLlmsTxt` / `buildLlmsFullTxt` (`src/lib/seo.ts`); schemas `BlogPosting`, `BreadcrumbList` e `FAQPage` via `JsonLd`; capa OG dinâmica em `/blog/[slug]/opengraph-image.tsx`.
+- [ ] **Navegação e conversão:** adicionar link `Blog` no header e footer (`MarketingChrome.tsx`), card contextual para `/para/[nicho]` ou `/comparar/[slug]` no meio do artigo e `SlugClaimForm` no rodapé do post.
+
+**Primeiro lote editorial (6 artigos pilares · depois 1 por semana)**
+- [ ] *Quanto custa o Linktree em reais (e 5 alternativas brasileiras sem IOF)* → linka para `/comparar/linkmural-vs-linktree` e `/planos`.
+- [ ] *Como colocar link do WhatsApp com mensagem pronta na bio do Instagram* → linka para `/cadastro`.
+- [ ] *O que colocar no link na bio de médicos, dentistas e clínicas* → linka para `/para/medicos` e nichos de saúde.
+- [ ] *Bento Grid na bio: por que substituir a lista de links tradicional* → linka para `/comparar/linkmural-vs-linktree`.
+- [ ] *Como medir de onde vêm os cliques da sua bio usando UTM (guia prático)* → linka para `/ferramentas/gerador-de-utm`.
+- [ ] *QR Code no balcão: como transformar visitas presenciais em seguidores e contatos no WhatsApp* → linka para `/para` e `/cadastro`.
+
 ---
 
 ### Como pedir cada fase ao Claude Code
