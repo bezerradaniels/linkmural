@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { isProductionHost } from "@/lib/seo";
 import { updateSession } from "@/utils/supabase/proxy";
 
 // No Next.js 16 o antigo "middleware" se chama "proxy".
@@ -11,8 +12,19 @@ export async function proxy(request: NextRequest) {
   const needsSession = SESSION_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
-  if (!needsSession) return NextResponse.next();
-  return updateSession(request);
+  const response = needsSession
+    ? await updateSession(request)
+    : NextResponse.next();
+
+  const host =
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    request.nextUrl.host;
+  if (!isProductionHost(host)) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+
+  return response;
 }
 
 export const config = {

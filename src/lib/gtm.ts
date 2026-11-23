@@ -58,8 +58,12 @@ export type GaEventMap = {
     orientacao: "landscape" | "portrait" | "squarish";
   };
   utm_gerado: {
-    modo: "link" | "page";
+    modo: "link" | "page" | "ferramenta_publica";
     utm_source: string;
+  };
+  utm_planilha_exportada: {
+    formato: "csv" | "tsv";
+    quantidade: number;
   };
   link_pagina_copiado: {
     origem: "onboarding" | "painel";

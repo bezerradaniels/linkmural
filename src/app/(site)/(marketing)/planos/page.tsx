@@ -1,15 +1,18 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import {
   BillingIntervalProvider,
   BillingToggle,
 } from "@/components/marketing/BillingInterval";
+import { MarketingChrome } from "@/components/marketing/MarketingChrome";
 import { PlanPrice } from "@/components/marketing/PlanPrice";
 import { SubscribeLink } from "@/components/marketing/SubscribeLink";
 import { WaitlistButton } from "@/components/marketing/WaitlistButton";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Badge, buttonClasses, Icon } from "@/components/ui";
 import { PLANS, SALE_PLANS, type Plan } from "@/lib/plans";
+import { siteUrl } from "@/lib/redirect";
+import { buildSoftwareApplicationSchema } from "@/lib/seo";
 import { isBillingEnabled } from "@/lib/stripe";
 
 // Whether billing is on depends on the environment at request time, not at build time.
@@ -19,6 +22,7 @@ export const metadata: Metadata = {
   title: "Planos",
   description:
     "Comece grátis sem cartão. Conheça os planos Grátis e Pro do linkmural, com 50% de desconto de lançamento.",
+  alternates: { canonical: `${siteUrl()}/planos` },
 };
 
 const FEATURES: Record<Plan, string[]> = {
@@ -50,35 +54,9 @@ export default function PlanosPage() {
   const billingEnabled = isBillingEnabled();
 
   return (
-    <div className="flex min-h-dvh flex-col bg-paper text-ink">
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-5 py-5 sm:px-8">
-        <Link href="/" aria-label="linkmural, página inicial">
-          <Image
-            src="/brand/linkmural-logo.svg"
-            alt="Linkmural"
-            width={154}
-            height={24}
-            priority
-          />
-        </Link>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/entrar"
-            className={buttonClasses({ variant: "ghost", size: "md" })}
-          >
-            Entrar
-          </Link>
-          <Link
-            href="/cadastro"
-            className={buttonClasses({ variant: "primary", size: "md" })}
-          >
-            Criar grátis
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-5 pt-6 pb-20 sm:px-8">
-        <div className="flex flex-col items-center gap-3 text-center">
+    <MarketingChrome>
+      <JsonLd data={buildSoftwareApplicationSchema(siteUrl())} />
+      <div className="flex flex-col items-center gap-3 text-center">
           <Badge variant="neutral" dot="positive">
             Comece grátis, sem cartão
           </Badge>
@@ -165,7 +143,6 @@ export default function PlanosPage() {
             })}
           </section>
         </BillingIntervalProvider>
-      </main>
-    </div>
+    </MarketingChrome>
   );
 }

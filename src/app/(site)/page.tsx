@@ -3,9 +3,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { FeatureBentoAnimations } from "@/components/landing/FeatureBentoAnimations";
 import { HeroShowcase } from "@/components/landing/HeroShowcase";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Alert, Badge, buttonClasses, Icon } from "@/components/ui";
 import { PLANS, formatBrl, monthlyEquivalent } from "@/lib/plans";
 import { siteUrl } from "@/lib/redirect";
+import {
+  buildFaqPageSchema,
+  buildOrganizationSchema,
+  buildSoftwareApplicationSchema,
+} from "@/lib/seo";
 import { isBillingEnabled } from "@/lib/stripe";
 import { STYLE_KEYS, STYLES } from "@/lib/styles";
 
@@ -92,8 +98,13 @@ export default async function Home({
   const studioYearlyTotal = formatBrl(PLANS.business.price.yearly);
   const studioMonthly = formatBrl(PLANS.business.price.monthly);
 
+  const base = siteUrl();
+
   return (
     <div className="flex min-h-dvh flex-col bg-paper text-ink">
+      <JsonLd data={buildOrganizationSchema(base)} />
+      <JsonLd data={buildSoftwareApplicationSchema(base)} />
+      <JsonLd data={buildFaqPageSchema(FAQS)} />
       {/* ===================================================================== */}
       {/* 1. 100VH FULL-BLEED HERO                                              */}
       {/* ===================================================================== */}
@@ -580,6 +591,15 @@ export default async function Home({
           </a>
           <Link href="/planos" className="hover:text-ink">
             Planos
+          </Link>
+          <Link href="/comparar" className="hover:text-ink">
+            Comparar
+          </Link>
+          <Link href="/para" className="hover:text-ink">
+            Nichos
+          </Link>
+          <Link href="/ferramentas/gerador-de-utm" className="hover:text-ink">
+            Gerador de UTM
           </Link>
           <Link href="/termos" className="hover:text-ink">
             Termos

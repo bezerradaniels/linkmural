@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { PublicPageView } from "@/components/public-page/PublicPageView";
 import { getPublicPage, isSlugBlocked } from "@/lib/public-page";
 import { siteUrl } from "@/lib/redirect";
+import { isEmptyPublicPage } from "@/lib/seo";
 
 // Rendered on first visit, then cached (ISR). The data itself is cached per
 // page tag and refreshed with revalidateTag when the owner saves.
@@ -29,6 +30,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: name,
     description,
     alternates: { canonical: url },
+    ...(isEmptyPublicPage(page)
+      ? { robots: { index: false, follow: true } }
+      : {}),
     openGraph: {
       title: `${name} · linkmural`,
       description,
