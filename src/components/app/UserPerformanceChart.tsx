@@ -328,7 +328,7 @@ export function UserPerformanceChart({
         </svg>
       </div>
 
-      {/* Bottom Dual Action Buttons (matching dark "Sell" + lime "Buy" from Screen 3) */}
+      {/* Bottom Dual Action Buttons */}
       <div className="grid grid-cols-2 gap-2.5 pt-1">
         <Link
           href="/app/pagina"
@@ -339,11 +339,11 @@ export function UserPerformanceChart({
         </Link>
 
         <Link
-          href="/app/aparencia"
+          href="/editor"
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-lime px-4 text-small font-semibold text-on-lime transition-all hover:bg-lime-strong active:scale-[0.98]"
         >
-          <span>Aparência</span>
-          <Icon name="palette" size={15} />
+          <span>Editor visual</span>
+          <Icon name="edit" size={15} />
         </Link>
       </div>
     </section>

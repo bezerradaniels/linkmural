@@ -76,6 +76,12 @@ export const themeSchema = z.object({
   cardFill: z.enum(["solid", "outline", "tint", "accent"]).optional(), // Pro+
   radius: z.number().min(RADIUS.min).max(RADIUS.max).optional(), // Pro+
   iconColor: z.enum(["brand", "style"]).optional(), // all plans
+  gridMobileCols: z.union([z.literal(2), z.literal(4)]).optional(),
+  gridDesktopCols: z.union([z.literal(4), z.literal(6)]).optional(),
+  showIconLabels: z.boolean().optional(),
+  showSubtitles: z.boolean().optional(),
+  bgBlur: z.number().min(0).max(24).optional(),
+  bgOpacity: z.number().min(20).max(100).optional(),
 });
 
 export type Theme = z.infer<typeof themeSchema>;
@@ -114,6 +120,10 @@ export type ResolvedTheme = {
   iconColor: "brand" | "style";
   /** True when the owner's plan allows Bento resizing (1x1 / 2x2). */
   allowBentoResize: boolean;
+  gridMobileCols: 2 | 4;
+  gridDesktopCols: 4 | 6;
+  showIconLabels: boolean;
+  showSubtitles: boolean;
   /** CSS custom properties for the page root. */
   vars: Record<`--${string}`, string>;
 };
@@ -281,6 +291,10 @@ export function resolveTheme(
     radius,
     iconColor,
     allowBentoResize: paid,
+    gridMobileCols: theme.gridMobileCols ?? 2,
+    gridDesktopCols: theme.gridDesktopCols ?? 4,
+    showIconLabels: theme.showIconLabels ?? true,
+    showSubtitles: theme.showSubtitles ?? true,
     vars: {
       "--bg": palette.bg,
       "--surface": palette.surface,
@@ -342,32 +356,41 @@ function cardColors(p: Palette, fill: CardFill, effect: CardEffect) {
         iconBg: p.soft,
         iconInk: p.ink,
       };
-    case "tint":
+    case "tint": {
+      const tintBg = mix(p.bg, p.accent, 0.14);
+      const darkTint = luminance(tintBg) < 0.35;
       return {
-        bg: mix(p.bg, p.accent, 0.14),
+        bg: tintBg,
         border: "transparent",
         ink: p.ink,
-        muted: ensureContrast(p.muted, [mix(p.bg, p.accent, 0.14)], p.ink),
-        iconBg: mix(p.bg, p.accent, 0.3),
-        iconInk: p.ink,
+        muted: ensureContrast(p.muted, [tintBg], p.ink),
+        iconBg: darkTint ? "rgba(255, 255, 255, 0.92)" : "#FFFFFF",
+        iconInk: "#111111",
       };
+    }
     case "accent":
       return {
         bg: p.accent,
         border: "transparent",
         ink: p.onAccent,
         muted: p.onAccent,
-        iconBg: mix(p.accent, p.onAccent, 0.14),
-        iconInk: p.onAccent,
+        iconBg: "#FFFFFF",
+        iconInk: "#111111",
       };
-    default:
+    default: {
+      const darkSurface = luminance(p.surface) < 0.35;
       return {
         bg: p.surface,
         border: contrast(p.surface, p.bg) < 1.08 ? p.line : "transparent",
         ink: p.ink,
         muted: p.muted,
-        iconBg: p.soft,
+        iconBg: darkSurface
+          ? "rgba(255, 255, 255, 0.14)"
+          : luminance(p.surface) > 0.94
+            ? "#F2F2EE"
+            : "#FFFFFF",
         iconInk: p.ink,
       };
+    }
   }
 }

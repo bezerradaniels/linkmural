@@ -2,6 +2,10 @@
 import type { CSSProperties, ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { IconName } from "@/components/ui/icons";
+import {
+  SUPPORT_PALETTE,
+  type SupportColorId,
+} from "@/lib/editor/types";
 import { brandColor, resolveIcon } from "@/lib/icons";
 import { linkHref, type PageModel } from "@/lib/public-actions";
 import type { PublicLink, PublicPage } from "@/lib/public-page";
@@ -16,6 +20,7 @@ import type { ResolvedTheme } from "@/lib/theme";
 import {
   GalleryCarousel,
   PixCopyButton,
+  PublicStackCarousel,
   ReportButton,
   StatusPill,
   VisitBeacon,
@@ -333,9 +338,17 @@ const cardBase =
   "transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99]";
 
 const iconBox =
-  "grid size-(--card-icon) shrink-0 place-items-center rounded-(--card-icon-r) bg-(--card-icon-bg) text-(--card-icon-ink)";
+  "grid size-(--card-icon) shrink-0 place-items-center rounded-(--card-icon-r) bg-(--card-icon-bg) text-(--card-icon-ink) shadow-[0_1px_3px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06]";
 
-function CardText({ link, lines = 1 }: { link: PublicLink; lines?: 1 | 2 }) {
+function CardText({
+  link,
+  lines = 1,
+  showSubtitle = true,
+}: {
+  link: PublicLink;
+  lines?: 1 | 2;
+  showSubtitle?: boolean;
+}) {
   return (
     <span className="flex min-w-0 flex-1 flex-col gap-0.5 text-left">
       <span
@@ -343,7 +356,7 @@ function CardText({ link, lines = 1 }: { link: PublicLink; lines?: 1 | 2 }) {
       >
         {link.title}
       </span>
-      {link.subtitle && (
+      {showSubtitle && link.subtitle && (
         <span className="truncate text-(length:--card-sub) leading-snug text-(--card-muted)">
           {link.subtitle}
         </span>
@@ -372,6 +385,84 @@ export function BentoLinkCard({
       ? rawSize
       : "2x1";
   const fx = effectClasses(theme.cardEffect);
+
+  const rawData =
+    link.data && typeof link.data === "object" && !Array.isArray(link.data)
+      ? (link.data as Record<string, unknown>)
+      : {};
+
+  // Support Palette color override from Visual Editor
+  const colorId =
+    typeof rawData.colorId === "string" && rawData.colorId in SUPPORT_PALETTE
+      ? (rawData.colorId as SupportColorId)
+      : "default";
+  const swatch = colorId !== "default" ? SUPPORT_PALETTE[colorId] : null;
+  const cardColorVars = swatch
+    ? ({
+        "--card-bg": swatch.bg,
+        "--card-ink": swatch.ink,
+        "--card-muted": swatch.muted,
+        "--card-icon-bg": swatch.iconBg,
+        "--card-icon-ink": swatch.iconInk,
+        "--card-border": "transparent",
+      } as CSSProperties)
+    : undefined;
+
+  // Dynamic span in 2-col or 4-col mobile grids
+  const gridCols = theme.gridMobileCols;
+  const rawLayoutMob =
+    rawData.layout &&
+    typeof rawData.layout === "object" &&
+    (rawData.layout as Record<string, unknown>).mobile &&
+    typeof (rawData.layout as Record<string, unknown>).mobile === "object"
+      ? ((rawData.layout as Record<string, unknown>).mobile as Record<
+          string,
+          unknown
+        >)
+      : null;
+
+  const spanClass = (() => {
+    if (!theme.allowBentoResize) {
+      return gridCols === 4 ? "col-span-4" : "col-span-2";
+    }
+    const cSpan = rawLayoutMob?.colSpan;
+    if (gridCols === 4) {
+      if (cSpan === 4) return "col-span-4";
+      if (cSpan === 2) return "col-span-2";
+      if (cSpan === 1 || resolvedSize === "1x1") return "col-span-1";
+      return "col-span-4";
+    }
+    return resolvedSize === "1x1" || cSpan === 1 ? "col-span-1" : "col-span-2";
+  })();
+
+  // Widget Stack (2+ items inside a single node)
+  const extraStack = Array.isArray(rawData.stackItems) ? rawData.stackItems : [];
+  if (extraStack.length > 0) {
+    const slides = [
+      {
+        id: link.id,
+        title: link.title,
+        subtitle: theme.showSubtitles ? (link.subtitle ?? undefined) : undefined,
+        href: linkHref(link),
+      },
+      ...extraStack
+        .filter((s): s is Record<string, unknown> => Boolean(s && typeof s === "object"))
+        .map((s, idx) => ({
+          id: typeof s.id === "string" ? s.id : `${link.id}-${idx}`,
+          title: typeof s.title === "string" ? s.title : "Link",
+          subtitle:
+            theme.showSubtitles && typeof s.subtitle === "string"
+              ? s.subtitle
+              : undefined,
+          href: typeof s.url === "string" ? s.url : linkHref(link),
+        })),
+    ];
+    return (
+      <div className={spanClass} style={cardColorVars}>
+        <PublicStackCarousel slides={slides} />
+      </div>
+    );
+  }
 
   // Studio rich blocks: Gallery (Carrossel), YouTube Video, and Service Card
   if (link.kind === "gallery") {
@@ -483,9 +574,9 @@ export function BentoLinkCard({
     );
   }
 
-  if (resolvedSize === "1x1") {
-    const tileCls = `col-span-1 flex min-h-[126px] flex-col justify-between rounded-(--r) border border-(--card-border) bg-(--card-bg) p-(--card-px) text-(--card-ink) no-underline transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99] ${fx}`;
-    const inner = (
+  if (resolvedSize === "1x1" || spanClass === "col-span-1") {
+    const tileCls = `${spanClass} flex min-h-[112px] flex-col justify-between rounded-(--r) border border-(--card-border) bg-(--card-bg) p-(--card-px) text-(--card-ink) no-underline transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99] ${fx}`;
+    const inner = theme.showIconLabels ? (
       <>
         <div className="flex w-full items-start justify-between gap-2">
           <span className={iconBox}>
@@ -498,8 +589,18 @@ export function BentoLinkCard({
             className="mt-1 shrink-0 opacity-55"
           />
         </div>
-        <CardText link={link} lines={2} />
+        <CardText
+          link={link}
+          lines={2}
+          showSubtitle={theme.showSubtitles}
+        />
       </>
+    ) : (
+      <div className="grid size-full place-items-center py-2">
+        <span className={iconBox}>
+          <LinkIcon link={link} theme={theme} />
+        </span>
+      </div>
     );
 
     if (link.kind === "pix") {
@@ -519,8 +620,10 @@ export function BentoLinkCard({
       <a
         href={linkHref(link)}
         rel="nofollow noopener"
+        aria-label={!theme.showIconLabels ? link.title : undefined}
         data-lm-link-title={link.title}
         data-lm-link-kind={link.kind}
+        style={cardColorVars}
         className={tileCls}
       >
         {inner}
@@ -529,7 +632,7 @@ export function BentoLinkCard({
   }
 
   if (resolvedSize === "2x2") {
-    const bigCls = `col-span-2 flex min-h-[152px] flex-col justify-between gap-4 rounded-(--r-big) border border-(--card-border) bg-(--card-bg) p-5 text-(--card-ink) no-underline transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99] ${fx}`;
+    const bigCls = `${spanClass} flex min-h-[152px] flex-col justify-between gap-4 rounded-(--r-big) border border-(--card-border) bg-(--card-bg) p-5 text-(--card-ink) no-underline transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] active:scale-[0.99] ${fx}`;
     const inner = (
       <>
         <div className="flex w-full items-center justify-between gap-2">
@@ -548,7 +651,7 @@ export function BentoLinkCard({
           <span className="text-[19px] leading-tight font-bold">
             {link.title}
           </span>
-          {link.subtitle && (
+          {theme.showSubtitles && link.subtitle && (
             <span className="text-[13px] leading-snug text-(--card-muted)">
               {link.subtitle}
             </span>
@@ -576,6 +679,7 @@ export function BentoLinkCard({
         rel="nofollow noopener"
         data-lm-link-title={link.title}
         data-lm-link-kind={link.kind}
+        style={cardColorVars}
         className={bigCls}
       >
         {inner}
@@ -584,13 +688,13 @@ export function BentoLinkCard({
   }
 
   // Default 2x1 bar: logo/icon + CTA + arrow
-  const barCls = `col-span-2 ${cardBase} ${fx}`;
+  const barCls = `${spanClass} ${cardBase} ${fx}`;
   const inner = (
     <>
       <span className={iconBox}>
         <LinkIcon link={link} theme={theme} />
       </span>
-      <CardText link={link} />
+      <CardText link={link} showSubtitle={theme.showSubtitles} />
     </>
   );
   if (link.kind === "pix") {
@@ -612,6 +716,7 @@ export function BentoLinkCard({
       rel="nofollow noopener"
       data-lm-link-title={link.title}
       data-lm-link-kind={link.kind}
+      style={cardColorVars}
       className={`${barCls} group`}
     >
       {inner}

@@ -1230,6 +1230,16 @@ export function EmpresasTable({
             }}
             className="animate-pop-in fixed z-50 flex w-48 flex-col gap-0.5 rounded-2xl border border-line bg-surface p-1.5 text-left shadow-lg"
           >
+            {menuRow.page_id && (
+              <Link
+                href={`/editor/${menuRow.page_id}`}
+                onClick={() => setOpenMenu(null)}
+                className="flex min-h-9 items-center rounded-xl px-3 text-caption font-medium text-ink hover:bg-hover"
+              >
+                Abrir no Editor Visual
+              </Link>
+            )}
+
             {menuRow.slug && (
               <Link
                 href={`/${menuRow.slug}`}

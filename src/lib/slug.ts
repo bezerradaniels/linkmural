@@ -38,7 +38,7 @@ export function finalizeSlug(raw: string): string {
 
 /** Rules: 3–30 chars, lowercase letters/digits/hyphen, no `--`, no leading/trailing `-`. */
 export function isValidSlug(slug: string): boolean {
-  return SLUG_RE.test(slug) && !slug.includes("--");
+  return SLUG_RE.test(slug) && !slug.includes("--") && slug !== "editor";
 }
 
 export const slugSchema = z

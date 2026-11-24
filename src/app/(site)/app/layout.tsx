@@ -17,6 +17,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <AppShell
+      pageId={page.id}
       businessName={page.business_name}
       slug={page.slug}
       avatarUrl={mediaUrl(page.avatar_path)}

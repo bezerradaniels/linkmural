@@ -57,6 +57,7 @@ function isActivePath(pathname: string, href: string) {
 }
 
 export function AppShell({
+  pageId,
   businessName,
   slug,
   avatarUrl,
@@ -67,6 +68,7 @@ export function AppShell({
   isAdmin = false,
   children,
 }: {
+  pageId?: string;
   businessName: string;
   slug: string;
   avatarUrl: string | null;
@@ -79,6 +81,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const isFullPreview = pathname === "/app/previa";
+  const editorHref = pageId ? `/editor/${pageId}` : "/editor";
 
   if (isFullPreview) {
     return <ToastProvider>{children}</ToastProvider>;
@@ -122,6 +125,15 @@ export function AppShell({
                   {published ? "No ar" : "Rascunho"}
                 </span>
               </div>
+
+              {/* Primary Isolated Editor Entry Point */}
+              <Link
+                href={editorHref}
+                className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-ink px-4 text-small font-semibold text-lime shadow-sm transition-transform hover:-translate-y-0.5 active:scale-[0.98]"
+              >
+                <Icon name="edit" size={16} />
+                <span>Editar mural</span>
+              </Link>
 
               <nav aria-label="Menu do painel" className="flex flex-col gap-1">
                 {DESKTOP_NAV.map((item) => {
@@ -270,19 +282,15 @@ export function AppShell({
                 );
               })}
 
-              {/* Center Elevated Dark Circle Button (Links) */}
+              {/* Center Elevated Dark Circle Button -> Full-Screen Visual Editor */}
               <div className="flex justify-center">
                 <Link
-                  href="/app/pagina"
-                  aria-label="Meus links"
+                  href={editorHref}
+                  aria-label="Editar mural"
                   aria-current={centerActive ? "page" : undefined}
-                  className={`-mt-6 inline-grid size-13 place-items-center rounded-full shadow-md transition-transform active:scale-95 ${
-                    centerActive
-                      ? "bg-lime text-on-lime ring-4 ring-surface"
-                      : "bg-ink text-lime ring-4 ring-surface"
-                  }`}
+                  className="-mt-6 inline-grid size-13 place-items-center rounded-full bg-ink text-lime shadow-md ring-4 ring-surface transition-transform active:scale-95"
                 >
-                  <Icon name="link" size={21} />
+                  <Icon name="edit" size={20} />
                 </Link>
               </div>
 

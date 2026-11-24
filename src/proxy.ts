@@ -5,7 +5,14 @@ import { updateSession } from "@/utils/supabase/proxy";
 // No Next.js 16 o antigo "middleware" se chama "proxy".
 
 /** Routes that use the login session. Public pages skip it (docs/HANDOFF.md §4). */
-const SESSION_PREFIXES = ["/app", "/onboarding", "/admin", "/entrar", "/auth"];
+const SESSION_PREFIXES = [
+  "/app",
+  "/editor",
+  "/onboarding",
+  "/admin",
+  "/entrar",
+  "/auth",
+];
 
 const ORIGIN_COOKIE = "lm_origin";
 const UTM_KEYS = [

@@ -157,7 +157,11 @@ export function Balcao({ page, model, theme, pageUrl }: TemplateProps) {
         {model.links.length > 0 && (
           <>
             <SectionHeader count={model.links.length} />
-            <div className="grid grid-flow-dense grid-cols-2 gap-(--card-gap)">
+            <div
+              className={`grid grid-flow-dense gap-(--card-gap) ${
+                theme.gridMobileCols === 4 ? "grid-cols-4" : "grid-cols-2"
+              }`}
+            >
               {model.links.map((link) => (
                 <BentoLinkCard
                   key={link.id}
@@ -264,12 +268,18 @@ export function Mosaico({ page, model, theme, pageUrl }: TemplateProps) {
           )}
         </div>
 
-        <div className="grid grid-flow-dense grid-cols-2 gap-(--card-gap) px-6 pt-5">
+        <div
+          className={`grid grid-flow-dense gap-(--card-gap) px-6 pt-5 ${
+            theme.gridMobileCols === 4 ? "grid-cols-4" : "grid-cols-2"
+          }`}
+        >
           {model.featured && (
             <a
               href={linkHref(model.featured)}
               rel="nofollow noopener"
-              className="relative col-span-2 flex items-center gap-3.5 rounded-(--r-big) bg-(--ink) p-[18px] text-(--bg) no-underline transition-transform duration-200 ease-out hover:-translate-y-0.5 active:scale-[0.99]"
+              className={`relative flex items-center gap-3.5 rounded-(--r-big) bg-(--ink) p-[18px] text-(--bg) no-underline transition-transform duration-200 ease-out hover:-translate-y-0.5 active:scale-[0.99] ${
+                theme.gridMobileCols === 4 ? "col-span-4" : "col-span-2"
+              }`}
             >
               <Pin />
               <span className="grid size-12 shrink-0 place-items-center rounded-full bg-(--accent) text-(--on-accent)">
@@ -480,7 +490,11 @@ export function Cartao({ page, model, theme, pageUrl }: TemplateProps) {
         {model.links.length > 0 && (
           <>
             <SectionHeader count={model.links.length} />
-            <div className="grid grid-flow-dense grid-cols-2 gap-(--card-gap)">
+            <div
+              className={`grid grid-flow-dense gap-(--card-gap) ${
+                theme.gridMobileCols === 4 ? "grid-cols-4" : "grid-cols-2"
+              }`}
+            >
               {model.links.map((link) => (
                 <BentoLinkCard
                   key={link.id}

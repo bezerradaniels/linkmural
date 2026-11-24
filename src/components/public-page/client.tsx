@@ -493,6 +493,89 @@ export function GalleryCarousel({
   );
 }
 
+/** Swipeable Widget Stack for public pages (Spec §6). */
+export function PublicStackCarousel({
+  slides,
+  className = "",
+}: {
+  slides: {
+    id: string;
+    title: string;
+    subtitle?: string;
+    href: string;
+  }[];
+  className?: string;
+}) {
+  const [idx, setIdx] = useState(0);
+  const startXRef = useRef<number | null>(null);
+  const count = slides.length;
+  const active = slides[idx] ?? slides[0];
+  if (!active) return null;
+
+  function step(delta: number) {
+    setIdx((cur) => (cur + delta + count) % count);
+  }
+
+  return (
+    <div
+      className={`relative select-none ${className}`}
+      onPointerDown={(e) => {
+        startXRef.current = e.clientX;
+      }}
+      onPointerUp={(e) => {
+        if (startXRef.current === null) return;
+        const dx = e.clientX - startXRef.current;
+        startXRef.current = null;
+        if (Math.abs(dx) > 36) {
+          step(dx < 0 ? 1 : -1);
+        }
+      }}
+    >
+      <a
+        href={active.href}
+        rel="nofollow noopener"
+        data-lm-link-title={active.title}
+        data-lm-link-kind="stack"
+        className="flex min-h-[104px] flex-col justify-between gap-3 rounded-(--r) border border-(--card-border) bg-(--card-bg) px-(--card-px) py-(--card-py) text-(--card-ink) no-underline transition-transform duration-200 hover:-translate-y-0.5"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <span className="rounded-full bg-(--card-icon-bg) px-2.5 py-0.5 text-[11px] font-semibold text-(--card-ink)">
+            Pilha · {idx + 1}/{count}
+          </span>
+          <Icon name="arrow" size={16} strokeWidth={2} className="opacity-70" />
+        </div>
+
+        <div className="flex flex-col gap-0.5 text-left">
+          <span className="truncate text-(length:--card-title) leading-tight font-semibold">
+            {active.title}
+          </span>
+          {active.subtitle && (
+            <span className="truncate text-(length:--card-sub) text-(--card-muted)">
+              {active.subtitle}
+            </span>
+          )}
+        </div>
+      </a>
+
+      {count > 1 && (
+        <div className="mt-1.5 flex items-center justify-center gap-1.5">
+          {slides.map((s, i) => (
+            <button
+              key={s.id}
+              type="button"
+              aria-label={`Ver item ${i + 1} da pilha`}
+              onClick={() => setIdx(i)}
+              className={`h-1.5 cursor-pointer rounded-full border-0 transition-all ${
+                i === idx ? "w-4 bg-(--ink)" : "w-1.5 bg-(--line)"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const REASONS = [
   { value: "golpe", label: "Golpe ou fraude" },
   { value: "spam", label: "Spam" },

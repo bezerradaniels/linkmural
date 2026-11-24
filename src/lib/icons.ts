@@ -160,7 +160,7 @@ export function brandColor(
   iconColor: "brand" | "style",
 ): string {
   if (icon.type !== "brand" || iconColor === "style" || icon.mono)
-    return "var(--ink)";
+    return "currentColor";
   return icon.hex;
 }
 

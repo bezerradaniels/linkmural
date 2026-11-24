@@ -172,18 +172,30 @@ export function UserHeroCard({
             )}
           </div>
 
-          {/* Translucent Action Dock (matching Deposit / Withdraw / Transfer) */}
-          <div className="relative grid grid-cols-3 gap-2 rounded-2xl bg-white/[0.07] p-2 sm:flex sm:items-center sm:justify-between">
+          {/* Translucent Action Dock with primary "Editar" entry point */}
+          <div className="relative grid grid-cols-4 gap-1.5 rounded-2xl bg-white/[0.07] p-2 sm:flex sm:items-center sm:justify-between sm:gap-2">
+            <Link
+              href={`/editor/${pageId}`}
+              className="group flex min-h-14 flex-col items-center justify-center gap-1.5 rounded-xl bg-lime/12 px-2 py-2 no-underline transition-all hover:bg-lime/20 active:scale-[0.97] sm:flex-1 sm:flex-row sm:gap-2.5"
+            >
+              <span className="inline-grid size-9 place-items-center rounded-full bg-lime text-on-lime shadow-sm transition-transform group-hover:scale-105">
+                <Icon name="edit" size={16} />
+              </span>
+              <span className="text-caption font-bold text-lime">
+                Editar
+              </span>
+            </Link>
+
             <button
               type="button"
               onClick={handleCopy}
               className="group flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl px-2 py-2 transition-all hover:bg-white/10 active:scale-[0.97] sm:flex-1 sm:flex-row sm:gap-2.5"
             >
-              <span className="inline-grid size-9 place-items-center rounded-full bg-lime text-on-lime shadow-sm transition-transform group-hover:scale-105">
+              <span className="inline-grid size-9 place-items-center rounded-full bg-white/14 text-paper shadow-sm transition-transform group-hover:scale-105">
                 <Icon name="copy" size={16} />
               </span>
               <span className="text-caption font-semibold text-paper">
-                Copiar link
+                Copiar
               </span>
             </button>
 
