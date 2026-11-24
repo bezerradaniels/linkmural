@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light only" />
+    <meta name="supported-color-schemes" content="light only" />
+    <title>Bem-vindo ao Linkmural</title>
+  </head>
+  <body style="margin:0;padding:0;background:#F4F4EF;">
+    <!-- Texto de pré-visualização na caixa de entrada -->
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;font-size:1px;line-height:1px;">
+      Confirme seu e-mail para criar sua página. É só um toque.
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F4F4EF;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;background:#FFFFFF;border:1px solid #E2E2DC;border-radius:24px;">
+            <tr>
+              <td style="padding:32px;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:#0E0E0E;">
+                <p style="margin:0 0 8px;font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:#6B6B66;">linkmural</p>
+                <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25;font-weight:700;color:#0E0E0E;">Bem-vindo ao Linkmural</h1>
+                <p style="margin:0 0 24px;font-size:15px;line-height:1.5;color:#6B6B66;">
+                  Falta só confirmar que <strong style="color:#0E0E0E;">{{ .Email }}</strong> é seu.
+                  Toque no botão abaixo para entrar e criar a página do seu negócio. Sem senha para lembrar.
+                </p>
+
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 24px;">
+                  <tr>
+                    <td align="center" bgcolor="#CDF54A" style="background:#CDF54A;border-radius:999px;">
+                      <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;min-height:20px;padding:14px 32px;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:16px;font-weight:700;line-height:20px;color:#0E0E0E;text-decoration:none;border-radius:999px;">
+                        Confirmar e entrar
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+
+                <p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:#6B6B66;">
+                  O botão não abre? Copie este endereço e cole no navegador:
+                </p>
+                <p style="margin:0 0 24px;padding:12px 14px;background:#F4F4EF;border-radius:12px;font-size:12px;line-height:1.5;color:#0E0E0E;word-break:break-all;">
+                  <a href="{{ .ConfirmationURL }}" target="_blank" style="color:#0E0E0E;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                </p>
+
+                <p style="margin:0;padding-top:20px;border-top:1px solid #E2E2DC;font-size:13px;line-height:1.5;color:#6B6B66;">
+                  Este link expira em pouco tempo e só funciona uma vez. Se você não criou uma conta no Linkmural, ignore este e-mail: nada será criado sem a sua confirmação.
+                </p>
+              </td>
+            </tr>
+          </table>
+
+          <p style="margin:16px 0 0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:12px;line-height:1.5;color:#6B6B66;text-align:center;">
+            Linkmural &middot; <a href="https://linkmural.com" target="_blank" style="color:#6B6B66;text-decoration:underline;">linkmural.com</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
