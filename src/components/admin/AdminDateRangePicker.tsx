@@ -322,13 +322,13 @@ export function AdminDateRangePicker({ todayIso }: { todayIso: string }) {
 
   return (
     <div ref={containerRef} className="relative">
-      {/* Trigger Pill (Meta Ads style) */}
+      {/* Trigger Pill */}
       <button
         type="button"
         onClick={handleOpenToggle}
         aria-expanded={open}
         aria-haspopup="dialog"
-        className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-pill border border-line bg-paper px-3.5 text-small font-medium text-ink transition-colors hover:border-line-strong hover:bg-hover"
+        className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-[#D0D5DD] bg-white px-3 text-[12px] font-medium text-[#344054] shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition-colors hover:bg-[#F9FAFB]"
       >
         <svg
           viewBox="0 0 24 24"

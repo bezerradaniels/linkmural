@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
+import { Figtree } from "next/font/google";
 import { AdminShell } from "@/components/admin/AdminNav";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient } from "@/utils/supabase/admin";
+
+const figtree = Figtree({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -58,14 +65,16 @@ export default async function AdminLayout({
   ]);
 
   return (
-    <AdminShell
-      email={email}
-      fullName={profileRes.data?.full_name ?? null}
-      openReportsCount={openReportsRes.count ?? 0}
-      greeting={greeting}
-      todayIso={todayIso}
-    >
-      {children}
-    </AdminShell>
+    <div className={`${figtree.className} font-medium`}>
+      <AdminShell
+        email={email}
+        fullName={profileRes.data?.full_name ?? null}
+        openReportsCount={openReportsRes.count ?? 0}
+        greeting={greeting}
+        todayIso={todayIso}
+      >
+        {children}
+      </AdminShell>
+    </div>
   );
 }

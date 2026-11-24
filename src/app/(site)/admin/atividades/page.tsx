@@ -50,22 +50,27 @@ export default async function AdminAtividadesPage() {
   const emails = emailsRes.data ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3">
       <div>
-        <h1 className="font-display text-display-md tracking-[-0.03em]">
+        <h1 className="text-[24px] font-bold tracking-tight text-[#101828]">
           Atividades
         </h1>
-        <p className="text-small text-ink-muted">
+        <p className="mt-0.5 text-[15px] font-medium text-[#667085]">
           Registro de ações administrativas e histórico de e-mails automáticos
           disparados.
         </p>
       </div>
 
       {/* Admin audit log */}
-      <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-5">
-        <h2 className="font-display text-title tracking-[-0.02em]">
-          Ações do admin ({actions.length})
-        </h2>
+      <section className="flex flex-col gap-2.5 rounded-[10px] border border-[#EAECF0] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-[17px] font-semibold text-[#101828]">
+            Ações do admin
+          </h2>
+          <span className="inline-flex h-5 items-center rounded-md bg-[#EEF0FF] px-2 text-[12px] leading-none font-semibold text-[#5B4FE9]">
+            {actions.length}
+          </span>
+        </div>
 
         {actions.length === 0 ? (
           <EmptyState
@@ -74,7 +79,7 @@ export default async function AdminAtividadesPage() {
             text="Suspensões, bloqueios e resoluções de denúncias aparecem aqui com data e responsável."
           />
         ) : (
-          <div className="divide-y divide-line">
+          <div className="divide-y divide-[#F2F4F7]">
             {actions.map((row) => {
               const prof = Array.isArray(row.profiles)
                 ? row.profiles[0]
@@ -82,20 +87,20 @@ export default async function AdminAtividadesPage() {
               return (
                 <div
                   key={row.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-3 text-small"
+                  className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-[14px]"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold text-ink">
+                    <p className="font-semibold text-[#101828]">
                       {ACTION_LABELS[row.action] ?? row.action}{" "}
-                      <span className="font-normal text-ink-muted">
+                      <span className="font-medium text-[#667085]">
                         ({row.target_type}: <code>{row.target_id}</code>)
                       </span>
                     </p>
-                    <p className="text-caption text-ink-muted">
+                    <p className="text-[13px] text-[#667085]">
                       Por {prof?.email ?? "admin removido"}
                     </p>
                   </div>
-                  <span className="text-caption text-ink-muted">
+                  <span className="text-[13px] text-[#667085] tabular-nums">
                     {formatDateTime(row.created_at)}
                   </span>
                 </div>
@@ -106,10 +111,15 @@ export default async function AdminAtividadesPage() {
       </section>
 
       {/* Lifecycle emails sent */}
-      <section className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-5">
-        <h2 className="font-display text-title tracking-[-0.02em]">
-          E-mails automáticos enviados ({emails.length})
-        </h2>
+      <section className="flex flex-col gap-2.5 rounded-[10px] border border-[#EAECF0] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-[17px] font-semibold text-[#101828]">
+            E-mails automáticos enviados
+          </h2>
+          <span className="inline-flex h-5 items-center rounded-md bg-[#EEF0FF] px-2 text-[12px] leading-none font-semibold text-[#5B4FE9]">
+            {emails.length}
+          </span>
+        </div>
 
         {emails.length === 0 ? (
           <EmptyState
@@ -118,7 +128,7 @@ export default async function AdminAtividadesPage() {
             text="Os disparos de onboarding, dicas e renovação aparecerão aqui conforme forem enviados."
           />
         ) : (
-          <div className="divide-y divide-line">
+          <div className="divide-y divide-[#F2F4F7]">
             {emails.map((row) => {
               const prof = Array.isArray(row.profiles)
                 ? row.profiles[0]
@@ -126,17 +136,17 @@ export default async function AdminAtividadesPage() {
               return (
                 <div
                   key={row.id}
-                  className="flex flex-wrap items-center justify-between gap-2 py-3 text-small"
+                  className="flex flex-wrap items-center justify-between gap-2 py-2.5 text-[14px]"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="neutral">
                       {EMAIL_KIND_LABELS[row.kind] ?? row.kind}
                     </Badge>
-                    <span className="text-ink">
+                    <span className="text-[#101828]">
                       {prof?.email ?? "(sem e-mail)"}
                     </span>
                   </div>
-                  <span className="text-caption text-ink-muted">
+                  <span className="text-[13px] text-[#667085] tabular-nums">
                     {formatDateTime(row.sent_at)}
                   </span>
                 </div>

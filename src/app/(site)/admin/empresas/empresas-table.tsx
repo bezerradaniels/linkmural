@@ -482,134 +482,129 @@ export function EmpresasTable({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-3">
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-display-md tracking-[-0.03em] text-ink">
+          <h1 className="text-[24px] font-bold tracking-tight text-[#101828]">
             Empresas
           </h1>
-          <p className="text-small text-ink-muted">
+          <p className="mt-0.5 text-[15px] font-medium text-[#667085]">
             Pesquise contas, acompanhe a saúde das assinaturas e gerencie páginas
             publicadas.
           </p>
         </div>
 
-        <span className="rounded-pill border border-line bg-surface px-3.5 py-1.5 text-caption font-medium text-ink-muted">
+        <span className="inline-flex h-7 items-center rounded-[10px] border border-[#EAECF0] bg-white px-3 text-[13px] font-medium text-[#667085]">
           Mostrando{" "}
-          <strong className="font-semibold text-ink">
+          <strong className="mx-1 font-semibold text-[#101828]">
             {formatMetricNumber(filteredRows.length)}
           </strong>{" "}
           de {formatMetricNumber(rows.length)}
         </span>
       </div>
 
-      {/* Top 6 KPI Cards (matching reference) */}
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      {/* Top 6 KPI Cards */}
+      <section className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
         <button
           type="button"
           onClick={clearAllFilters}
-          className="animate-rise flex cursor-pointer flex-col gap-1.5 rounded-[18px] border border-line/80 bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md active:scale-[0.98]"
+          className="flex cursor-pointer flex-col gap-1 rounded-[10px] border border-[#EAECF0] bg-white p-3 text-left shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition-colors hover:border-[#D0D5DD] hover:bg-[#F9FAFB]"
         >
-          <span className="text-caption font-medium text-ink-muted">
+          <span className="text-[13px] font-medium text-[#667085]">
             Empresas
           </span>
-          <span className="font-display text-display-md leading-none tracking-[-0.03em] text-ink">
+          <span className="text-[22px] leading-none font-bold tracking-tight text-[#101828] tabular-nums">
             {formatMetricNumber(kpis.total)}
           </span>
         </button>
 
         <button
           type="button"
-          style={{ animationDelay: "40ms" }}
           onClick={() =>
             setFilters({ ...INITIAL_FILTERS, subStatus: "active" })
           }
-          className="animate-rise flex cursor-pointer flex-col gap-1.5 rounded-[18px] border border-line/80 bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md active:scale-[0.98]"
+          className="flex cursor-pointer flex-col gap-1 rounded-[10px] border border-[#EAECF0] bg-white p-3 text-left shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition-colors hover:border-[#D0D5DD] hover:bg-[#F9FAFB]"
         >
-          <span className="text-caption font-medium text-ink-muted">
+          <span className="text-[13px] font-medium text-[#667085]">
             Assinantes
           </span>
-          <span className="font-display text-display-md leading-none tracking-[-0.03em] text-positive">
+          <span className="text-[22px] leading-none font-bold tracking-tight text-[#10B981] tabular-nums">
             {formatMetricNumber(kpis.subscribers)}
           </span>
         </button>
 
         <button
           type="button"
-          style={{ animationDelay: "80ms" }}
           onClick={() =>
             setFilters({ ...INITIAL_FILTERS, pageStatus: "suspended" })
           }
-          className="animate-rise flex cursor-pointer flex-col gap-1.5 rounded-[18px] border border-line/80 bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md active:scale-[0.98]"
+          className="flex cursor-pointer flex-col gap-1 rounded-[10px] border border-[#EAECF0] bg-white p-3 text-left shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition-colors hover:border-[#D0D5DD] hover:bg-[#F9FAFB]"
         >
-          <span className="text-caption font-medium text-ink-muted">
+          <span className="text-[13px] font-medium text-[#667085]">
             Pendentes / Susp.
           </span>
-          <span className="font-display text-display-md leading-none tracking-[-0.03em] text-warning">
+          <span className="text-[22px] leading-none font-bold tracking-tight text-[#F59E0B] tabular-nums">
             {formatMetricNumber(kpis.overdue)}
           </span>
         </button>
 
         <button
           type="button"
-          style={{ animationDelay: "120ms" }}
           onClick={() =>
             setFilters({ ...INITIAL_FILTERS, pageStatus: "published" })
           }
-          className="animate-rise flex cursor-pointer flex-col gap-1.5 rounded-[18px] border border-line/80 bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md active:scale-[0.98]"
+          className="flex cursor-pointer flex-col gap-1 rounded-[10px] border border-[#EAECF0] bg-white p-3 text-left shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition-colors hover:border-[#D0D5DD] hover:bg-[#F9FAFB]"
         >
-          <span className="text-caption font-medium text-ink-muted">
+          <span className="text-[13px] font-medium text-[#667085]">
             Publicadas
           </span>
-          <span className="font-display text-display-md leading-none tracking-[-0.03em] text-ink">
+          <span className="text-[22px] leading-none font-bold tracking-tight text-[#5B4FE9] tabular-nums">
             {formatMetricNumber(kpis.published)}
           </span>
         </button>
 
         <button
           type="button"
-          style={{ animationDelay: "160ms" }}
           onClick={() => setFilters({ ...INITIAL_FILTERS, links: "with" })}
-          className="animate-rise flex cursor-pointer flex-col gap-1.5 rounded-[18px] border border-line/80 bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md active:scale-[0.98]"
+          className="flex cursor-pointer flex-col gap-1 rounded-[10px] border border-[#EAECF0] bg-white p-3 text-left shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition-colors hover:border-[#D0D5DD] hover:bg-[#F9FAFB]"
         >
-          <span className="text-caption font-medium text-ink-muted">
+          <span className="text-[13px] font-medium text-[#667085]">
             Com links
           </span>
-          <span className="font-display text-display-md leading-none tracking-[-0.03em] text-ink">
+          <span className="text-[22px] leading-none font-bold tracking-tight text-[#101828] tabular-nums">
             {formatMetricNumber(kpis.withLinks)}
           </span>
         </button>
 
         <button
           type="button"
-          style={{ animationDelay: "200ms" }}
           onClick={() => setFilters({ ...INITIAL_FILTERS, traffic: "with" })}
-          className="animate-rise flex cursor-pointer flex-col gap-1.5 rounded-[18px] border border-line/80 bg-surface p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-md active:scale-[0.98]"
+          className="flex cursor-pointer flex-col gap-1 rounded-[10px] border border-[#EAECF0] bg-white p-3 text-left shadow-[0_1px_2px_rgba(16,24,40,0.03)] transition-colors hover:border-[#D0D5DD] hover:bg-[#F9FAFB]"
         >
-          <span className="text-caption font-medium text-ink-muted">
+          <span className="text-[13px] font-medium text-[#667085]">
             Com visitas (30d)
           </span>
-          <span className="font-display text-display-md leading-none tracking-[-0.03em] text-ink">
+          <span className="text-[22px] leading-none font-bold tracking-tight text-[#101828] tabular-nums">
             {formatMetricNumber(kpis.withTraffic)}
           </span>
         </button>
       </section>
 
       {/* Main Split: Collapsible Filters Sidebar + Data Table Card */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        {/* Left Filters Sidebar (matching reference) */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+        {/* Left Filters Sidebar */}
         {filtersOpen && (
-          <aside className="animate-pop-in w-full shrink-0 rounded-[20px] border border-line/80 bg-surface p-4 shadow-sm lg:w-60">
-            <div className="mb-2 flex items-center justify-between border-b border-line pb-3">
-              <h2 className="font-display text-body font-semibold text-ink">
+          <aside className="w-full shrink-0 rounded-[10px] border border-[#EAECF0] bg-white p-3.5 shadow-[0_1px_2px_rgba(16,24,40,0.03)] lg:w-60">
+            <div className="mb-2 flex items-center justify-between border-b border-[#F2F4F7] pb-2.5">
+              <h2 className="text-[15px] font-semibold text-[#101828]">
                 Filtros
               </h2>
               {activeFiltersCount > 0 && (
                 <button
                   type="button"
                   onClick={clearAllFilters}
-                  className="cursor-pointer text-caption font-semibold text-ink-muted hover:text-ink hover:underline"
+                  className="cursor-pointer text-[13px] font-semibold text-[#5B4FE9] hover:underline"
                 >
                   Limpar ({activeFiltersCount})
                 </button>
@@ -797,13 +792,10 @@ export function EmpresasTable({
         )}
 
         {/* Right Table Card */}
-        <section
-          style={{ animationDelay: "140ms" }}
-          className="animate-rise flex min-w-0 flex-1 flex-col overflow-hidden rounded-[20px] border border-line/80 bg-surface shadow-sm"
-        >
+        <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] border border-[#EAECF0] bg-white shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
           {/* Table Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-4">
-            <div className="flex flex-1 items-center gap-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-[#EAECF0] p-3.5">
+            <div className="flex flex-1 items-center gap-2">
               <button
                 type="button"
                 onClick={() => setFiltersOpen((v) => !v)}
@@ -811,10 +803,10 @@ export function EmpresasTable({
                   filtersOpen ? "Ocultar filtros" : "Mostrar filtros"
                 }
                 title={filtersOpen ? "Ocultar filtros" : "Mostrar filtros"}
-                className={`inline-grid size-10 shrink-0 cursor-pointer place-items-center rounded-xl border transition-colors ${
+                className={`inline-grid size-9 shrink-0 cursor-pointer place-items-center rounded-lg border transition-colors ${
                   filtersOpen
-                    ? "border-ink bg-paper text-ink"
-                    : "border-line bg-surface text-ink-muted hover:border-line-strong hover:text-ink"
+                    ? "border-[#5B4FE9] bg-[#EEF0FF] text-[#5B4FE9]"
+                    : "border-[#D0D5DD] bg-white text-[#667085] hover:text-[#101828]"
                 }`}
               >
                 <svg
@@ -854,7 +846,7 @@ export function EmpresasTable({
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Buscar empresa, e-mail, /slug..."
                   aria-label="Buscar empresa, e-mail ou endereço"
-                  className="min-h-10 w-full rounded-xl border border-line bg-paper pr-3 pl-8.5 text-small text-ink placeholder:text-ink-muted focus:border-ink focus:outline-none"
+                  className="h-9 w-full rounded-lg border border-[#EAECF0] bg-[#F9FAFB] pr-3 pl-8.5 text-[14px] text-[#101828] placeholder:text-[#98A2B3] focus:border-[#5B4FE9] focus:bg-white focus:outline-none"
                 />
               </div>
             </div>
@@ -864,7 +856,7 @@ export function EmpresasTable({
                 type="button"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 rounded-xl border border-line bg-surface px-3 text-caption font-semibold text-ink transition-colors hover:border-line-strong hover:bg-hover disabled:opacity-60"
+                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-[#D0D5DD] bg-white px-3 text-[13px] font-semibold text-[#344054] transition-colors hover:bg-[#F9FAFB] disabled:opacity-60"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -887,7 +879,7 @@ export function EmpresasTable({
                 type="button"
                 onClick={clearAllFilters}
                 disabled={activeFiltersCount === 0}
-                className="inline-flex min-h-10 cursor-pointer items-center rounded-xl border border-line bg-surface px-3 text-caption font-semibold text-ink-muted transition-colors hover:border-line-strong hover:text-ink disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-[#D0D5DD] bg-white px-3 text-[13px] font-semibold text-[#667085] transition-colors hover:bg-[#F9FAFB] hover:text-[#101828] disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Limpar filtros
               </button>
@@ -896,9 +888,9 @@ export function EmpresasTable({
 
           {/* Data Table */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[880px] border-collapse text-left text-small">
+            <table className="w-full min-w-[880px] border-collapse text-left text-[14px]">
               <thead>
-                <tr className="border-b border-line bg-paper/70 text-caption text-ink-muted">
+                <tr className="border-b border-[#EAECF0] bg-[#F9FAFB] text-[12px] font-semibold tracking-wider text-[#667085] uppercase">
                   <th className="py-3 pr-3 pl-4 font-semibold">
                     <SortButton
                       label="Criada UTC-3"

@@ -59,18 +59,18 @@ export function ModerationQueue({ items }: { items: ModerationItem[] }) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-3">
       <div>
-        <h1 className="font-display text-display-md tracking-[-0.03em]">
+        <h1 className="text-[24px] font-bold tracking-tight text-[#101828]">
           Moderação
         </h1>
-        <p className="text-small text-ink-muted">
+        <p className="mt-0.5 text-[15px] font-medium text-[#667085]">
           Fila de denúncias enviadas nas páginas públicas.
         </p>
       </div>
 
       {items.length === 0 ? (
-        <div className="rounded-xl border border-line bg-surface p-6">
+        <div className="rounded-[10px] border border-[#EAECF0] bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.03)]">
           <EmptyState
             icon="check"
             title="Nenhuma denúncia na fila"
@@ -78,11 +78,11 @@ export function ModerationQueue({ items }: { items: ModerationItem[] }) {
           />
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           {items.map((item) => (
             <article
               key={item.id}
-              className="flex flex-col gap-3 rounded-xl border border-line bg-surface p-5"
+              className="flex flex-col gap-3 rounded-[10px] border border-[#EAECF0] bg-white p-4 shadow-[0_1px_2px_rgba(16,24,40,0.03)]"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -102,17 +102,17 @@ export function ModerationQueue({ items }: { items: ModerationItem[] }) {
                         ? "Bloqueada"
                         : "Descartada"}
                   </Badge>
-                  <span className="text-small font-semibold">
+                  <span className="text-[15px] font-semibold text-[#101828]">
                     {REASON_LABELS[item.reason] ?? item.reason}
                   </span>
                 </div>
-                <span className="text-caption text-ink-muted">
+                <span className="text-[13px] text-[#667085] tabular-nums">
                   {new Date(item.created_at).toLocaleString("pt-BR")}
                 </span>
               </div>
 
               {item.details && (
-                <p className="rounded-lg bg-paper p-3 text-small text-ink">
+                <p className="rounded-[8px] border border-[#EAECF0] bg-[#F9FAFB] p-3 text-[14px] text-[#101828]">
                   {item.details}
                 </p>
               )}

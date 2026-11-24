@@ -51,7 +51,6 @@ export default async function AdminEmpresasPage({
     clicksRes,
     domainsRes,
     originEventsRes,
-    waitlistRes,
   ] = await Promise.all([
     admin
       .from("profiles")
@@ -87,11 +86,6 @@ export default async function AdminEmpresasPage({
       .eq("event", "origem_capturada")
       .order("occurred_at", { ascending: false })
       .limit(1000),
-    admin
-      .from("waitlist")
-      .select("email, source")
-      .order("created_at", { ascending: false })
-      .limit(500),
   ]);
 
   // Primary page per owner
@@ -160,15 +154,6 @@ export default async function AdminEmpresasPage({
     });
   }
 
-  // Fallback waitlist source by email
-  const waitlistSourceByEmail = new Map<string, string>();
-  for (const w of waitlistRes.data ?? []) {
-    const key = w.email.toLowerCase();
-    if (!waitlistSourceByEmail.has(key) && w.source) {
-      waitlistSourceByEmail.set(key, w.source);
-    }
-  }
-
   const paidSet = new Set<string>(PAID_STATUSES);
 
   let subscribersCount = 0;
@@ -213,16 +198,13 @@ export default async function AdminEmpresasPage({
     if (views30d > 0 || clicks30d > 0) withTrafficCount++;
 
     const capturedOrigin = originByUser.get(prof.id);
-    const waitlistSrc = prof.email
-      ? (waitlistSourceByEmail.get(prof.email.toLowerCase()) ?? null)
-      : null;
     const origin: EmpresaOrigin = capturedOrigin ?? {
-      label: waitlistSrc ?? "direto",
+      label: "direto",
       referer: null,
       campaign: null,
       content: null,
       medium: null,
-      source: waitlistSrc,
+      source: null,
       term: null,
     };
 
