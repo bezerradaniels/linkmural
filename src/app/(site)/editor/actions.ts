@@ -170,6 +170,106 @@ function normalizeWidgetUrl(rawUrl: string | undefined, type: string): {
   };
 }
 
+export type UploadMuralMediaResult =
+  | { ok: true; path: string; publicUrl: string }
+  | { ok: false; error: string };
+
+const ALLOWED_IMAGE_TYPES = new Map<string, string>([
+  ["image/webp", "webp"],
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+]);
+const MAX_MEDIA_BYTES = 2 * 1024 * 1024;
+
+async function authorizeMuralEdit(muralId: string) {
+  const { supabase, userId } = await requireUser(`/editor/${muralId}`);
+
+  const { data: viewerProfile } = await supabase
+    .from("profiles")
+    .select("role, plan")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const isAdmin = viewerProfile?.role === "admin";
+  const db = isAdmin ? createAdminClient() : supabase;
+
+  const { data: page } = await db
+    .from("pages")
+    .select("id, owner_id, slug, theme")
+    .eq("id", muralId)
+    .maybeSingle();
+
+  if (!page || (!isAdmin && page.owner_id !== userId)) {
+    return null;
+  }
+
+  return { userId, isAdmin, viewerProfile, db, page };
+}
+
+/** Uploads a cropped logo or cover image via admin client so owners and admins both succeed. */
+export async function uploadMuralMediaAction(
+  formData: FormData,
+): Promise<UploadMuralMediaResult> {
+  const muralId = String(formData.get("muralId") ?? "");
+  const kind = formData.get("kind");
+  const file = formData.get("file");
+
+  if (!UUID_RE.test(muralId) || (kind !== "logo" && kind !== "cover")) {
+    return { ok: false, error: "Dados inválidos para envio da imagem." };
+  }
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: "Nenhuma imagem selecionada." };
+  }
+  if (file.size > MAX_MEDIA_BYTES) {
+    return { ok: false, error: "A imagem ficou acima de 2 MB." };
+  }
+
+  const ext = ALLOWED_IMAGE_TYPES.get(file.type);
+  if (!ext) {
+    return { ok: false, error: "Formato não suportado. Use PNG, JPEG ou WebP." };
+  }
+
+  const auth = await authorizeMuralEdit(muralId);
+  if (!auth) {
+    return { ok: false, error: "Mural não encontrado ou sem permissão." };
+  }
+
+  const admin = createAdminClient();
+  const path = `${auth.page.owner_id}/${muralId}-${kind}-${Date.now()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error: upErr } = await admin.storage
+    .from("media")
+    .upload(path, buffer, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (upErr) {
+    return {
+      ok: false,
+      error:
+        kind === "logo"
+          ? "Não foi possível enviar o logo agora."
+          : "Não foi possível enviar a capa agora.",
+    };
+  }
+
+  const patch =
+    kind === "logo"
+      ? { avatar_path: path, updated_at: new Date().toISOString() }
+      : { cover_path: path, updated_at: new Date().toISOString() };
+  const { error: dbErr } = await admin.from("pages").update(patch).eq("id", muralId);
+
+  if (dbErr) {
+    return { ok: false, error: friendlyDbError(dbErr.message) };
+  }
+
+  const { data } = admin.storage.from("media").getPublicUrl(path);
+  refreshPublicPage(auth.page.slug);
+  return { ok: true, path, publicUrl: data.publicUrl };
+}
+
 export async function saveMuralDocumentAction(input: {
   muralId: string;
   header?: {
@@ -192,27 +292,11 @@ export async function saveMuralDocumentAction(input: {
   }
 
   const { muralId, header, settings, nodes } = parsed.data;
-  const { supabase, userId } = await requireUser(`/editor/${muralId}`);
-
-  // Check if user owns the page or is an admin
-  const { data: viewerProfile } = await supabase
-    .from("profiles")
-    .select("role, plan")
-    .eq("id", userId)
-    .maybeSingle();
-
-  const isAdmin = viewerProfile?.role === "admin";
-  const db = isAdmin ? createAdminClient() : supabase;
-
-  const { data: page } = await db
-    .from("pages")
-    .select("id, owner_id, slug, theme")
-    .eq("id", muralId)
-    .maybeSingle();
-
-  if (!page || (!isAdmin && page.owner_id !== userId)) {
+  const auth = await authorizeMuralEdit(muralId);
+  if (!auth) {
     return { ok: false, error: "Mural não encontrado ou sem permissão." };
   }
+  const { userId, viewerProfile, db, page } = auth;
 
   // Resolve owner's plan for feature guards
   let ownerPlan = viewerProfile?.plan ?? "free";

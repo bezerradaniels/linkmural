@@ -14,6 +14,7 @@ import {
 import {
   publishMuralFromEditorAction,
   saveMuralDocumentAction,
+  uploadMuralMediaAction,
 } from "@/app/(site)/editor/actions";
 import {
   ImageCropModal,
@@ -53,7 +54,6 @@ import {
 } from "@/lib/editor/types";
 import type { Plan } from "@/lib/plans";
 import { publicFont } from "@/lib/public-fonts";
-import { createClient } from "@/utils/supabase/client";
 
 type Snapshot = {
   header: Pick<
@@ -96,7 +96,6 @@ function initialsFrom(name: string): string {
 
 export default function VisualEditorApp({
   initialDoc,
-  ownerId,
   plan,
   pageUrl,
 }: {
@@ -1154,36 +1153,33 @@ export default function VisualEditorApp({
       setUploadingMedia(kind);
       setSaveError(null);
       try {
-        const path = `${ownerId}/${initialDoc.id}-${kind}-${Date.now()}.${result.ext}`;
-        const supabase = createClient();
-        const { error: upErr } = await supabase.storage
-          .from("media")
-          .upload(path, result.blob, {
-            contentType: result.contentType,
-            upsert: true,
-          });
-        if (upErr) {
-          setSaveError(
-            kind === "logo"
-              ? "Não foi possível enviar o logo agora."
-              : "Não foi possível enviar a capa agora.",
-          );
+        const fd = new FormData();
+        fd.append("muralId", initialDoc.id);
+        fd.append("kind", kind);
+        fd.append(
+          "file",
+          new File([result.blob], `${kind}.${result.ext}`, {
+            type: result.contentType,
+          }),
+        );
+        const res = await uploadMuralMediaAction(fd);
+        if (!res.ok) {
+          setSaveError(res.error);
           return;
         }
-        const { data } = supabase.storage.from("media").getPublicUrl(path);
         commitChange((cur) => ({
           ...cur,
           header:
             kind === "logo"
               ? {
                   ...cur.header,
-                  avatarPath: path,
-                  avatarUrl: data.publicUrl,
+                  avatarPath: res.path,
+                  avatarUrl: res.publicUrl,
                 }
               : {
                   ...cur.header,
-                  coverPath: path,
-                  coverUrl: data.publicUrl,
+                  coverPath: res.path,
+                  coverUrl: res.publicUrl,
                 },
         }));
       } catch {
@@ -1192,7 +1188,7 @@ export default function VisualEditorApp({
         setUploadingMedia(null);
       }
     },
-    [ownerId, initialDoc.id, commitChange],
+    [initialDoc.id, commitChange],
   );
 
   /* ------------------------------------------------------------------------ */
