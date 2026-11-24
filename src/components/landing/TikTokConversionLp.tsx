@@ -193,7 +193,7 @@ export function TikTokConversionLp() {
   }
 
   const isSent = emailState.status === "sent" && !editingEmail;
-  const otpDigits = otpToken.replace(/\D/g, "").slice(0, 6);
+  const otpDigits = otpToken.replace(/\D/g, "").slice(0, 8);
   const canSubmitEmail = email.trim().includes("@") && email.trim().length >= 5;
 
   return (
@@ -300,18 +300,18 @@ export function TikTokConversionLp() {
                   <input type="hidden" name="next" value={NEXT_AFTER_SIGNUP} />
 
                   <label className="text-[12px] font-medium text-white/85">
-                    Ou digite o código de 6 dígitos do e-mail:
+                    Ou digite o código enviado por e-mail:
                   </label>
                   <input
                     name="token"
                     type="text"
                     inputMode="numeric"
                     autoComplete="one-time-code"
-                    maxLength={6}
-                    placeholder="000000"
+                    maxLength={8}
+                    placeholder="00000000"
                     value={otpDigits}
                     onChange={(e) => setOtpToken(e.target.value)}
-                    className="h-12 w-full rounded-xl border border-white bg-white px-4 text-center font-mono text-[20px] font-bold tracking-[0.32em] text-[#0E0E0E] placeholder-[#98A2B3] outline-none focus:ring-2 focus:ring-[#CDF54A]"
+                    className="h-12 w-full rounded-xl border border-white bg-white px-4 text-center font-mono text-[20px] font-bold tracking-[0.26em] text-[#0E0E0E] placeholder-[#98A2B3] outline-none focus:ring-2 focus:ring-[#CDF54A]"
                   />
 
                   {otpState.status === "error" && (

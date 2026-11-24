@@ -37,7 +37,7 @@ export function EmailSentCard({
 }) {
   const [otpState, otpAction] = useActionState(verifyEmailOtp, initialOtpState);
   const [token, setToken] = useState("");
-  const digits = token.replace(/\D/g, "").slice(0, 6);
+  const digits = token.replace(/\D/g, "").slice(0, 8);
 
   return (
     <div
@@ -70,16 +70,16 @@ export function EmailSentCard({
         <input type="hidden" name="next" value={next} />
 
         <Input
-          label="Código de 6 dígitos"
+          label="Código de acesso"
           name="token"
           type="text"
           inputMode="numeric"
           autoComplete="one-time-code"
-          maxLength={6}
-          placeholder="000000"
+          maxLength={8}
+          placeholder="00000000"
           value={digits}
           onChange={(e) => setToken(e.target.value)}
-          className="text-center font-mono text-lg tracking-[0.28em]"
+          className="text-center font-mono text-lg tracking-[0.24em]"
           error={otpState.status === "error" ? otpState.message : undefined}
         />
 

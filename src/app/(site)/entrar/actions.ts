@@ -116,7 +116,7 @@ export async function verifyEmailOtp(
   if (!parsed.success) {
     return {
       status: "error",
-      message: "Digite os 6 dígitos enviados para o seu e-mail.",
+      message: "Digite o código numérico enviado para o seu e-mail.",
     };
   }
 
