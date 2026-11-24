@@ -50,12 +50,22 @@ export default async function AdminFeedbackPage() {
               const prof = Array.isArray(f.profiles)
                 ? f.profiles[0]
                 : f.profiles;
+              const isBrandRequest = f.message.startsWith(
+                "[SOLICITAÇÃO DE MARCA:",
+              );
               return (
                 <div key={f.id} className="flex flex-col gap-1 py-3">
                   <div className="flex items-center justify-between gap-2 text-[13px] font-medium text-[#667085]">
-                    <span className="font-semibold text-[#344054]">
-                      {prof?.full_name || prof?.email || "Usuário"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {isBrandRequest && (
+                        <span className="inline-flex h-5 items-center rounded-md bg-[#FEF3C7] px-2 text-[11px] leading-none font-semibold text-[#B45309]">
+                          Solicitação de marca
+                        </span>
+                      )}
+                      <span className="font-semibold text-[#344054]">
+                        {prof?.full_name || prof?.email || "Visitante"}
+                      </span>
+                    </div>
                     <span className="tabular-nums">
                       {new Date(f.created_at).toLocaleString("pt-BR")}
                     </span>

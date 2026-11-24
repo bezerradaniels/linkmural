@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { SignupConfirmedTracker } from "@/components/onboarding/SignupConfirmedTracker";
 import { Steps } from "@/components/ui";
 
 export function OnboardingShell({
@@ -24,6 +25,9 @@ export function OnboardingShell({
 }) {
   return (
     <div className="flex min-h-dvh flex-col bg-paper">
+      <Suspense fallback={null}>
+        <SignupConfirmedTracker />
+      </Suspense>
       <header className="sticky top-0 z-20 border-b border-line bg-paper/95 backdrop-blur-sm">
         <div className="mx-auto flex w-full max-w-[520px] flex-col gap-3 px-4 py-3.5 sm:px-6">
           <div className="flex items-center justify-between gap-3">

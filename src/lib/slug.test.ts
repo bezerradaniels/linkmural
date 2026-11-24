@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildSlugCandidates,
   finalizeSlug,
+  isFamousBrandSlug,
+  isOffensiveSlug,
+  isPlatformReservedSlug,
   isValidSlug,
   normalizeSlugInput,
   parseHoldCookie,
@@ -63,5 +66,86 @@ describe("slug normalization and validation", () => {
     expect(parseHoldCookie("invalid")).toBeNull();
     expect(parseHoldCookie("ab." + token)).toBeNull();
     expect(parseHoldCookie("studioforca.not-a-uuid")).toBeNull();
+  });
+
+  it("blocks profanity, slurs and scam words without false positives", () => {
+    for (const bad of [
+      "porra",
+      "porra123",
+      "p0rra",
+      "caralho",
+      "buceta",
+      "merda",
+      "bosta",
+      "puta",
+      "loja-puta",
+      "fdp",
+      "golpe",
+      "pix-premiado",
+      "fuck",
+    ]) {
+      expect(isOffensiveSlug(bad)).toBe(true);
+      expect(isValidSlug(bad)).toBe(false);
+    }
+
+    for (const good of [
+      "studioforca",
+      "academia-funcional-paulista-sp",
+      "computadores",
+      "culinaria-br",
+      "curitiba-oficial",
+    ]) {
+      expect(isOffensiveSlug(good)).toBe(false);
+      expect(isValidSlug(good)).toBe(true);
+    }
+  });
+
+  it("protects multilingual platform routes and famous brands", () => {
+    for (const route of [
+      "admin",
+      "administrador",
+      "administrator",
+      "login",
+      "entrar",
+      "connexion",
+      "iniciar-sesion",
+      "dashboard",
+      "painel",
+      "faturamento",
+      "billing",
+      "facturacion",
+      "settings",
+      "configuracoes",
+      "ajustes",
+      "parametres",
+      "suporte",
+      "support",
+      "soporte",
+      "linkmural",
+      "admin-portal",
+    ]) {
+      expect(isPlatformReservedSlug(route)).toBe(true);
+      expect(isValidSlug(route)).toBe(false);
+    }
+
+    for (const brand of [
+      "apple",
+      "apple-oficial",
+      "apple-br",
+      "google",
+      "instagram",
+      "tiktok",
+      "nubank",
+      "meu-nubank",
+      "nike",
+      "loja-nike",
+      "cocacola",
+      "coca-cola",
+      "mercadolivre",
+      "itau",
+    ]) {
+      expect(isFamousBrandSlug(brand)).toBe(true);
+      expect(isValidSlug(brand)).toBe(false);
+    }
   });
 });

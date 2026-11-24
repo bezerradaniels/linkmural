@@ -14,7 +14,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function OnboardingStartPage() {
+export default async function OnboardingStartPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ confirmado?: string }>;
+}) {
+  const { confirmado } = await searchParams;
+  const confirmSuffix = confirmado === "1" ? "?confirmado=1" : "";
   const { supabase, userId } = await requireUser("/onboarding/iniciar");
 
   // 1. If the user already has a page, resume where they left off (or go to /app if published).
@@ -31,7 +37,7 @@ export default async function OnboardingStartPage() {
       redirect("/app");
     }
     const step = Math.min(7, Math.max(3, existingPage.onboarding_step));
-    redirect(`/onboarding/${step}`);
+    redirect(`/onboarding/${step}${confirmSuffix}`);
   }
 
   // 2. Otherwise, check if there is a legacy 30-minute hold cookie in slug_holds.
@@ -39,7 +45,7 @@ export default async function OnboardingStartPage() {
   const cookieStore = await cookies();
   const hold = parseHoldCookie(cookieStore.get(SLUG_HOLD_COOKIE)?.value);
   if (!hold) {
-    redirect("/onboarding/1");
+    redirect(`/onboarding/1${confirmSuffix}`);
   }
 
   const admin = createAdminClient();
@@ -52,7 +58,9 @@ export default async function OnboardingStartPage() {
     .maybeSingle();
 
   if (!holdRow) {
-    redirect(`/onboarding/1?slug=${encodeURIComponent(hold.slug)}`);
+    const qs = new URLSearchParams({ slug: hold.slug });
+    if (confirmado === "1") qs.set("confirmado", "1");
+    redirect(`/onboarding/1?${qs.toString()}`);
   }
 
   // 3. Create the page with the reserved slug (onboarding_step = 3).

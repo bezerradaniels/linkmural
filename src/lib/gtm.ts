@@ -18,6 +18,9 @@ export type GaEventMap = {
   login_iniciado: {
     metodo: "google" | "email";
   };
+  email_signup_confirmado: {
+    origem: "lp_comecar";
+  };
   lista_espera_aberta: {
     plano: "pro" | "business";
     origem: string;
