@@ -17,6 +17,7 @@ Como o beta e a produção usam o mesmo projeto do Supabase, a mudança vale par
 ## Variáveis usadas
 
 - `{{ .ConfirmationURL }}`: o link de acesso (já aponta para `/auth/callback?next=...`).
+- `{{ .Token }}`: o código numérico de 6 dígitos para o usuário digitar na tela de `/entrar` ou `/cadastro`.
 - `{{ .Email }}`: o e-mail de quem pediu.
 
 ## Regras ao editar

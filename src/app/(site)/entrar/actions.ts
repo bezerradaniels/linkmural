@@ -3,13 +3,24 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { NEXT_COOKIE, safeNext, siteUrl } from "@/lib/redirect";
+import { handleFirstSignIn } from "@/lib/auth-post-login";
+import {
+  isPlanDestination,
+  NEXT_COOKIE,
+  POST_ONBOARDING_COOKIE,
+  safeNext,
+  siteUrl,
+} from "@/lib/redirect";
 import { createClient } from "@/utils/supabase/server";
 
 export type EmailState =
   | { status: "idle" }
   | { status: "sent"; email: string }
   | { status: "error"; message: string; email?: string };
+
+export type VerifyOtpState =
+  | { status: "idle" }
+  | { status: "error"; message: string };
 
 const emailSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
@@ -81,4 +92,66 @@ export async function signInWithGoogle(formData: FormData) {
     redirect(`/entrar?erro=google&next=${encodeURIComponent(next)}`);
   }
   redirect(data.url);
+}
+
+const otpSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  token: z
+    .string()
+    .transform((v) => v.replace(/\D/g, ""))
+    .pipe(z.string().regex(/^\d{6,8}$/)),
+  next: z.string().optional(),
+});
+
+/** Verifies the 6-digit email OTP code and signs the user in. */
+export async function verifyEmailOtp(
+  _prev: VerifyOtpState,
+  formData: FormData,
+): Promise<VerifyOtpState> {
+  const parsed = otpSchema.safeParse({
+    email: formData.get("email"),
+    token: formData.get("token"),
+    next: formData.get("next") ?? undefined,
+  });
+  if (!parsed.success) {
+    return {
+      status: "error",
+      message: "Digite os 6 dígitos enviados para o seu e-mail.",
+    };
+  }
+
+  const { email, token } = parsed.data;
+  const cookieStore = await cookies();
+  const next = safeNext(
+    parsed.data.next ?? cookieStore.get(NEXT_COOKIE)?.value,
+  );
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: "email",
+  });
+
+  if (error || !data.user) {
+    return {
+      status: "error",
+      message:
+        "Código inválido ou expirado. Confira os números ou peça um novo link.",
+    };
+  }
+
+  await handleFirstSignIn(data.user, cookieStore.get("lm_origin")?.value);
+  cookieStore.delete(NEXT_COOKIE);
+
+  if (isPlanDestination(next)) {
+    cookieStore.set(POST_ONBOARDING_COOKIE, next, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 2,
+      path: "/",
+    });
+  }
+
+  redirect(next);
 }

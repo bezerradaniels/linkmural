@@ -1,10 +1,6 @@
 import type { EmailOtpType, User } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
-import {
-  isFirstSignIn,
-  notifyAdminNewUser,
-} from "@/lib/email/admin-notifications";
-import { recordOnboardingEvent } from "@/lib/onboarding-events";
+import { handleFirstSignIn } from "@/lib/auth-post-login";
 import {
   isPlanDestination,
   NEXT_COOKIE,
@@ -54,46 +50,8 @@ export async function GET(request: NextRequest) {
     user = data?.user ?? null;
   }
 
-  if (ok && user && isFirstSignIn(user)) {
-    const provider =
-      typeof user.app_metadata?.provider === "string"
-        ? user.app_metadata.provider
-        : null;
-
-    const rawOrigin = request.cookies.get("lm_origin")?.value;
-    if (rawOrigin) {
-      try {
-        const parsedOrigin = JSON.parse(rawOrigin) as Record<string, unknown>;
-        const cleanMeta: Record<string, string> = {};
-        for (const k of [
-          "referer",
-          "utm_source",
-          "utm_medium",
-          "utm_campaign",
-          "utm_content",
-          "utm_term",
-        ]) {
-          if (typeof parsedOrigin[k] === "string" && parsedOrigin[k]) {
-            cleanMeta[k] = parsedOrigin[k];
-          }
-        }
-        if (Object.keys(cleanMeta).length > 0) {
-          recordOnboardingEvent({
-            event: "origem_capturada",
-            userId: user.id,
-            metadata: cleanMeta,
-          });
-        }
-      } catch {
-        // Ignore malformed cookie
-      }
-    }
-
-    await notifyAdminNewUser({
-      userId: user.id,
-      email: user.email,
-      provider,
-    });
+  if (ok) {
+    await handleFirstSignIn(user, request.cookies.get("lm_origin")?.value);
   }
 
   // Build the redirect from the public site URL: behind Hostinger's proxy,

@@ -2,7 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Button, Icon, Input } from "@/components/ui";
+import { EmailSentCard } from "@/components/auth/EmailSentCard";
+import { Button, Input } from "@/components/ui";
 import { trackGaEvent } from "@/lib/gtm";
 import { signInWithEmail, signInWithGoogle, type EmailState } from "./actions";
 
@@ -68,24 +69,12 @@ export function LoginForm({ next }: { next: string }) {
 
   if (state.status === "sent" && !editing) {
     return (
-      <div className="flex flex-col items-center gap-4 text-center">
-        <span className="grid size-14 place-items-center rounded-[18px] bg-ink text-lime">
-          <Icon name="mail" size={26} />
-        </span>
-        <div className="flex flex-col gap-1">
-          <h2 className="font-display text-title tracking-[-0.03em]">
-            Confira seu e-mail
-          </h2>
-          <p className="text-small text-ink-muted">
-            Enviamos um link de acesso para{" "}
-            <strong className="text-ink">{state.email}</strong>. Ele vale por 1
-            hora.
-          </p>
-        </div>
-        <Button variant="ghost" onClick={() => setEditing(true)}>
-          Usar outro e-mail
-        </Button>
-      </div>
+      <EmailSentCard
+        email={state.email}
+        next={next}
+        description="Você pode clicar no link do e-mail ou digitar o código abaixo."
+        onChangeEmail={() => setEditing(true)}
+      />
     );
   }
 
