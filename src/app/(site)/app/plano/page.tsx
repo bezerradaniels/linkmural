@@ -193,9 +193,9 @@ export default async function PlanoPage({
         )}
 
       {/* Current Usage */}
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-5">
-          <div className="flex items-center justify-between">
+      <section className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-2 rounded-[10px] border border-line bg-surface p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-small font-semibold">Páginas</span>
             <span className="text-small text-ink-muted">
               1 de {current.maxPages}
@@ -204,8 +204,8 @@ export default async function PlanoPage({
           <Progress value={1} max={current.maxPages} label="Páginas usadas" />
         </div>
 
-        <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-5">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 rounded-[10px] border border-line bg-surface p-4 sm:p-5">
+          <div className="flex items-center justify-between gap-2">
             <span className="text-small font-semibold">Links</span>
             <span className="text-small text-ink-muted">
               {current.maxLinks !== null

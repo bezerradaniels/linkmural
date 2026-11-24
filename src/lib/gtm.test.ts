@@ -16,6 +16,7 @@ const ALL_EVENTS: GaEventName[] = [
   "aparencia_salva",
   "unsplash_foto_selecionada",
   "utm_gerado",
+  "utm_planilha_exportada",
   "link_pagina_copiado",
   "qrcode_baixado",
   "sugestao_enviada",

@@ -8,7 +8,6 @@ import { SignOutForm } from "@/components/app/SignOutForm";
 import {
   Alert,
   Avatar,
-  Badge,
   Button,
   Icon,
   ToastProvider,
@@ -24,20 +23,22 @@ type NavItem = {
 
 const DESKTOP_NAV: NavItem[] = [
   { href: "/app", label: "Início", icon: "site" },
-  { href: "/app/pagina", label: "Página", icon: "link" },
+  { href: "/app/pagina", label: "Links", icon: "link" },
   { href: "/app/aparencia", label: "Aparência", icon: "palette" },
   { href: "/app/informacoes", label: "Informações", icon: "edit" },
   { href: "/app/metricas", label: "Métricas", icon: "chart" },
   { href: "/app/plano", label: "Plano", icon: "payment" },
-  { href: "/app/conta", label: "Minha conta", icon: "contact" },
+  { href: "/app/conta", label: "Conta", icon: "contact" },
   { href: "/app/ajuda", label: "Ajuda", icon: "info" },
 ];
 
-const MOBILE_TABS: NavItem[] = [
+const MOBILE_LEFT_TABS: NavItem[] = [
   { href: "/app", label: "Início", icon: "site" },
-  { href: "/app/pagina", label: "Página", icon: "link" },
-  { href: "/app/aparencia", label: "Aparência", icon: "palette" },
   { href: "/app/metricas", label: "Métricas", icon: "chart" },
+];
+
+const MOBILE_RIGHT_TABS: NavItem[] = [
+  { href: "/app/aparencia", label: "Estilo", icon: "palette" },
   { href: "/app/mais", label: "Mais", icon: "grip" },
 ];
 
@@ -83,48 +84,43 @@ export function AppShell({
     return <ToastProvider>{children}</ToastProvider>;
   }
 
+  const centerActive = isActivePath(pathname, "/app/pagina");
+
   return (
     <div className="[--toast-offset:88px] lg:[--toast-offset:24px]">
       <ToastProvider>
         <div className="flex min-h-dvh bg-paper text-ink">
-          {/* Desktop Sidebar */}
-          <aside className="hidden w-64 shrink-0 flex-col justify-between border-r border-line bg-surface p-4 lg:sticky lg:top-0 lg:flex lg:h-dvh">
-            <div className="flex flex-col gap-5">
-              <Link
-                href="/app"
-                className="inline-flex items-center px-2 py-1"
-                aria-label="linkmural, início do painel"
-              >
-                <Image
-                  src="/brand/linkmural-logo.svg"
-                  alt="Linkmural"
-                  width={132}
-                  height={20}
-                  priority
-                />
-              </Link>
-
-              <div className="flex items-center gap-2.5 rounded-lg border border-line bg-paper p-2.5">
-                <Avatar
-                  src={avatarUrl}
-                  name={businessName || slug}
-                  size={32}
-                  square
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-small leading-tight font-semibold text-ink">
-                    {businessName || slug}
-                  </p>
-                  <p className="truncate text-caption text-ink-muted">
-                    /{slug}
-                  </p>
-                </div>
-                <Badge
-                  variant="neutral"
-                  dot={published ? "positive" : "warning"}
+          {/* Desktop Sidebar (sticky 100vh) */}
+          <aside className="hidden w-60 shrink-0 flex-col justify-between border-r border-line/70 bg-surface px-4 py-6 lg:sticky lg:top-0 lg:flex lg:h-dvh lg:overflow-y-auto xl:w-64">
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center justify-between px-2">
+                <Link
+                  href="/app"
+                  className="inline-flex items-center"
+                  aria-label="linkmural, início do painel"
                 >
+                  <Image
+                    src="/brand/linkmural-logo.svg"
+                    alt="Linkmural"
+                    width={122}
+                    height={19}
+                    priority
+                  />
+                </Link>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 text-[11px] font-semibold ${
+                    published
+                      ? "bg-positive-soft text-positive"
+                      : "bg-warning-soft text-warning"
+                  }`}
+                >
+                  <span
+                    className={`size-1.5 rounded-full ${
+                      published ? "bg-positive" : "bg-warning"
+                    }`}
+                  />
                   {published ? "No ar" : "Rascunho"}
-                </Badge>
+                </span>
               </div>
 
               <nav aria-label="Menu do painel" className="flex flex-col gap-1">
@@ -135,47 +131,70 @@ export function AppShell({
                       key={item.href}
                       href={item.href}
                       aria-current={active ? "page" : undefined}
-                      className={`flex min-h-11 items-center gap-3 rounded-md px-3 text-small font-medium transition-colors ${
+                      className={`flex min-h-11 items-center justify-between gap-3 rounded-pill px-4 text-small transition-all ${
                         active
-                          ? "bg-ink text-paper"
-                          : "text-ink-muted hover:bg-hover hover:text-ink"
+                          ? "bg-lime font-semibold text-on-lime shadow-sm"
+                          : "font-medium text-ink-muted hover:bg-hover hover:text-ink"
                       }`}
                     >
-                      <Icon name={item.icon} size={18} />
-                      {item.label}
+                      <span className="flex items-center gap-3">
+                        <Icon name={item.icon} size={18} />
+                        <span>{item.label}</span>
+                      </span>
+                      {active && (
+                        <svg
+                          viewBox="0 0 24 24"
+                          width={14}
+                          height={14}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2.2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="m9 6 6 6-6 6" />
+                        </svg>
+                      )}
                     </Link>
                   );
                 })}
               </nav>
             </div>
 
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 pt-4">
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="flex min-h-11 items-center gap-2 rounded-md border border-line bg-paper px-3 text-small font-semibold text-ink hover:border-ink"
+                  className="flex min-h-11 items-center gap-2.5 rounded-pill border border-line bg-paper px-4 text-small font-semibold text-ink transition-colors hover:border-ink"
                 >
                   <Icon name="lock" size={16} />
-                  Painel Admin
+                  <span>Admin</span>
                 </Link>
               )}
+
               {plan === "free" && (
                 <Link
                   href="/app/plano"
-                  className="flex flex-col gap-1 rounded-lg border border-line bg-lime-soft/60 p-3.5 text-left transition-colors hover:border-ink"
+                  className="group flex flex-col gap-2 rounded-[20px] bg-ink p-4 text-paper shadow-sm transition-transform duration-200 hover:-translate-y-0.5"
                 >
-                  <span className="text-small font-semibold text-ink">
-                    Seja Pro
-                  </span>
-                  <span className="text-caption text-ink-muted">
-                    Links ilimitados, cores próprias e métricas por link.
+                  <div className="flex items-center justify-between">
+                    <span className="font-display text-small font-semibold">
+                      Linkmural Pro
+                    </span>
+                    <span className="rounded-pill bg-lime px-2 py-0.5 text-[10px] font-bold text-on-lime">
+                      PRO
+                    </span>
+                  </div>
+                  <span className="text-caption text-paper/70">
+                    Links ilimitados e métricas por link.
                   </span>
                 </Link>
               )}
 
               <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
                 <span className="truncate text-caption text-ink-muted">
-                  {email ?? "Minha conta"}
+                  {email ?? "Conta"}
                 </span>
                 <SignOutForm>
                   <Button type="submit" variant="ghost" size="sm">
@@ -188,42 +207,35 @@ export function AppShell({
 
           {/* Main Column */}
           <div className="flex min-w-0 flex-1 flex-col">
-            {/* Mobile Header */}
-            <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-paper/95 px-4 py-3 backdrop-blur-sm lg:hidden">
+            {/* Minimal Mobile Header */}
+            <header className="sticky top-0 z-20 flex items-center justify-between gap-3 bg-paper/95 px-4 py-3 backdrop-blur-sm lg:hidden">
               <div className="flex min-w-0 items-center gap-2.5">
                 <Avatar
                   src={avatarUrl}
                   name={businessName || slug}
                   size={32}
-                  square
                 />
-                <div className="min-w-0">
-                  <p className="truncate text-small leading-tight font-semibold text-ink">
-                    {businessName || slug}
-                  </p>
-                  <p className="truncate text-caption text-ink-muted">
-                    linkmural.com/{slug}
-                  </p>
-                </div>
+                <p className="truncate font-display text-small font-semibold text-ink">
+                  {businessName || slug}
+                </p>
               </div>
 
               <Link
                 href="/app/previa"
-                className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-pill border border-line-strong bg-surface px-3.5 text-small font-semibold text-ink"
+                className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-pill border border-line bg-surface px-3.5 text-caption font-semibold text-ink shadow-sm"
               >
-                <Icon name="external" size={15} />
-                Ver prévia
+                <Icon name="external" size={14} />
+                <span>Prévia</span>
               </Link>
             </header>
 
-            <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 sm:px-6 lg:px-8 lg:py-8">
+            <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-28 sm:px-6 lg:px-8 lg:py-8">
               {suspended && (
-                <div className="mb-6">
-                  <Alert tone="error" title="Sua conta está suspensa">
-                    Sua página pública foi temporariamente retirada do ar pela
-                    moderação. Se acha que foi um engano, fale com o suporte em{" "}
+                <div className="mb-5">
+                  <Alert tone="error" title="Conta suspensa">
+                    Página retirada do ar pela moderação.{" "}
                     <Link href="/app/ajuda" className="font-semibold underline">
-                      Ajuda
+                      Falar com suporte
                     </Link>
                     .
                   </Alert>
@@ -233,30 +245,61 @@ export function AppShell({
             </main>
           </div>
 
-          {/* Mobile Bottom Tab Bar */}
+          {/* Mobile Bottom Tab Bar with elevated center ink + lime button (reference inspired) */}
           <nav
             aria-label="Navegação principal"
-            className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur-sm lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-30 border-t border-line/80 bg-surface/95 backdrop-blur-md lg:hidden"
           >
-            <div className="mx-auto grid max-w-lg grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)]">
-              {MOBILE_TABS.map((item) => {
+            <div className="mx-auto grid max-w-lg grid-cols-5 items-center px-2 pt-1 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              {MOBILE_LEFT_TABS.map((item) => {
                 const active = isActivePath(pathname, item.href);
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex min-h-[56px] flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors ${
-                      active ? "font-semibold text-ink" : "text-ink-muted"
+                    className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[11px] transition-colors ${
+                      active
+                        ? "font-semibold text-ink"
+                        : "font-medium text-ink-muted"
                     }`}
                   >
-                    <span
-                      className={`grid h-7 w-11 place-items-center rounded-pill ${
-                        active ? "bg-lime text-on-lime" : ""
-                      }`}
-                    >
-                      <Icon name={item.icon} size={18} />
-                    </span>
+                    <Icon name={item.icon} size={19} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+
+              {/* Center Elevated Dark Circle Button (Links) */}
+              <div className="flex justify-center">
+                <Link
+                  href="/app/pagina"
+                  aria-label="Meus links"
+                  aria-current={centerActive ? "page" : undefined}
+                  className={`-mt-6 inline-grid size-13 place-items-center rounded-full shadow-md transition-transform active:scale-95 ${
+                    centerActive
+                      ? "bg-lime text-on-lime ring-4 ring-surface"
+                      : "bg-ink text-lime ring-4 ring-surface"
+                  }`}
+                >
+                  <Icon name="link" size={21} />
+                </Link>
+              </div>
+
+              {MOBILE_RIGHT_TABS.map((item) => {
+                const active = isActivePath(pathname, item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[11px] transition-colors ${
+                      active
+                        ? "font-semibold text-ink"
+                        : "font-medium text-ink-muted"
+                    }`}
+                  >
+                    <Icon name={item.icon} size={19} />
                     <span>{item.label}</span>
                   </Link>
                 );

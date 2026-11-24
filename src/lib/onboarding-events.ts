@@ -12,7 +12,8 @@ export type OnboardingEventName =
   | "modelo_escolhido"
   | "pagina_publicada"
   | "link_copiado"
-  | "qr_baixado";
+  | "qr_baixado"
+  | "origem_capturada";
 
 let warned = false;
 
