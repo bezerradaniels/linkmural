@@ -2,12 +2,12 @@
 const cspBase = [
   "default-src 'self'",
   // 'unsafe-eval' is only needed by the dev server (React Refresh).
-  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://googleads.g.doubleclick.net https://www.googleadservices.com https://pagead2.googlesyndication.com https://analytics.tiktok.com${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://*.doubleclick.net https://www.googleadservices.com https://*.googleadservices.com https://*.googlesyndication.com https://www.google.com https://analytics.tiktok.com${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://stats.g.doubleclick.net https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.google.com.br https://analytics.tiktok.com https://*.tiktokw.us",
-  "frame-src 'self' https://www.googletagmanager.com https://td.doubleclick.net https://bid.g.doubleclick.net https://www.youtube-nocookie.com https://www.youtube.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.googletagmanager.com https://*.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://*.googleadservices.com https://www.google.com https://*.google.com https://www.google.com.br https://*.google.com.br https://analytics.tiktok.com https://*.tiktokw.us",
+  "frame-src 'self' https://www.googletagmanager.com https://*.googletagmanager.com https://*.doubleclick.net https://www.google.com https://www.youtube-nocookie.com https://www.youtube.com",
   "object-src 'none'",
   "base-uri 'self'",
   // Chrome also applies form-action to the redirect that follows a form post:
