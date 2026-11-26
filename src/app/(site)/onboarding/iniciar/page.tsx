@@ -17,10 +17,21 @@ export const metadata: Metadata = {
 export default async function OnboardingStartPage({
   searchParams,
 }: {
-  searchParams: Promise<{ confirmado?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { confirmado } = await searchParams;
-  const confirmSuffix = confirmado === "1" ? "?confirmado=1" : "";
+  const params = await searchParams;
+  const forwarded = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    const val = Array.isArray(v) ? v[0] : v;
+    if (
+      val &&
+      (k === "confirmado" || k === "hero_variant" || k.startsWith("utm_"))
+    ) {
+      forwarded.set(k, val);
+    }
+  }
+  const confirmSuffix =
+    forwarded.size > 0 ? `?${forwarded.toString()}` : "";
   const { supabase, userId } = await requireUser("/onboarding/iniciar");
 
   // 1. If the user already has a page, resume where they left off (or go to /app if published).
@@ -58,9 +69,8 @@ export default async function OnboardingStartPage({
     .maybeSingle();
 
   if (!holdRow) {
-    const qs = new URLSearchParams({ slug: hold.slug });
-    if (confirmado === "1") qs.set("confirmado", "1");
-    redirect(`/onboarding/1?${qs.toString()}`);
+    forwarded.set("slug", hold.slug);
+    redirect(`/onboarding/1?${forwarded.toString()}`);
   }
 
   // 3. Create the page with the reserved slug (onboarding_step = 3).

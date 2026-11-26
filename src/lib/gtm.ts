@@ -11,15 +11,21 @@ export const GA_MEASUREMENT_ID = "G-JQDPFEB2Z9";
 
 export type GaEventMap = {
   // Aquisição e marketing
+  hero_cta_clicado: {
+    hero_variant: string;
+  };
   endereco_reservado: {
     origem: "landing" | "onboarding";
     com_indicacao: "sim" | "nao";
+    hero_variant?: string;
   };
   login_iniciado: {
     metodo: "google" | "email";
+    hero_variant?: string;
   };
   email_signup_confirmado: {
     origem: "lp_comecar";
+    hero_variant?: string;
   };
   lista_espera_aberta: {
     plano: "pro" | "business";

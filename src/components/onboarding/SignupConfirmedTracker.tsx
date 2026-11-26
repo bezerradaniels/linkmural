@@ -9,12 +9,16 @@ export function SignupConfirmedTracker() {
   const searchParams = useSearchParams();
   const firedRef = useRef(false);
   const confirmed = searchParams.get("confirmado") === "1";
+  const heroVariant = searchParams.get("hero_variant") ?? undefined;
 
   useEffect(() => {
     if (!confirmed || firedRef.current) return;
     firedRef.current = true;
-    trackGaEvent("email_signup_confirmado", { origem: "lp_comecar" });
-  }, [confirmed]);
+    trackGaEvent("email_signup_confirmado", {
+      origem: "lp_comecar",
+      ...(heroVariant ? { hero_variant: heroVariant } : {}),
+    });
+  }, [confirmed, heroVariant]);
 
   return null;
 }

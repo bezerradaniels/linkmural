@@ -17,6 +17,11 @@ import {
 } from "@/app/(site)/entrar/actions";
 import { trackGaEvent } from "@/lib/gtm";
 import {
+  HERO_VARIANTS,
+  type HeroVariant,
+  type HeroVariantKey,
+} from "@/lib/hero-variants";
+import {
   finalizeSlug,
   isFamousBrandSlug,
   isOffensiveSlug,
@@ -31,7 +36,21 @@ type SlugCheckState =
   | { status: "ocupado" | "reservado" | "invalido"; slug: string; suggestions: string[] }
   | { status: "error"; message: string };
 
-const NEXT_AFTER_SIGNUP = "/onboarding/iniciar?confirmado=1";
+function buildNextAfterSignup(
+  variantKey: HeroVariantKey,
+  utmParams: Record<string, string>,
+): string {
+  const qs = new URLSearchParams({
+    confirmado: "1",
+    hero_variant: variantKey,
+  });
+  for (const [k, v] of Object.entries(utmParams)) {
+    if (k.startsWith("utm_") && v) {
+      qs.set(k, v);
+    }
+  }
+  return `/onboarding/iniciar?${qs.toString()}`;
+}
 
 function SendEmailButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus();
@@ -63,7 +82,47 @@ const initialEmailState: EmailState = { status: "idle" };
 const initialOtpState: VerifyOtpState = { status: "idle" };
 const initialBrandState: BrandRequestState = { status: "idle" };
 
-export function TikTokConversionLp() {
+const HERO_SLIDES = [
+  {
+    src: "/images/hero-comecar-influencer.jpg",
+    alt: "Influenciadora digital apresentando seu link na bio no celular",
+    label: "Influencer",
+    mobileFocus: "object-[72%_24%]",
+    desktopFocus: "lg:object-[76%_22%]",
+  },
+  {
+    src: "/images/hero-comecar-estetica.jpg",
+    alt: "Especialista em clínica de estética mostrando página de agendamentos e links no celular",
+    label: "Estética",
+    mobileFocus: "object-[76%_26%]",
+    desktopFocus: "lg:object-[74%_22%]",
+  },
+  {
+    src: "/images/hero-comecar-fitness.jpg",
+    alt: "Empreendedora de loja de roupas fitness apresentando vitrine de links no celular",
+    label: "Fitness",
+    mobileFocus: "object-[73%_24%]",
+    desktopFocus: "lg:object-[76%_22%]",
+  },
+  {
+    src: "/images/hero-comecar-consultora.jpg",
+    alt: "Consultora em escritório moderno exibindo página de links na bio no celular",
+    label: "Consultoria",
+    mobileFocus: "object-[80%_26%]",
+    desktopFocus: "lg:object-[75%_22%]",
+  },
+] as const;
+
+export function TikTokConversionLp({
+  variantKey = "default",
+  variant = HERO_VARIANTS.default,
+  utmParams = {},
+}: {
+  variantKey?: HeroVariantKey;
+  variant?: HeroVariant;
+  utmParams?: Record<string, string>;
+} = {}) {
+  const nextAfterSignup = buildNextAfterSignup(variantKey, utmParams);
   const [step, setStep] = useState<"slug" | "email">("slug");
   const [rawSlug, setRawSlug] = useState("");
   const [slugCheckResult, setSlugCheckResult] = useState<SlugCheckState>({
@@ -75,6 +134,14 @@ export function TikTokConversionLp() {
   const [editingEmail, setEditingEmail] = useState(false);
   const [otpToken, setOtpToken] = useState("");
   const [requestingBrand, setRequestingBrand] = useState(false);
+  const [activeSlide, setActiveSlide] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setActiveSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [activeSlide]);
 
   const [emailState, emailAction] = useActionState(
     signInWithEmail,
@@ -153,6 +220,7 @@ export function TikTokConversionLp() {
     e.preventDefault();
     if (!isValidSlug(normalizedSlug) || reserving) return;
 
+    trackGaEvent("hero_cta_clicado", { hero_variant: variantKey });
     setReserving(true);
     try {
       const res = await fetch("/api/slug/check", {
@@ -171,6 +239,7 @@ export function TikTokConversionLp() {
         trackGaEvent("endereco_reservado", {
           origem: "landing",
           com_indicacao: "nao",
+          hero_variant: variantKey,
         });
         setReservedSlug(data.slug);
         setStep("email");
@@ -197,24 +266,38 @@ export function TikTokConversionLp() {
   const canSubmitEmail = email.trim().includes("@") && email.trim().length >= 5;
 
   return (
-    <div className="relative flex min-h-dvh flex-col justify-between overflow-x-hidden bg-[#0B0C10] text-white lg:h-dvh lg:overflow-hidden">
-      {/* Full-bleed Hero Background Image (same treatment as Home) */}
-      <picture className="pointer-events-none absolute inset-0 size-full select-none">
-        <img
-          src="/images/hero-influencer-carioca.jpg"
-          alt="Influenciadora carioca sorrindo ao pôr do sol no Rio de Janeiro"
-          fetchPriority="high"
-          className="size-full object-cover object-[72%_20%] lg:object-[78%_22%]"
-        />
-      </picture>
+    <div
+      data-hero-variant={variantKey}
+      className="relative flex min-h-dvh flex-col justify-between overflow-x-hidden bg-[#0B0C10] text-white lg:h-dvh lg:overflow-hidden"
+    >
+      {/* Full-bleed Hero Background Slideshow (smooth crossfade across 4 personas) */}
+      {/* On mobile: confined to the top 62dvh so the full height of the model + phone screen is visible above the text card */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[62dvh] select-none overflow-hidden lg:inset-0 lg:size-full">
+        {HERO_SLIDES.map((slide, idx) => {
+          const isActive = idx === activeSlide;
+          return (
+            <img
+              key={slide.src}
+              src={slide.src}
+              alt={slide.alt}
+              fetchPriority={idx === 0 ? "high" : "auto"}
+              loading={idx === 0 ? "eager" : "lazy"}
+              aria-hidden={!isActive}
+              className={`absolute inset-0 size-full object-cover ${slide.mobileFocus} ${slide.desktopFocus} transition-all duration-[1400ms] ease-in-out ${
+                isActive ? "scale-100 opacity-100" : "scale-[1.03] opacity-0"
+              }`}
+            />
+          );
+        })}
+      </div>
 
-      {/* Mobile & Desktop diagonal/bottom gradients (same as Home) */}
+      {/* Mobile & Desktop diagonal/bottom gradients */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 lg:hidden"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[62dvh] lg:hidden"
         style={{
           background:
-            "linear-gradient(180deg, rgba(11,12,16,0.48) 0%, rgba(11,12,16,0.08) 26%, rgba(11,12,16,0.76) 52%, rgba(11,12,16,0.96) 72%, #0B0C10 100%)",
+            "linear-gradient(180deg, rgba(11,12,16,0.42) 0%, rgba(11,12,16,0.02) 22%, rgba(11,12,16,0.08) 54%, rgba(11,12,16,0.82) 78%, #0B0C10 100%)",
         }}
       />
       <div
@@ -249,20 +332,15 @@ export function TikTokConversionLp() {
         <div className="flex w-full max-w-xl flex-col gap-4">
           <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-[12px] font-medium text-white/90">
             <span className="size-2 animate-pulse rounded-full bg-[#CDF54A]" />
-            <span>Para empresas, criadores e marcas</span>
+            <span>{variant.eyebrow}</span>
           </div>
 
           <div>
-            <h1 className="font-display text-[28px] leading-[1.08] font-bold tracking-[-0.03em] text-white sm:text-[40px]">
-              Organize seus links,{" "}
-              <span className="bg-gradient-to-r from-[#CDF54A] via-[#25F4EE] to-[#CDF54A] bg-clip-text text-transparent">
-                capture leads e monetize
-              </span>{" "}
-              sua audiência.
+            <h1 className="font-display text-[28px] leading-[1.08] font-bold tracking-[-0.03em] text-white sm:text-[38px]">
+              {variant.title}
             </h1>
             <p className="mt-2 text-[14px] leading-relaxed text-white/75 sm:text-[15px]">
-              Facilite a comunicação de clientes com a sua empresa e reforce sua
-              marca em uma página única, pronta em 60 segundos.
+              {variant.subtitle}
             </p>
           </div>
 
@@ -297,7 +375,7 @@ export function TikTokConversionLp() {
 
                 <form action={otpAction} className="flex flex-col gap-2.5" noValidate>
                   <input type="hidden" name="email" value={emailState.email} />
-                  <input type="hidden" name="next" value={NEXT_AFTER_SIGNUP} />
+                  <input type="hidden" name="next" value={nextAfterSignup} />
 
                   <label className="text-[12px] font-medium text-white/85">
                     Ou digite o código enviado por e-mail:
@@ -492,7 +570,7 @@ export function TikTokConversionLp() {
                   disabled={!isValidSlug(normalizedSlug) || reserving}
                   className="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[#CDF54A] px-5 text-[15px] font-bold text-[#0E0E0E] shadow-[0_0_24px_rgba(205,245,74,0.35)] transition-all hover:brightness-105 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-75"
                 >
-                  {reserving ? "Reservando…" : "Garantir meu link grátis →"}
+                  {reserving ? "Reservando…" : `${variant.cta} →`}
                 </button>
               </form>
             ) : (
@@ -513,14 +591,17 @@ export function TikTokConversionLp() {
 
                 <form
                   action={(fd) => {
-                    trackGaEvent("login_iniciado", { metodo: "email" });
+                    trackGaEvent("login_iniciado", {
+                      metodo: "email",
+                      hero_variant: variantKey,
+                    });
                     setEditingEmail(false);
                     emailAction(fd);
                   }}
                   className="flex flex-col gap-2.5"
                   noValidate
                 >
-                  <input type="hidden" name="next" value={NEXT_AFTER_SIGNUP} />
+                  <input type="hidden" name="next" value={nextAfterSignup} />
                   <label className="text-[12px] font-bold tracking-wide text-white/90 uppercase">
                     Passo 2 de 2 · Para qual e-mail enviamos o acesso?
                   </label>
@@ -550,10 +631,13 @@ export function TikTokConversionLp() {
                 <form
                   action={signInWithGoogle}
                   onSubmit={() =>
-                    trackGaEvent("login_iniciado", { metodo: "google" })
+                    trackGaEvent("login_iniciado", {
+                      metodo: "google",
+                      hero_variant: variantKey,
+                    })
                   }
                 >
-                  <input type="hidden" name="next" value={NEXT_AFTER_SIGNUP} />
+                  <input type="hidden" name="next" value={nextAfterSignup} />
                   <button
                     type="submit"
                     className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 text-[13px] font-semibold text-white transition-colors hover:bg-white/15"
@@ -565,33 +649,74 @@ export function TikTokConversionLp() {
             )}
             </div>
           </div>
-
-          {/* Core platform pillars */}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-center text-[12.5px] font-medium text-white/75">
-            <span>✓ Comunicação com clientes</span>
-            <span>✓ Links organizados</span>
-            <span>✓ Captura de leads</span>
-            <span>✓ Monetização &amp; marca</span>
-          </div>
         </div>
 
-        {/* Right: Discreet Floating Live Link Pill (keeps influencer photo unobstructed) */}
-        <div className="hidden self-end lg:flex">
-          <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-black/55 px-4 py-3 shadow-2xl backdrop-blur-md">
-            <span className="grid size-9 place-items-center rounded-xl bg-[#CDF54A] text-[13px] font-bold text-[#0E0E0E]">
-              {previewSlug.slice(0, 2).toUpperCase()}
-            </span>
-            <div>
-              <p className="text-[13px] font-bold text-white">
-                linkmural.com/<span className="text-[#CDF54A]">{previewSlug}</span>
-              </p>
-              <p className="text-[11px] text-white/70">
-                Links · Leads · Clientes · Marca
-              </p>
-            </div>
+        {/* Right: Discreet Floating Live Link Pill (desktop only) */}
+        <div className="hidden items-center gap-3 self-end rounded-2xl border border-white/20 bg-black/55 px-4 py-3 shadow-2xl backdrop-blur-md lg:flex">
+          <span className="grid size-9 place-items-center rounded-xl bg-[#CDF54A] text-[13px] font-bold text-[#0E0E0E]">
+            {previewSlug.slice(0, 2).toUpperCase()}
+          </span>
+          <div>
+            <p className="text-[13px] font-bold text-white">
+              linkmural.com/<span className="text-[#CDF54A]">{previewSlug}</span>
+            </p>
+            <p className="text-[11px] text-white/70">
+              Links · Leads · Clientes · Marca
+            </p>
           </div>
         </div>
       </main>
+
+      {/* Discreet 4px Bottom Progress Bar Indicator */}
+      <div
+        role="tablist"
+        aria-label="Transição de imagens de capa"
+        className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 grid h-1 grid-cols-4 gap-1 bg-white/10"
+      >
+        {HERO_SLIDES.map((slide, idx) => {
+          const isActive = idx === activeSlide;
+          const isPast = idx < activeSlide;
+          return (
+            <button
+              key={slide.src}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-label={slide.label}
+              onClick={() => setActiveSlide(idx)}
+              className="relative h-full w-full cursor-pointer overflow-hidden bg-white/15"
+            >
+              {isPast && (
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 bg-[#CDF54A]/65"
+                />
+              )}
+              {isActive && (
+                <span
+                  key={`fill-${activeSlide}`}
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 bg-[#CDF54A]"
+                  style={{
+                    animation: "heroSlideProgress 4500ms linear forwards",
+                  }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <style jsx>{`
+        @keyframes heroSlideProgress {
+          from {
+            width: 0%;
+          }
+          to {
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 }
